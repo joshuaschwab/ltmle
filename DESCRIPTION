@@ -1,0 +1,26 @@
+Package: ltmle
+Type: Package
+Title: Longitudinal Targeted Maximum Likelihood Estimation
+Version: 0.9
+Date: 2013-05-03
+Author: Joshua Schwab, Maya Petersen, and Mark van der Laan, with contributions
+    from Susan Gruber
+Maintainer: Joshua Schwab <joshuaschwab@yahoo.com>
+Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
+    email="joshuaschwab@yahoo.com"), person("Maya", "Petersen", role="aut"),
+    person("Mark", "van der Laan", role="aut"), person("Susan", "Gruber",
+    role="ctb"))
+Suggests:
+    SuperLearner,
+    memoise,
+    DEoptim,
+    testthat,
+    tmle
+Description: Targeted Maximum Likelihood Estimation (TMLE) of
+    treatment/censoring specific mean outcome or marginal structural model for
+    point-treatment and longitudinal data
+License: GPL-2
+Collate:
+    'GeneralUtilities.R'
+    'ltmle.R'
+    'ltmle_sg.R'

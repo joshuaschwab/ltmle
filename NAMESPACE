@@ -1,0 +1,8 @@
+S3method(print,ltmle)
+S3method(print,ltmleMSM)
+S3method(print,summary.ltmle)
+S3method(print,summary.ltmleMSM)
+S3method(summary,ltmle)
+S3method(summary,ltmleMSM)
+export(ltmle)
+export(ltmleMSM)
