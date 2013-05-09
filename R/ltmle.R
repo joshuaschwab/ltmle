@@ -10,7 +10,11 @@
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
 ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL) {
-  if (is.vector(abar)) abar <- matrix(rep(abar, each=nrow(data)), nrow=nrow(data))
+  if (is.vector(abar)) {
+    abar <- matrix(rep(abar, each=nrow(data)), nrow=nrow(data))
+  } else if (is.null(abar)) {
+    abar <- matrix(nrow=nrow(data), ncol=0)
+  }
   regimens <- abar
   dim(regimens) <- c(nrow(regimens), ncol(regimens), 1)
   working.msm <- "Y ~ -1 + S1"
@@ -194,7 +198,12 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform, gb
   tmle <- weights <- rep(NA, num.regimens)
   IC <- matrix(0, nrow=n, ncol=num.betas)
   cum.g <- array(0, dim=c(n, length(nodes$AC), num.regimens))
-  is.duplicate <- duplicated(regimens, MARGIN=3)
+  if (num.regimens > 1) {
+    is.duplicate <- duplicated(regimens, MARGIN=3)
+  } else {
+    is.duplicate <- FALSE  #without this if statement there were problems when abar=NULL (ncol(regimens)=0)
+  }
+  
   for (i in 1:num.regimens) {
     if (is.duplicate[i]) {
       weights[i] <- 0
@@ -214,7 +223,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform, gb
   regimens.with.positive.weight <- which(weights > 0)
   for (j in length(nodes$LY):1){
     cur.node <- nodes$LY[j]
-    deterministic.list <- IsDeterministic(data, nodes$Y, cur.node, deterministic.Q.map)
+    deterministic.list <- IsDeterministic(data, nodes$Y, cur.node, deterministic.Q.map, called.from.estimate.g=FALSE)
     deterministic <- deterministic.list$is.deterministic
     uncensored <- IsUncensored(data, nodes$C, cur.node)
     intervention.match <- subs <- matrix(nrow=n, ncol=num.regimens)
@@ -668,7 +677,7 @@ EstimateG <- function(d, gform, nodes, abar, deterministic.acnode.map, stratify,
     } else {
       cur.abar <- rep(1, nrow(d))  #if this is a cnode, abar is always 1
     }
-    deterministic <- IsDeterministic(d, nodes$Y, cur.node, deterministic.Q.map)$is.deterministic #deterministic due to death or Q.map
+    deterministic <- IsDeterministic(d, nodes$Y, cur.node, deterministic.Q.map, called.from.estimate.g=TRUE)$is.deterministic #deterministic due to death or Q.map
     if (! is.numeric(gform)) {
       deterministic.g.list <- IsDeterministicG(d, cur.node, deterministic.acnode.map) #deterministic due to acnode map
       deterministic.g <- deterministic.g.list$is.deterministic
@@ -789,14 +798,14 @@ IsUncensored <- function(d, Cnodes, cur.node) {
 # return list:
 #    is.deterministic: vector of [numObservations x 1] - true if patient is already dead before cur.node or set by deterministic.Q.map
 #    Q.value: vector of [which(is.deterministic) x 1] - value of Q
-IsDeterministic <- function(d, Ynodes, cur.node, deterministic.Q.map) {
+IsDeterministic <- function(d, Ynodes, cur.node, deterministic.Q.map, called.from.estimate.g) {
   is.deterministic <- XMatch(d, Xbar=1, Ynodes, cur.node, any, default=FALSE) #deterministic if any previous y node is 1
   Q.value <- rep(NA, nrow(d))
   Q.value[is.deterministic] <- 1
   
-  if (! is.null(deterministic.Q.map)) {
-    for (i in 1:length(deterministic.Q.map)) {
-      if (deterministic.Q.map[[i]]$node < cur.node) {
+  for (i in seq_along(deterministic.Q.map)) {
+    if (deterministic.Q.map[[i]]$node < cur.node) {
+      if (!called.from.estimate.g || deterministic.Q.map[[i]]$implies.deterministic.g) {
         is.det <- deterministic.Q.map[[i]]$is.deterministic
         val <- deterministic.Q.map[[i]]$Q.value
         
@@ -811,8 +820,8 @@ IsDeterministic <- function(d, Ynodes, cur.node, deterministic.Q.map) {
         Q.value[is.det] <- val
         is.deterministic <- is.deterministic | is.det
       }
-    } 
-  }
+    }
+  } 
   Q.value <- Q.value[is.deterministic]
   if (any(is.na(c(is.deterministic, Q.value)))) stop("NA in is.deterministic or Q.value")
   return(list(is.deterministic=is.deterministic, Q.value=Q.value))
@@ -952,9 +961,10 @@ CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode
   if (! is.null(deterministic.Q.map)) {
     for (i in 1:length(deterministic.Q.map)) {
       map <- deterministic.Q.map[[i]]
-      if (! setequal(names(map), c("node", "is.deterministic", "Q.value"))) stop("each element of deterministic.acnode.map should have names: node, is.deterministic, Q.value")
+      if (! setequal(names(map), c("node", "is.deterministic", "Q.value", "implies.deterministic.g"))) stop("each element of deterministic.Q.map should have names: node, is.deterministic, Q.value, implies.deterministic.g")
+      if (! map$implies.deterministic.g %in% c(0,1)) stop(paste0("length of deterministic.Q.map[[", i, "]]$implies.deterministic.g should be binary"))
       deterministic.Q.map[[i]]$node <- NodeToIndex(data, map$node)
-      if (! length(map$Q.value) %in% c(1, length(which(map$is.deterministic)))) stop(paste("length of deterministic.Q.map[[", i, "]]$Q.value  should be either 1 or length(which(deterministic.Q.map[[", i, "]]$is.deterministic))", sep=""))
+      if (! length(map$Q.value) %in% c(1, length(which(map$is.deterministic)))) stop(paste0("length of deterministic.Q.map[[", i, "]]$Q.value  should be either 1 or length(which(deterministic.Q.map[[", i, "]]$is.deterministic))"))
     }
   }
 
@@ -963,7 +973,7 @@ CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode
   if (! is.null(deterministic.Q.map)) {
     finalY <- data[, max(final.Ynodes)]
     for (i in nodes$LY[nodes$LY <= max(final.Ynodes)]) {
-      deterministic.list <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map)
+      deterministic.list <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map, called.from.estimate.g=FALSE)
       if (any((deterministic.list$Q.value %in% c(0,1)) & (deterministic.list$Q.value != finalY[deterministic.list$is.deterministic]))) stop("deterministic.Q.map is inconsistent with data")
     }
   }
@@ -976,7 +986,7 @@ CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode
       index <- ! is.na(data[, i])
       if (any(index) && any(data[index, i] >= 1 | data[index, i] < 0)) stop("in data, all Ynodes should either be binary or in [0, 1)")
     }
-    deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map=NULL)$is.deterministic
+    deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map=NULL, called.from.estimate.g=FALSE)$is.deterministic
     if (any(is.na(data[deterministic, i])) || ! all(data[deterministic, i] == 1)) stop("This function assumes that once a Ynode jumps to 1 (e.g. death), all subsequent Ynode values will also be 1. Your data does not follow this assumption.")    
   }
   
@@ -984,10 +994,10 @@ CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode
   num.regimens <- dim(regimens)[3]
   stopifnot(num.regimens == nrow(summary.measures))
   if (!all(regimens %in% c(0, 1, NA))) stop("all regimens should be binary")
-  for (i in 1:length(nodes$A)) {
+  for (i in seq_along(nodes$A)) {
     cur.node <- nodes$A[i]
     uncensored <- IsUncensored(data, nodes$C, cur.node)
-    deterministic <- IsDeterministic(data, nodes$Y, cur.node, deterministic.Q.map)$is.deterministic
+    deterministic <- IsDeterministic(data, nodes$Y, cur.node, deterministic.Q.map, called.from.estimate.g=TRUE)$is.deterministic
     if (any(is.na(regimens[uncensored & !deterministic, i, ]))) {
       stop("NA in regimens/abar not allowed (except after censoring/death)")
     }

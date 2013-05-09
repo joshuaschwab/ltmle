@@ -85,6 +85,7 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
       \item \code{node} - the name or index of the node. \emph{If this node is in the history of the L or Y node at the current Q regression, Q will be set} 
       \item \code{is.deterministic} - logical vector, length equal to \code{nrow(data)}, \code{TRUE} if a patient's status for this node is deterministic
       \item \code{Q.value} - value to set Q, length equal to 1 or \code{length(which(is.deterministic))}
+      \item \code{implies.deterministic.g} - logical length 1 - if \code{TRUE}, after a deterministic Q event, subsequent values of treatment and censoring nodes are known to be fixed (e.g. in the case of completing a study) 
 }
 
   \emph{Important! "node" means different things in \code{deterministic.acnode.map} and \code{deterministic.Q.map}.} In \code{deterministic.acnode.map}, \code{node="A1"} means that for patients where \code{is.deterministic = TRUE}, the probability (g) that A1 == 1 is set according to \code{prob1}. In \code{deterministic.Q.map}, \code{node="A1"} means that in Q regressions at all L or Y nodes after A1, for patients where \code{is.deterministic = TRUE}, Q (iterated expectation of final Y) is set according to \code{Q.value}.
@@ -280,7 +281,8 @@ completed.study <- alive & L2 > 0
 #it is not necessary to specify that Q is deterministically 1 if Y1 is 1 - this is automatic
 deterministic.Q.map[[1]] <- list(node="L2", #node can also be the column index of the node in data
                              is.deterministic=completed.study,
-                             Q.value=0) #Q.value can also be a vector of length which(is.deterministic)
+                             Q.value=0, #Q.value can also be a vector of length which(is.deterministic)
+                             implies.deterministic.g=TRUE)
 A2[alive & !completed.study] <- rexpit((0.5 * W + 0.8 * L2)[alive & !completed.study])
 A2[alive & completed.study] <- A1[alive & completed.study] #this doesn't actually change the results because the package assumes that patients follow abar after a deterministic event
 Y2[alive & !completed.study] <- rexpit((L2 - 0.8 * A1 - A2)[alive & !completed.study])
