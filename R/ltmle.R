@@ -9,7 +9,14 @@
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
-ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL) {
+ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, 
+                  abar, rule=NULL, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, 
+                  SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
+                  iptw.only=FALSE, deterministic.Q.map=NULL) {
+  if (!is.null(rule)) {
+    if (!(missing(abar) || is.null(abar))) stop("'abar' should not be specified when using a 'rule' function")
+    abar <- t(apply(data, 1, rule))
+  }
   if (is.vector(abar)) {
     abar <- matrix(rep(abar, each=nrow(data)), nrow=nrow(data))
   } else if (is.null(abar)) {
