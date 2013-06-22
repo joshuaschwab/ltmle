@@ -63,6 +63,10 @@ ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL,
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
   
+  if (is.list(regimens)) {
+    if (!all(do.call(c, lapply(regimens, is.function)))) stop("If 'regimens' is a list, then all elements should be functions.")
+    regimens <- aperm(simplify2array(lapply(regimens, function(rule) apply(data, 1, rule)), higher=TRUE), c(2, 1, 3)) 
+  }
   result <- ltmleMSM.private(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.map)
   result$call <- match.call()
   return(result) 

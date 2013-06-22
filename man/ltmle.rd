@@ -33,7 +33,7 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
   \item{SL.library}{optional character vector of libraries to pass to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. '\code{default}' indicates a standard set of libraries. May be separately specified for \eqn{Q} and \eqn{g}. See 'Details'.}
   \item{estimate.time}{if \code{TRUE}, run an initial estimate using only 50 observations and use this to print a very rough estimate of the total time to completion. No action if there are fewer than 50 observations.}
   \item{gcomp}{if \code{TRUE}, run the maximum likelihood based G-computation estimate \emph{instead} of TMLE}
-  \item{regimens}{binary array: n x numAnodes x numRegimens of counterfactual treatment}
+  \item{regimens}{binary array: n x numAnodes x numRegimens of counterfactual treatment or a list of 'rule' functions}
   \item{working.msm}{character formula for the working marginal structural model}
   \item{summary.measures}{array: num.regimens x num.summary.measures x num.final.Ynodes - measures summarizing the regimens that will be used on the right hand side of working.msm}
   \item{summary.baseline.covariates}{NOT FULLY IMPLEMENTED YET - leave as NULL (default)}
@@ -75,6 +75,8 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
   \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}.
 
   \code{rule} can be used to specify a dynamic treatment rule. \code{rule} is a function applied to each row of \code{data} which returns the a numeric vector of the same length as \code{Anodes}.
+
+  \code{regimens} can be a binary array: n x numAnodes x numRegimens of counterfactual treatment or a list of 'rule' functions as described above for the \code{rule} parameter for the \code{ltmle} function
   
   \code{deterministic.acnode.map} can be used to specify model knowledge about value of Anodes and/or Cnodes that are set deterministically. For example, it may be the case that once a patient starts treatment, they always stay on treatment. \code{deterministic.acnode.map} is a list [1 ... number of deterministic nodes] of lists with the following components:
     \itemize{
@@ -355,4 +357,18 @@ result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, reg
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 print(summary(result))
+
+
+# Example 6.1: regimens can also be specified as a list of rule functions
+
+regimensList <- list(function(row) c(1,1,1),
+                     function(row) c(0,1,1),
+                     function(row) c(0,0,1),
+                     function(row) c(0,0,0))
+result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, regimens=regimensList, 
+                   summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
+                   working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
+# This should be the same as the above result
+print(summary(result.regList))         
+
 }
