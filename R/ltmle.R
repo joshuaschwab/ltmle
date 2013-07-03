@@ -910,7 +910,7 @@ RhsVars <- function(f) {
 
 # Error checking for inputs
 CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map) {
-  if (! is.null(SL.library)) library("SuperLearner")
+  if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
   #each set of nodes should be sorted - otherwise causes confusion with gform, Qform, abar
   if (is.unsorted(nodes$A, strictly=TRUE)) stop("Anodes must be in increasing order")
   if (is.unsorted(nodes$C, strictly=TRUE)) stop("Cnodes must be in increasing order")
