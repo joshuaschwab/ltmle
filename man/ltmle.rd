@@ -8,7 +8,7 @@ Longitudinal Targeted Maximum Likelihood Estimation
 \code{ltmle} is Targeted Maximum Likelihood Estimation (TMLE) of treatment/censoring specific mean outcome for point-treatment and longitudinal data. \code{ltmleMSM} adds Marginal Structural Models. Both always provide Inverse Probability of Treatment/Censoring Weighted estimate (IPTW) as well. Maximum likelihood based G-computation estimate (G-comp) can be obtained instead of TMLE. \code{ltmle} can be used to calculate additive treatment effect, risk ratio, and odds ratio.
 }
 \usage{
-ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, 
+ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, rule=NULL,
  gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, 
  estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, 
@@ -26,13 +26,14 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
   \item{gform}{character vector of regression formulas for \eqn{g}. See 'Details'.}
   \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
+  \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes}
   \item{gbounds}{lower and upper bounds on estimated probabilities for g-factors. Vector of length 2, order unimportant.}
   \item{deterministic.acnode.map}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{stratify}{if \code{TRUE} stratify on following \code{abar} when estimating Q and g. If \code{FALSE}, pool over \code{abar}.}
   \item{SL.library}{optional character vector of libraries to pass to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. '\code{default}' indicates a standard set of libraries. May be separately specified for \eqn{Q} and \eqn{g}. See 'Details'.}
   \item{estimate.time}{if \code{TRUE}, run an initial estimate using only 50 observations and use this to print a very rough estimate of the total time to completion. No action if there are fewer than 50 observations.}
   \item{gcomp}{if \code{TRUE}, run the maximum likelihood based G-computation estimate \emph{instead} of TMLE}
-  \item{regimens}{binary array: n x numAnodes x numRegimens of counterfactual treatment}
+  \item{regimens}{binary array: n x numAnodes x numRegimens of counterfactual treatment or a list of 'rule' functions}
   \item{working.msm}{character formula for the working marginal structural model}
   \item{summary.measures}{array: num.regimens x num.summary.measures x num.final.Ynodes - measures summarizing the regimens that will be used on the right hand side of working.msm}
   \item{summary.baseline.covariates}{NOT FULLY IMPLEMENTED YET - leave as NULL (default)}
@@ -72,6 +73,10 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
   \code{gform} should be \code{NULL}, in which case all parent nodes of each L and Y node will be used as regressors, or a character vector that can be coerced to class "\code{\link{formula}}". The length of \code{gform} must be equal to \code{length(Anodes) + length(Cnodes)} and the order of the formulas must be the same as the order the A and C nodes appear in \code{data}. The left hand side of each formula should be the name of the Anode or Cnode. If \code{SL.library} is \code{NULL}, \code{glm} will be called using the elements of \code{gform}. If \code{SL.library} is specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all variables appearing on the right hand side of a formula will be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional form of the formula is unimportant if \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
   
   \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}.
+
+  \code{rule} can be used to specify a dynamic treatment rule. \code{rule} is a function applied to each row of \code{data} which returns the a numeric vector of the same length as \code{Anodes}.
+
+  \code{regimens} can be a binary array: n x numAnodes x numRegimens of counterfactual treatment or a list of 'rule' functions as described above for the \code{rule} parameter for the \code{ltmle} function
   
   \code{deterministic.acnode.map} can be used to specify model knowledge about value of Anodes and/or Cnodes that are set deterministically. For example, it may be the case that once a patient starts treatment, they always stay on treatment. \code{deterministic.acnode.map} is a list [1 ... number of deterministic nodes] of lists with the following components:
     \itemize{
@@ -265,6 +270,14 @@ abar[, 2] <- L > 0
 result <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", abar=abar, SL.library=NULL)
 summary(result)
 
+# Example 3.1: The regimen can also be specified as a rule function
+
+rule <- function(row) c(1, row["L"] > 0)
+
+result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", rule=rule, SL.library=NULL)
+# This should be the same as the above result
+summary(result.rule)
+
 # Example 4: Deterministic Q map
 # W -> A1 -> Y1 -> L2 -> A2 -> Y2
 n <- 1000
@@ -344,4 +357,18 @@ result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, reg
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 print(summary(result))
+
+
+# Example 6.1: regimens can also be specified as a list of rule functions
+
+regimensList <- list(function(row) c(1,1,1),
+                     function(row) c(0,1,1),
+                     function(row) c(0,0,1),
+                     function(row) c(0,0,0))
+result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, regimens=regimensList, 
+                   summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
+                   working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
+# This should be the same as the above result
+print(summary(result.regList))         
+
 }

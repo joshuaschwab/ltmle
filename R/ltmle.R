@@ -9,7 +9,14 @@
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
-ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL) {
+ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, 
+                  abar, rule=NULL, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, 
+                  SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
+                  iptw.only=FALSE, deterministic.Q.map=NULL) {
+  if (!is.null(rule)) {
+    if (!(missing(abar) || is.null(abar))) stop("'abar' should not be specified when using a 'rule' function")
+    abar <- t(apply(data, 1, rule))
+  }
   if (is.vector(abar)) {
     abar <- matrix(rep(abar, each=nrow(data)), nrow=nrow(data))
   } else if (is.null(abar)) {
@@ -56,6 +63,10 @@ ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL,
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
   
+  if (is.list(regimens)) {
+    if (!all(do.call(c, lapply(regimens, is.function)))) stop("If 'regimens' is a list, then all elements should be functions.")
+    regimens <- aperm(simplify2array(lapply(regimens, function(rule) apply(data, 1, rule)), higher=TRUE), c(2, 1, 3)) 
+  }
   result <- ltmleMSM.private(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.map)
   result$call <- match.call()
   return(result) 
