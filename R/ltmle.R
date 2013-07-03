@@ -1001,7 +1001,7 @@ CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode
     if (any(is.na(data[deterministic, i])) || ! all(data[deterministic, i] == 1)) stop("This function assumes that once a Ynode jumps to 1 (e.g. death), all subsequent Ynode values will also be 1. Your data does not follow this assumption.")    
   }
   
-  if (! is.equal(dim(regimens)[1:2], c(nrow(data), length(nodes$A)))) stop("Probem with abar or regimens:\n   In ltmleMSM, regimens should have dimensions n x num.Anodes x num.regimens\n   In ltmle, abar should be a matrix with dimensions n x num.Anodes or a vector with length num.Anodes")
+  if (! is.equal(dim(regimens)[1:2], c(nrow(data), length(nodes$A)))) stop("Problem with abar or regimens:\n   In ltmleMSM, regimens should have dimensions n x num.Anodes x num.regimens\n   In ltmle, abar should be a matrix with dimensions n x num.Anodes or a vector with length num.Anodes")
   num.regimens <- dim(regimens)[3]
   stopifnot(num.regimens == nrow(summary.measures))
   if (!all(regimens %in% c(0, 1, NA))) stop("all regimens should be binary")
