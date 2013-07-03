@@ -86,8 +86,26 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform,
    
   if (identical(SL.library, 'default')) SL.library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))
   
-  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
-  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
+  PrintForms <- function(t) {
+    #Prints formulas with automatic wrapping thanks to print.formula
+    invisible(lapply(seq_along(t), function(i, names) {
+    cat("\t", names[i], ":\n")
+    print(as.formula(t[i]), showEnv=FALSE)
+    }, names=names(t)))
+    cat("\n")
+  }
+  if (is.null(Qform)) {
+    Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
+    cat("Qform not specified, using defaults:\n")
+    PrintForms(Qform)
+  }
+  if (is.null(gform)) {
+    gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
+    cat("gform not specified, using defaults:\n")
+    PrintForms(gform)
+  }
+
+
   
   if (length(dim(summary.measures)) == 2) {
     num.final.Ynodes <- length(final.Ynodes)
