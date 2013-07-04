@@ -614,7 +614,7 @@ print.ltmle <- function(x, ...) {
 
 # Print a call
 PrintCall <- function(cl) {
-  cat("Call:  ", paste(deparse(cl), sep = "\n", collapse = "\n"), "\n\n", sep = "")
+  cat("Call:\n", paste(deparse(cl), sep = "\n", collapse = "\n"), "\n\n", sep = "")
 }
 
 # Print estimate, standard error, p-value, confidence interval
