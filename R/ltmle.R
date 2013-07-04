@@ -88,20 +88,21 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform,
   
   PrintForms <- function(t) {
     #Prints formulas with automatic wrapping thanks to print.formula
-    invisible(lapply(seq_along(t), function(i, names) {
-    cat("\t", names[i], ":\n")
-    print(as.formula(t[i]), showEnv=FALSE)
-    }, names=names(t)))
-    cat("\n")
+    lapply(seq_along(t), function(i, names) {
+            message("formula for ", names[i], ":")
+            #Using print on a formula because it nicely wraps
+            message(capture.output(print(as.formula(t[i]), showEnv=FALSE)))
+          }, names=names(t))
+    message("")
   }
   if (is.null(Qform)) {
     Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
-    cat("Qform not specified, using defaults:\n")
+    message("Qform not specified, using defaults:")
     PrintForms(Qform)
   }
   if (is.null(gform)) {
     gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
-    cat("gform not specified, using defaults:\n")
+    message("gform not specified, using defaults:")
     PrintForms(gform)
   }
 
