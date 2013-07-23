@@ -572,7 +572,7 @@ print.summary.ltmle <- function(x, ...) {
   } else {
     cat("Treatment ")
     PrintCall(x$treatment.call)
-    cat("\nControl ")
+    cat("Control ")
     PrintCall(x$control.call)
     cat("Treatment Estimate:\n")
     PrintSummary(x$treatment)
