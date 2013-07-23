@@ -85,7 +85,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
     final.Ynodes <- NodeToIndex(data, final.Ynodes)
   }
    
-  if (identical(SL.library, 'default')) SL.library <- Default.SL.Library
+  if (identical(SL.library, 'default')) SL.library <- get("Default.SL.Library")
   
   if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome)
   if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome)
@@ -196,7 +196,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
   stacked.summary.measures <- GetStackedSummaryMeasures(summary.measures, data[, summary.baseline.covariates, drop=FALSE])
   
-  if (identical(SL.library, 'default')) SL.library <- Default.SL.library
+  if (identical(SL.library, 'default')) SL.library <- get("Default.SL.library")
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   
   SL.library.Q <- GetLibrary(SL.library, "Q")
