@@ -8,10 +8,10 @@ Longitudinal Targeted Maximum Likelihood Estimation
 \code{ltmle} is Targeted Maximum Likelihood Estimation (TMLE) of treatment/censoring specific mean outcome for point-treatment and longitudinal data. \code{ltmleMSM} adds Marginal Structural Models. Both always provide Inverse Probability of Treatment/Censoring Weighted estimate (IPTW) as well. Maximum likelihood based G-computation estimate (G-comp) can be obtained instead of TMLE. \code{ltmle} can be used to calculate additive treatment effect, risk ratio, and odds ratio.
 }
 \usage{
-ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, rule=NULL,
+ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, abar, rule=NULL,
  gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, 
  estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL)
-ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, 
+ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
  gbounds=c(0.01, 1), deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, 
  summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, 
  stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
@@ -23,6 +23,7 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
   \item{Cnodes}{column names or indicies in \code{data} of censoring nodes}
   \item{Lnodes}{column names or indicies in \code{data} of time-dependent covariate nodes}
   \item{Ynodes}{column names or indicies in \code{data} of outcome nodes}
+  \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1.}
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
   \item{gform}{character vector of regression formulas for \eqn{g}. See 'Details'.}
   \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
@@ -121,6 +122,7 @@ An object of class "\code{ltmle}" is a list containing the following components:
   }
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
+\item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 
 \code{ltmleMSM} returns an object of class "\code{ltmleMSM}"
 The function \code{\link{summary}} (i.e. \code{\link{summary.ltmleMSM}}) can be used to obtain or print a summary of the results.
@@ -133,6 +135,7 @@ An object of class "\code{ltmleMSM}" is a list containing the following componen
 \item{cum.g}{matrix, n x numACnodes - cumulative g, after bounding}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
+\item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 }
 
 \references{
