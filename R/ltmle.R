@@ -103,6 +103,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   
   result <- MainCalcs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map)
   result$gcomp <- gcomp
+  result$formulas <- list(Qform=Qform, gform=gform)
   class(result) <- "ltmleMSM"
   return(result)
 }
@@ -197,9 +198,6 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   if (identical(SL.library, 'default')) SL.library <- Default.SL.library
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   
-  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
-  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
-   
   SL.library.Q <- GetLibrary(SL.library, "Q")
   SL.library.g <- GetLibrary(SL.library, "g")
   
