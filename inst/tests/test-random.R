@@ -59,7 +59,8 @@ test_that("simple longitudinal data matches code from Susan Gruber paper", {
   gform <- c("A0 ~ 1", "A1 ~ W1 + W2 + W3", "A2 ~ W2 + W3 + L1", "A3 ~ W2 + W3 + L1 + A2")
   lgbound <- 0.01
 
-  r1 <- ltmle.sg(data, Inodes=Anodes, Lnodes=c(6, 9), Ynodes=9, Qform=Qform, gform=gform, gbd=lgbound)
+  r1 <- SuppressGivenWarnings(ltmle.sg(data, Inodes=Anodes, Lnodes=c(6, 9), Ynodes=9, Qform=Qform, gform=gform, gbd=lgbound),
+                              "prediction from a rank-deficient fit may be misleading")
   r2 <- ltmle(data, Anodes=Anodes, Lnodes=6, Ynodes=9, Qform=Qform, gform=gform, abar=c(1, 1, 1, 1), stratify=TRUE, gbounds=c(lgbound, 1), estimate.time=FALSE)
   
   expect_equals(r1["iptw"], r2$estimates["iptw"])
