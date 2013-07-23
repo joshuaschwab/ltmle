@@ -52,6 +52,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   r$cum.g <- temp$cum.g
   r$call <- match.call()
   r$gcomp <- gcomp
+  r$formulas <- temp$formulas
   class(r) <- "ltmle"
   return(r)
 }
