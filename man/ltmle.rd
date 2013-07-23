@@ -352,8 +352,11 @@ summary(result2)
 # regimen was to switch before time.
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
+Lnodes <- c("CD4_2", "CD4_3")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
-result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, regimens=sampleDataForLtmleMSM$regimens, 
+
+result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+                   regimens=sampleDataForLtmleMSM$regimens, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 print(summary(result))
@@ -365,7 +368,8 @@ regimensList <- list(function(row) c(1,1,1),
                      function(row) c(0,1,1),
                      function(row) c(0,0,1),
                      function(row) c(0,0,0))
-result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, regimens=regimensList, 
+result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+                   regimens=regimensList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 # This should be the same as the above result
