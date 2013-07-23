@@ -490,12 +490,12 @@ EstimateTime <- function(data, nodes, Qform, gform, gbounds, SL.library, regimen
   if (is.matrix(gform)) gform <- gform[sample.index, , drop=F]
   try.result <- try(  MainCalcs(data[sample.index, ], nodes, Qform, gform, gbounds, deterministic.acnode.map=NULL, SL.library, regimens[sample.index, , , drop=F], working.msm, summary.measures, summary.baseline.covariates[sample.index, , drop=F], final.Ynodes, normalizeIC=FALSE, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map=NULL), silent=TRUE)
   if (inherits(try.result, "try-error")) {
-    cat("Timing estimate unavailable\n")
+    message("Timing estimate unavailable")
   } else {
     elapsed.time <- Sys.time() - start.time 
     est.time <- round(sqrt(as.double(elapsed.time, units="mins") * nrow(data) / 50), digits=0)
     if (est.time == 0) est.time <- "< 1"
-    cat("Estimate of time to completion:", est.time, "minutes \n")
+    message("Estimate of time to completion: ", est.time, " minutes ")
   }
   invisible(NULL)
 }
