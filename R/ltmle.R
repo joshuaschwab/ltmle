@@ -811,7 +811,12 @@ IsUncensored <- function(d, Cnodes, cur.node) {
 IsDeterministic <- function(d, Ynodes, cur.node, deterministic.Q.map, called.from.estimate.g, survivalOutcome) {
   is.deterministic <- XMatch(d, Xbar=1, Ynodes, cur.node, any, default=FALSE) #deterministic if any previous y node is 1
   Q.value <- rep(NA, nrow(d))
-  Q.value[is.deterministic] <- 1
+  if (survivalOutcome) {
+   is.deterministic <- XMatch(d, Xbar=1, Ynodes, cur.node, any, default=FALSE) #deterministic if any previous y node is 1
+    Q.value[is.deterministic] <- 1
+  } else {
+    is.deterministic <- rep(FALSE, nrow(d))
+  }
   
   for (i in seq_along(deterministic.Q.map)) {
     if (deterministic.Q.map[[i]]$node < cur.node) {
