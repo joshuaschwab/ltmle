@@ -246,7 +246,7 @@ deterministic.acnode.map <- list(
   list(node="A2", is.deterministic=A1==1 & !is.na(A2), prob1=1)) 
 
 result <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"), 
-                Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
+                Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, abar=c(1, 1), 
                 deterministic.acnode.map=deterministic.acnode.map, SL.library=NULL)
 summary(result) 
  
@@ -267,14 +267,14 @@ abar <- matrix(nrow=n, ncol=2)
 abar[, 1] <- 1
 abar[, 2] <- L > 0
 
-result <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", abar=abar, SL.library=NULL)
+result <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", survivalOutcome=TRUE, abar=abar, SL.library=NULL)
 summary(result)
 
 # Example 3.1: The regimen can also be specified as a rule function
 
 rule <- function(row) c(1, row["L"] > 0)
 
-result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", rule=rule, SL.library=NULL)
+result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", survivalOutcome=TRUE, rule=rule, SL.library=NULL)
 # This should be the same as the above result
 summary(result.rule)
 
@@ -303,7 +303,7 @@ Y2[alive & completed.study] <- 0
 Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
-result <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.map=deterministic.Q.map) 
+result <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.map=deterministic.Q.map) 
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result)
 
@@ -355,7 +355,7 @@ Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_2", "CD4_3")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
 
-result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=TRUE,
                    regimens=sampleDataForLtmleMSM$regimens, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
@@ -368,7 +368,7 @@ regimensList <- list(function(row) c(1,1,1),
                      function(row) c(0,1,1),
                      function(row) c(0,0,1),
                      function(row) c(0,0,0))
-result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=TRUE,
                    regimens=regimensList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
