@@ -19,7 +19,7 @@ test_that("Lnodes, Anodes, Cnodes, Ynodes include all columns after the first on
 
 test_that("In formulas RHS variables are parents of the current node", {
 
-n <- 10 
+  n <- 10 
   set.seed(2345)
   dat <- data.frame(W=rbinom(n, 1, .5),
                     A1=rbinom(n, 1, .5),
@@ -28,20 +28,33 @@ n <- 10
                     Y=rbinom(n, 1, .5)
                     )  
 
-  bad.gform <- c(A1="A1~W", A2="A2~Y+L2+A1+W")
-  bad.Qform <- c(L2="Qkplus1~A1+W", Y="Qkplus1~L2+A2+Y")
+  expect_that(ltmle(dat, Anodes=c("A1", "A2"),
+                    Lnodes = "L2", 
+                    Ynodes = "Y", 
+                    abar = c(1,1),
+                    gform = c("A1~W", "A2~Y+L2+A1+W")),  
+       throws_error("Some nodes in gform\\[2\\] are not parents of A2"))
 
-expect_that(ltmle(dat, Anodes=c("A1", "A2"),
-     Lnodes = "L2", 
-     Ynodes = "Y", 
-     abar = c(1,1)),
-     gform = bad.gform,  
-     throws_error("something something"))
+  expect_that(ltmle(dat, Anodes=c("A1", "A2"),
+                    Lnodes = "L2", 
+                    Ynodes = "Y", 
+                    abar = c(1,1),
+                    Qform = c(L2="Q.kplus1~A1+W", Y="Q.kplus1~L2+A2+Y")),  
+       throws_error("Some nodes in Qform\\[2\\] are not parents of Y"))
 
-expect_that(ltmle(dat, Anodes=c("A1", "A2"),
-     Lnodes = "L2", 
-     Ynodes = "Y", 
-     abar = c(1,1)),
-     Qform = bad.Qform,  
-     throws_error("something something"))
-  })
+  #No baseline covars before first A node
+  dat2 <- dat[, -1]
+  expect_that(ltmle(dat2, Anodes=c("A1", "A2"),
+                    Lnodes = "L2", 
+                    Ynodes = "Y", 
+                    abar = c(1,1),
+                    gform = c("A1~A1", "A2~1")),  
+       throws_error("Some nodes in gform\\[1\\] are not parents of A1")) 
+
+  expect_that(ltmle(dat2, Anodes=c("A1", "A2"),
+                    Lnodes = "L2", 
+                    Ynodes = "Y", 
+                    abar = c(1,1),
+                    gform = c("A1~1", "A2~1")),  
+       is_a("ltmle"))            
+})

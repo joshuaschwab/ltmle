@@ -947,6 +947,15 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
         cat("note: ACnodes = sort(c(Anodes, Cnodes))")
         stop("The LHS variable of gform[i] should match names(data)[ACnodes[i]]")
       }
+      parents <- if(nodes$AC[i] > 1) {
+        names(data)[1:(nodes$AC[i]-1)]
+        } else {
+          NULL
+        }
+      if (!all(RhsVars(gform[i]) %in% parents)) {
+        msg <- paste("Some nodes in gform[", i, "] are not parents of ", LhsVars(gform[i]), sep="")
+        stop(msg)
+      }
     }
   } else {
     if (! is.numeric(gform)) stop("gform should be a character vector or numeric")
@@ -965,6 +974,11 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
     if (LhsVars(Qform[i]) != "Q.kplus1") stop("LHS of each Qform should be Q.kplus1")
     if (length(names(Qform[i])) == 0) stop("Each element of Qform must be named. The name must match the name of the corresponding L/Y node in data.")
     if (names(Qform[i]) != names(data)[nodes$LY[i]]) stop("The name of each element of Q must match the name of the corresponding L/Y node in data.")
+    parents <- names(data)[1:(nodes$LY[i]-1)]
+    if (!all(RhsVars(Qform[i]) %in% parents)) {
+      msg <- paste("Some nodes in Qform[", i, "] are not parents of ", names(Qform[i]), sep="")
+      stop(msg)
+    }    
   }
   
   if (length(gbounds) != 2) stop("gbounds should have length 2")
