@@ -15,8 +15,8 @@ test_that("Previous Ys are included in default formulas when they should be", {
   Ynodes <- c("Y2", "Y3")
 
   forms <- ltmle(data, Anodes, Ynodes=Ynodes, abar=c(1,1), survivalOutcome=FALSE)$formulas
-  expect_that("Y2" %in% RhsVars(forms2$gform["A2"]), is_true())
-  expect_that("Y2" %in% RhsVars(forms2$Qform["Y3"]), is_true())  
+  expect_that("Y2" %in% RhsVars(forms$gform["A2"]), is_true())
+  expect_that("Y2" %in% RhsVars(forms$Qform["Y3"]), is_true())  
 
   forms2 <- ltmle(data2, Anodes, Ynodes=Ynodes, abar=c(1,1), survivalOutcome=TRUE)$formulas
   expect_that("Y2" %in% RhsVars(forms2$gform["A2"]), is_false())

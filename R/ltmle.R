@@ -87,8 +87,8 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
    
   if (identical(SL.library, 'default')) SL.library <- Default.SL.Library
   
-  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
-  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
+  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome)
+  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome)
   
   if (length(dim(summary.measures)) == 2) {
     num.final.Ynodes <- length(final.Ynodes)
@@ -1064,7 +1064,7 @@ CheckDeterministicACNodeMap <- function(data, deterministic.acnode.map) {
 }
 
 # Get the default Q or g formula - each formula consists of all parent nodes except censoring and event nodes [also except A nodes if stratifying]
-GetDefaultForm <- function(data, nodes, is.Qform, stratify) {
+GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome) {
   if (is.Qform) {
     lhs <- rep("Q.kplus1", length(nodes$LY))
     node.set <- nodes$LY
@@ -1073,9 +1073,12 @@ GetDefaultForm <- function(data, nodes, is.Qform, stratify) {
     node.set <- nodes$AC
   }
   if (stratify) {
-    stratify.nodes <- c(nodes$C, nodes$Y, nodes$A)
+    stratify.nodes <- c(nodes$C, nodes$A)
   } else {
-    stratify.nodes <- c(nodes$C, nodes$Y)
+    stratify.nodes <- c(nodes$C)
+  }
+  if (survivalOutcome) {
+    stratify.nodes <- c(stratify.nodes, nodes$Y)
   }
   form <- NULL
   for (i in 1:length(node.set)) {
