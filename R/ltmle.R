@@ -86,7 +86,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
    
   if (identical(SL.library, 'default')) SL.library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))
   
-  PrintForms <- function(t) {
+  DisplayForms <- function(t) {
     #Prints formulas with automatic wrapping thanks to print.formula
     lapply(seq_along(t), function(i, names) {
             message("formula for ", names[i], ":")
@@ -98,12 +98,12 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   if (is.null(Qform)) {
     Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
     message("Qform not specified, using defaults:")
-    PrintForms(Qform)
+    DisplayForms(Qform)
   }
   if (is.null(gform)) {
     gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
     message("gform not specified, using defaults:")
-    PrintForms(gform)
+    DisplayForms(gform)
   }
 
 
