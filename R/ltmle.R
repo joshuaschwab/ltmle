@@ -84,7 +84,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
     final.Ynodes <- NodeToIndex(data, final.Ynodes)
   }
    
-  if (identical(SL.library, 'default')) SL.library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))
+  if (identical(SL.library, 'default')) SL.library <- Default.SL.Library
   
   if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
   if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify)
@@ -194,7 +194,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
   stacked.summary.measures <- GetStackedSummaryMeasures(summary.measures, data[, summary.baseline.covariates, drop=FALSE])
   
-  if (identical(SL.library, 'default')) SL.library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))
+  if (identical(SL.library, 'default')) SL.library <- Default.SL.library
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   
   if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify)
@@ -1358,3 +1358,5 @@ GetWarningsToSuppress <- function(update.step=FALSE) {
   }
   return(warnings.to.suppress)
 }
+
+Default.SL.Library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))
