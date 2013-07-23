@@ -946,7 +946,13 @@ CheckInputs <- function(data, nodes, Qform, gform, gbounds, deterministic.acnode
   if (length(all.nodes) > length(unique(all.nodes))) stop("A node cannot be listed in more than one of Anodes, Cnodes, Lnodes, Ynodes")
   if (is.null(nodes$Y)) stop("Ynodes cannot be null")
   if (is.null(nodes$AC)) stop("Anodes and Cnodes cannot both be null")
-  
+
+  if (min(all.nodes) < ncol(data)) {
+    if (!all((min(all.nodes):ncol(data)) %in% all.nodes)) {
+      stop("All nodes after the A-, C-, L-, or Ynodes must be in A-, C-, L-, or Ynodes")
+    }
+  }
+
   if (is.character(gform)) {
     if (length(gform) != length(nodes$AC)) stop("length(gform) != length(c(Anodes, Cnodes))")
     for (i in 1:length(gform)) {
