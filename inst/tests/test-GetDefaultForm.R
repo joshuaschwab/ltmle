@@ -3,6 +3,7 @@ context("Test GetDefaultForm.R")
 test_that("Previous Ys are included in default formulas when they should be", {
 
   n <- 100
+  set.seed(89345)
   data <- data.frame(W = rbinom(n, 1, .5),
                      A1 = rbinom(n, 1, .5),
                      Y2 = rbinom(n, 1, .5),
