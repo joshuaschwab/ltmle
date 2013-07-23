@@ -1,4 +1,4 @@
-context("tests with random data")
+context("Tests with random data")
 
 library(tmle)
 
