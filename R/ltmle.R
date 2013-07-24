@@ -953,8 +953,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
           NULL
         }
       if (!all(RhsVars(gform[i]) %in% parents)) {
-        msg <- paste("Some nodes in gform[", i, "] are not parents of ", LhsVars(gform[i]), sep="")
-        stop(msg)
+        stop("Some nodes in gform[", i, "] are not parents of ", LhsVars(gform[i]))
       }
     }
   } else {
@@ -976,8 +975,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
     if (names(Qform[i]) != names(data)[nodes$LY[i]]) stop("The name of each element of Q must match the name of the corresponding L/Y node in data.")
     parents <- names(data)[1:(nodes$LY[i]-1)]
     if (!all(RhsVars(Qform[i]) %in% parents)) {
-      msg <- paste("Some nodes in Qform[", i, "] are not parents of ", names(Qform[i]), sep="")
-      stop(msg)
+      stop("Some nodes in Qform[", i, "] are not parents of ", names(Qform[i]))
     }    
   }
   
@@ -1014,14 +1012,21 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   
   if (! all(unlist(data[, nodes$A]) %in% c(0, 1, NA))) stop("in data, all Anodes should be binary")
   #note: Cnodes are checked in ConvertCensoringNodes
+
+  all.Y <- unlist(data[, nodes$Y])
+
+  binaryOutcome <- all(all.Y %in% c(0, 1, NA))
+  if (survivalOutcome && ! binaryOutcome) {
+    stop("When survivalOutcome is TRUE, all Ynodes should be 0, 1, or NA")
+  }
+  range.Y <- range(all.Y, na.rm=TRUE)
+  if (min(range.Y) < 0 || max(range.Y) > 1) {
+    stop("All Ynodes should either be binary or in [0, 1]")    
+  }
   
   for (i in nodes$Y) {
-    if (! all(data[, i] %in% c(0, 1, NA))) {
-      index <- ! is.na(data[, i])
-      if (any(index) && any(data[index, i] >= 1 | data[index, i] < 0)) stop("in data, all Ynodes should either be binary or in [0, 1)")
-    }
     deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map=NULL, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
-    if (any(is.na(data[deterministic, i])) || ! all(data[deterministic, i] == 1)) stop("This function assumes that once a Ynode jumps to 1 (e.g. death), all subsequent Ynode values will also be 1. Your data does not follow this assumption.")    
+    if (survivalOutcome && any(is.na(data[deterministic, i])) || ! all(data[deterministic, i] == 1)) stop("For survival outcomes, once a Ynode jumps to 1 (e.g. death), all subsequent Ynode values should be 1.")    
   }
   
   if (! is.equal(dim(regimens)[1:2], c(nrow(data), length(nodes$A)))) stop("Problem with abar or regimens:\n   In ltmleMSM, regimens should have dimensions n x num.Anodes x num.regimens\n   In ltmle, abar should be a matrix with dimensions n x num.Anodes or a vector with length num.Anodes")

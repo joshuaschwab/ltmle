@@ -1,4 +1,4 @@
-context("Test GetDefaultForm.R")
+context("Test GetDefaultForm")
 
 test_that("Previous Ys are included in default formulas when they should be", {
 

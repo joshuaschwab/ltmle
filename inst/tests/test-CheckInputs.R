@@ -58,3 +58,24 @@ test_that("In formulas RHS variables are parents of the current node", {
                     gform = c("A1~1", "A2~1")),  
        is_a("ltmle"))            
 })
+
+test_that("Non-binary outcome can be in [0, 1]", {
+  n <- 10
+  set.seed(50)
+  data <- data.frame(W = rnorm(n),
+                     A = rbinom(n, 1, .5), 
+                     Y = rbinom(n, 2, .5)/2)
+
+  expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1), is_a("ltmle"))
+})
+
+test_that("survivalOutcome=TRUE requires binary outcomes.", {
+  n <- 10
+  set.seed(50)
+  data <- data.frame(W = rnorm(n),
+                     A = rbinom(n, 1, .5), 
+                     Y = rbinom(n, 2, .5)/2)
+
+  expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1, survivalOutcome=TRUE), 
+    throws_error("When survivalOutcome is TRUE, all Ynodes should be 0, 1, or NA"))
+})
