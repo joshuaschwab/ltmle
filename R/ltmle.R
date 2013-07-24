@@ -53,6 +53,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   r$call <- match.call()
   r$gcomp <- gcomp
   r$formulas <- temp$formulas
+  r$binaryOutcome <- temp$binaryOutcome
   class(r) <- "ltmle"
   return(r)
 }
@@ -96,15 +97,16 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   }
   
   # error checking (also convert deterministic.acnode.map and deterministic.Q.map to index)
-  deterministic.maps <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map)
-  deterministic.acnode.map <- deterministic.maps$deterministic.acnode.map
-  deterministic.Q.map <- deterministic.maps$deterministic.Q.map
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map)
+  deterministic.acnode.map <- check.results$deterministic.acnode.map
+  deterministic.Q.map <- check.results$deterministic.Q.map
   
   if (estimate.time) EstimateTime(data, nodes, survivalOutcome, Qform, gform, gbounds, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only)
   
   result <- MainCalcs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map)
   result$gcomp <- gcomp
   result$formulas <- list(Qform=Qform, gform=gform)
+  result$binaryOutcome <- check.results$binaryOutcome
   class(result) <- "ltmleMSM"
   return(result)
 }
@@ -492,7 +494,7 @@ summary.ltmle <- function(object, control.object=NULL, estimator=ifelse(object$g
   treatment.summary <- GetSummary(object$estimates[estimator], object$IC[[estimator]], loggedIC=FALSE)
   if (! is.null(control.object)) {
     control.summary <- GetSummary(control.object$estimates[estimator], control.object$IC[[estimator]], loggedIC=FALSE)
-    effect.measures <- GetEffectMeasures(est0=control.object$estimates[estimator], IC0=control.object$IC[[estimator]], est1=object$estimates[estimator], IC1=object$IC[[estimator]])
+    effect.measures <- GetEffectMeasures(est0=control.object$estimates[estimator], IC0=control.object$IC[[estimator]], est1=object$estimates[estimator], IC1=object$IC[[estimator]], binaryOutcome=object$binaryOutcome && control.object$binaryOutcome)
     effect.measures.summary <- lapply(effect.measures, function (x) GetSummary(x$est, x$IC, x$loggedIC))
   } else {
     control.summary <- effect.measures.summary <- NULL
@@ -560,10 +562,14 @@ print.summary.ltmle <- function(x, ...) {
     PrintSummary(x$control)
     cat("\nAdditive Effect:\n")
     PrintSummary(x$effect.measure$ATE)
-    cat("\nRelative Risk:\n")
-    PrintSummary(x$effect.measure$RR)
-    cat("\nOdds Ratio:\n")
-    PrintSummary(x$effect.measure$OR)
+    if (!is.null(x$effect.measure$RR)) {
+      cat("\nRelative Risk:\n")
+      PrintSummary(x$effect.measure$RR)
+    }
+    if (!is.null(x$effect.measure$OR)) {
+      cat("\nOdds Ratio:\n")
+      PrintSummary(x$effect.measure$OR)
+    }
   }
   invisible(x)
 }
@@ -634,20 +640,32 @@ GetCI <- function(estimate, std.dev) {
 }
 
 # Calculate Average Treatment Effect, Relative Risk, Odds Ratio
-GetEffectMeasures <- function(est0, IC0, est1, IC1) {  
+GetEffectMeasures <- function(est0, IC0, est1, IC1, binaryOutcome) {  
   names(est0) <- names(est1) <- NULL
-  ATE <- est1 - est0
-  RR <- est1 / est0
-  OR <- (est1/(1-est1)) / (est0 / (1-est0))
-  
+  est.ATE <- est1 - est0
+
+  if (binaryOutcome) {
+    est.RR <- est1 / est0
+    est.OR <- (est1/(1-est1)) / (est0 / (1-est0))
+  }
+
   if (is.null(IC0)) {
     ATE.IC <- RR.IC <- OR.IC <- NULL
   } else {
     ATE.IC <- -IC0 + IC1   
-    logRR.IC <- -1/est0 * IC0 + 1/est1 * IC1
-    logOR.IC <- 1/(est0^2 - est0) * IC0 + 1/(est1 - est1^2) * IC1 
+    if (binaryOutcome) {
+      logRR.IC <- -1/est0 * IC0 + 1/est1 * IC1
+      logOR.IC <- 1/(est0^2 - est0) * IC0 + 1/(est1 - est1^2) * IC1 
+    }
   }
-  return(list(ATE=list(est=ATE, IC=ATE.IC, loggedIC=FALSE), RR=list(est=RR, IC=logRR.IC, loggedIC=TRUE), OR=list(est=OR, IC=logOR.IC, loggedIC=TRUE)))
+
+  result <- list(ATE=list(est=est.ATE, IC=ATE.IC, loggedIC=FALSE))
+  if (binaryOutcome) {
+    result$RR <- list(est=est.RR, IC=logRR.IC, loggedIC=TRUE)
+    result$OR <- list(est=est.OR, IC=logOR.IC, loggedIC=TRUE)
+  }
+
+  return(result)
 }
 
 # Calculate IPTW and naive estimates
@@ -1048,7 +1066,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   dynamic.regimens <- !all(duplicated(regimens)[2:nrow(data)])
   if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
   
-  return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map))
+  return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map, binaryOutcome=binaryOutcome))
 }
 
 # Check deterministic.acnode.map for errors
