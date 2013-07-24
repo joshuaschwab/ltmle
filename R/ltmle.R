@@ -196,7 +196,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
   stacked.summary.measures <- GetStackedSummaryMeasures(summary.measures, data[, summary.baseline.covariates, drop=FALSE])
   
-  if (identical(SL.library, 'default')) SL.library <- get("Default.SL.library")
+  if (identical(SL.library, 'default')) SL.library <- get("Default.SL.library") #Using get to avoid the "no visible binding for global variable" note in R CMD check
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   
   SL.library.Q <- GetLibrary(SL.library, "Q")
