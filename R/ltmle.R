@@ -294,7 +294,10 @@ FinalizeIC <- function(IC, summary.measures, summary.baseline.covariates, Qstar,
     }  
   }
   
-  if (any(abs(colSums(finalIC)) > 0.001 )) {cat("final IC problem", colSums(finalIC), "\n")}
+  if (any(abs(colSums(finalIC)) > 0.001 )) {
+    msg <- cat("final IC problem", colSums(finalIC))
+    warning(paste(msg, collapse="\n"))
+  }
   IC <- IC + finalIC
   if (normalizeIC) {
     IC  <- NormalizeIC(IC, summary.measures, m.beta, ignore.bad.ic=FALSE, weights) 
@@ -325,13 +328,16 @@ NormalizeIC <- function(IC, summary.measures, m.beta, ignore.bad.ic=FALSE, weigh
   }
   if (abs(det(C)) < 1e-18 ) {
     normalized.IC <- matrix(nrow=nrow(IC), ncol=num.betas)
-    cat("det(C) = 0, normalized IC <- NA\n")
+    warning("det(C) = 0, normalized IC <- NA")
   } else {
     normalized.IC <- t(solve(C, t(IC))) #IC %*% solve(C) 
     if (!ignore.bad.ic && any(abs(colSums(normalized.IC)) > 0.001 )) {
-      cat("normalized IC problem", colSums(normalized.IC), "\n")
-      cat("inv(C) = \n")
-      print(solve(C))
+      msg <- capture.outout({
+        cat("normalized IC problem", colSums(normalized.IC), "\n")
+        cat("inv(C) = \n")
+        print(solve(C))
+        })
+      warning(paste(msg, collapse="\n"))
     }
   }
   return(normalized.IC)
@@ -460,7 +466,7 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
   if (! l$solved) l <- FindMin("optim")
   if (! l$solved) l <- FindMin("nlm")
   if (! l$solved && require(DEoptim)) l <- FindMin("DEoptim")   #comment out this line to turn off DEoptim (it's slow)
-  if (! l$solved) {cat("\n\n -------- all minimizers failed, returning non-updated Q ------ \n\n\n")}
+  if (! l$solved) {warning("------ all minimizers failed, returning non-updated Q ------")}
   Qstar <- QstarFromE(l$e)
   return(Qstar)
 }
@@ -959,7 +965,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
     if (length(gform) != length(nodes$AC)) stop("length(gform) != length(c(Anodes, Cnodes))")
     for (i in 1:length(gform)) {
       if (LhsVars(gform[i]) != names(data)[nodes$AC[i]]) {
-        stop("The LHS of gform[", i, "] should be the name of the  ", i, "th A or C node")
+        stop("The LHS of gform[", i, "] should be the name of the ", i, "th A or C node")
       }
       parents <- if(nodes$AC[i] > 1) {
         names(data)[1:(nodes$AC[i]-1)]
@@ -979,8 +985,6 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   
   if (! is.character(Qform)) stop("Qform should be a character vector")
   if (length(Qform) != length(nodes$LY)) {
-    cat("L/Y nodes: ", names(data)[nodes$LY], "\n")
-    cat("length(Qform) = ", length(Qform), "\n")
     stop("length of Qform is not equal to number of L/Y nodes")
   }
   for (i in 1:length(Qform)) {
@@ -1081,14 +1085,20 @@ CheckDeterministicACNodeMap <- function(data, deterministic.acnode.map) {
       name <- names(data)[node]
     }
     if (any(index)) {
-      cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
-      print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob[index])))
+      msg <- capture.output({
+        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
+        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob[index])))
+      })
+      warning(paste(msg, collapse="\n"))          
       ok <- FALSE
     }
     index <- !is.na(d) & d == 0 & prob == 1
     if (any(index)) {
-      cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
-      print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob[index])))
+      msg <- capture.output ({
+        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
+        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob[index])))
+      })
+      warning(paste(msg, collapse="\n"))          
       ok <- FALSE
     }
   }
@@ -1178,9 +1188,9 @@ CreateLYNodes <- function(data, nodes, check.Qform, Qform) {
       }
     }
     if (! is.null(removed.Qform.index)) {
-      cat("L/Y nodes (after removing blocks)  : ", names(data)[new.LYnodes], "\n")
-      cat("Qform names                        : ", names(Qform), "\n")
-      cat(paste("The following nodes are not being considered as L/Y nodes because they are part of a block of L/Y nodes. They are being dropped from Qform:\n"), paste(names(Qform)[removed.Qform.index], "\n", collapse=" "))
+      message("L/Y nodes (after removing blocks)  : ", names(data)[new.LYnodes], "\n")
+      message("Qform names                        : ", names(Qform), "\n")
+      message(paste("The following nodes are not being considered as L/Y nodes because they are part of a block of L/Y nodes. They are being dropped from Qform:\n"), paste(names(Qform)[removed.Qform.index], "\n", collapse=" "))
       Qform <- Qform[-removed.Qform.index]
     }
     return(list(LYnodes=new.LYnodes, Qform=Qform))
@@ -1282,7 +1292,7 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights) {
           h <- matrix(model.mat[index, ], ncol=1) * weights[i, j]  #index needs to pick up regimen i, time j
           m.beta <- predict(m, type="response")[index] 
           C <- C + h %*% t(h) * m.beta * (1 - m.beta) / weights[i, j]
-          if (any(is.na(C))) {print("NA in C"); browser()}
+          if (any(is.na(C))) {stop("NA in C")}
         }
       }
     }
