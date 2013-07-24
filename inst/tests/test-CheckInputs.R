@@ -79,3 +79,14 @@ test_that("survivalOutcome=TRUE requires binary outcomes.", {
   expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1, survivalOutcome=TRUE), 
     throws_error("When survivalOutcome is TRUE, all Ynodes should be 0, 1, or NA"))
 })
+
+test_that("binaryOutcome flag set correctly", {
+  n <- 10
+  set.seed(50)
+  data <- data.frame(W = rnorm(n),
+                     A = rbinom(n, 1, .5), 
+                     Y = rbinom(n, 2, .5)/2)
+
+  expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1)$binaryOutcome, is_false())
+  expect_that(ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=1)$binaryOutcome, is_true())  
+})
