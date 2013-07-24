@@ -959,11 +959,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
     if (length(gform) != length(nodes$AC)) stop("length(gform) != length(c(Anodes, Cnodes))")
     for (i in 1:length(gform)) {
       if (LhsVars(gform[i]) != names(data)[nodes$AC[i]]) {
-        cat("gform[", i,"] = ")
-        print(gform[i])
-        cat("names(data)[ACnodes[", i, "]] = ", names(data)[nodes$AC[i]], "\n")
-        cat("note: ACnodes = sort(c(Anodes, Cnodes))")
-        stop("The LHS variable of gform[i] should match names(data)[ACnodes[i]]")
+        stop("The LHS of gform[", i, "] should be the name of the  ", i, "th A or C node")
       }
       parents <- if(nodes$AC[i] > 1) {
         names(data)[1:(nodes$AC[i]-1)]
