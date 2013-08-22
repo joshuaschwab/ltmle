@@ -1,5 +1,11 @@
 # Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
 
+
+#note: allow deterministic maps to be list() - treated as NULL
+#note: pass nodes instead of Anodes, Cnodes... to NonpooledMSM (there was a bug with default Qform otherwise)
+#note: fixed minor bug in output of CheckDeterministicACNodeMap
+#note: fixed bug where summary printed var instead of std error
+
 #v0.9: 5/3/13 Joshua Schwab  released package
 
 # General code flow:
@@ -115,7 +121,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
 MainCalcs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map) {
   if (! pooledMSM) {
     if (! is.null(summary.baseline.covariates)) stop("summary.baseline.covariates not supported")
-    return(NonpooledMSM(data, nodes$A, nodes$C, nodes$L, nodes$Y, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map))
+    return(NonpooledMSM(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map))
   }
   if (iptw.only) {
     final.Ynodes <- final.Ynodes[length(final.Ynodes)]
@@ -613,7 +619,7 @@ PrintCall <- function(cl) {
 # Print estimate, standard error, p-value, confidence interval
 PrintSummary <- function(x) {
   cat("   Parameter Estimate: ", signif(x$estimate, 5))
-  cat("\n    Estimated Std Err: ", signif(x$std.dev^2, 5))
+  cat("\n    Estimated Std Err: ", signif(x$std.dev, 5))
   cat("\n              p-value: ", ifelse(x$pvalue <= 2*10^-16, "<2e-16",signif(x$pvalue, 5)))
   cat("\n    95% Conf Interval:",paste("(", signif(x$CI[1], 5), ", ", signif(x$CI[2], 5), ")", sep=""),"\n")
   invisible(x)
@@ -945,7 +951,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   if (is.unsorted(nodes$Y, strictly=TRUE)) stop("Ynodes must be in increasing order")
   if (is.unsorted(final.Ynodes, strictly=TRUE)) stop("final.Ynodes must be in increasing order")
 
-  if (! is.null(nodes$L)) {
+  if (length(nodes$L) > 0) {
     if (min(nodes$L) < min(nodes$AC)) stop("Lnodes are not allowed before A/C nodes. If you want to include baseline nodes, include them in data but not in Lnodes")
     if (max(nodes$L) > max(nodes$Y)) stop("Lnodes are not allowed after the final Y node")
   }
@@ -998,6 +1004,9 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   }
   
   if (length(gbounds) != 2) stop("gbounds should have length 2")
+  if (length(deterministic.acnode.map) == 0) {
+    deterministic.acnode.map <- NULL   #user can pass list() but package is expecting NULL
+  }
   if (! is.null(deterministic.acnode.map)) {
     for (i in 1:length(deterministic.acnode.map)) {
       map <- deterministic.acnode.map[[i]]
@@ -1008,6 +1017,9 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
     }
   }
   
+  if (length(deterministic.Q.map) == 0) {
+    deterministic.Q.map <- NULL   #user can pass list() but package is expecting NULL
+  }
   if (! is.null(deterministic.Q.map)) {
     for (i in 1:length(deterministic.Q.map)) {
       map <- deterministic.Q.map[[i]]
@@ -1064,7 +1076,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (! all(RhsVars(working.msm) %in% colnames(summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures")
   dynamic.regimens <- !all(duplicated(regimens)[2:nrow(data)])
-  if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
+  #if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
   
   return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map, binaryOutcome=binaryOutcome))
 }
@@ -1085,20 +1097,24 @@ CheckDeterministicACNodeMap <- function(data, deterministic.acnode.map) {
       name <- names(data)[node]
     }
     if (any(index)) {
-      msg <- capture.output({
-        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
-        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob[index])))
-      })
-      warning(paste(msg, collapse="\n"))          
+      cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
+      if (length(prob) == 1) {
+        prob1 <- prob
+      } else {
+        prob1 <- prob[index]
+      }
+      print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
       ok <- FALSE
     }
     index <- !is.na(d) & d == 0 & prob == 1
     if (any(index)) {
-      msg <- capture.output ({
-        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
-        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob[index])))
-      })
-      warning(paste(msg, collapse="\n"))          
+      cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
+      if (length(prob) == 1) {
+        prob1 <- prob
+      } else {
+        prob1 <- prob[index]
+      }
+      print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
       ok <- FALSE
     }
   }
@@ -1207,37 +1223,35 @@ GetLibrary <- function(SL.library, estimate.type) {
 }
 
 # The non-pooled version of the ltmleMSM 
-NonpooledMSM <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map) {  
+NonpooledMSM <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map) {  
   tmle.index <- ifelse(gcomp, "gcomp", "tmle")
   num.regimens <- dim(regimens)[3]
   num.final.Ynodes <- length(final.Ynodes)
   
-  LYnodes <- sort(c(Lnodes, Ynodes))
-  ACnodes <- sort(c(Anodes, Cnodes))
-  num.ACnodes <- sum(ACnodes < max(final.Ynodes))
+  num.ACnodes <- sum(nodes$AC < max(final.Ynodes))
   tmle <- iptw <- weights <- matrix(nrow=num.regimens, ncol=num.final.Ynodes)
   IC <- IC.iptw <- array(dim=c(num.regimens, num.final.Ynodes, nrow(data)))
   cum.g <- array(dim=c(nrow(data), num.ACnodes, num.regimens))
   for (j in 1:num.final.Ynodes) {
     final.Ynode <- final.Ynodes[j]
     if (is.matrix(gform)) {
-      gform1 <- gform[, ACnodes < final.Ynode, drop=FALSE]
+      gform1 <- gform[, nodes$AC < final.Ynode, drop=FALSE]
     } else {
-      gform1 <- gform[ACnodes < final.Ynode]
+      gform1 <- gform[nodes$AC < final.Ynode]
     }
-    is.duplicate <- duplicated(regimens[, Anodes < final.Ynode, , drop=FALSE], MARGIN=3)
+    is.duplicate <- duplicated(regimens[, nodes$A < final.Ynode, , drop=FALSE], MARGIN=3)
     
     #It would be better to reuse g instead of calculating the same thing every time final.Ynode varies (note: g does need to be recalculated for each abar/regimen) - memoizing gets around this to some degree but it could be written better
     for (i in which(! is.duplicate)) {
       abar <- drop3(regimens[, , i, drop=F])
-      abar <- abar[, Anodes < final.Ynode, drop=FALSE]
+      abar <- abar[, nodes$A < final.Ynode, drop=FALSE]
       det.ac.map <- TruncateDeterministicNodeMap(data, deterministic.acnode.map, final.Ynode)
       det.Q.map <- TruncateDeterministicNodeMap(data, deterministic.Q.map, final.Ynode)
       
-      weights[i, j] <- ComputeGA(data[, 1:final.Ynode, drop=FALSE], Anodes[Anodes <= final.Ynode], Cnodes[Cnodes <= final.Ynode], abar, final.Ynode, weight.msm)
+      weights[i, j] <- ComputeGA(data[, 1:final.Ynode, drop=FALSE], nodes$A[nodes$A <= final.Ynode], nodes$C[nodes$C <= final.Ynode], abar, final.Ynode, weight.msm)
       
       if (weights[i, j] > 0) {
-        result <- ltmle(data[, 1:final.Ynode, drop=FALSE], Anodes[Anodes <= final.Ynode], Cnodes[Cnodes <= final.Ynode], Lnodes[Lnodes <= final.Ynode], Ynodes[Ynodes <= final.Ynode], survivalOutcome, Qform[LYnodes <= final.Ynode], gform1, abar, gbounds, det.ac.map, stratify, SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.map=det.Q.map)
+        result <- ltmle(data[, 1:final.Ynode, drop=FALSE], nodes$A[nodes$A <= final.Ynode], nodes$C[nodes$C <= final.Ynode], nodes$L[nodes$L <= final.Ynode], nodes$Y[nodes$Y <= final.Ynode], survivalOutcome, Qform[nodes$LY <= final.Ynode], gform1, abar, gbounds, det.ac.map, stratify, SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.map=det.Q.map)
         tmle[i, j] <- result$estimates[tmle.index]
         iptw[i, j] <- min(1, result$estimates["iptw"])
         IC[i, j, ] <- result$IC[[tmle.index]]
@@ -1246,7 +1260,7 @@ NonpooledMSM <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
       if (j == num.final.Ynodes) {
         if (weights[i, j] == 0) {
           #we didn't calculate cum.g because weight was 0 but we need to return it
-          result <- ltmle(data[, 1:final.Ynode, drop=FALSE], Anodes[Anodes <= final.Ynode], Cnodes[Cnodes <= final.Ynode], Lnodes[Lnodes <= final.Ynode], Ynodes[Ynodes <= final.Ynode], survivalOutcome, Qform[LYnodes <= final.Ynode], gform1, abar, gbounds, det.ac.map, stratify, SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=TRUE, deterministic.Q.map=deterministic.Q.map)
+          result <- ltmle(data[, 1:final.Ynode, drop=FALSE], nodes$A[nodes$A <= final.Ynode], nodes$C[nodes$C <= final.Ynode], nodes$L[nodes$L <= final.Ynode], nodes$Y[nodes$Y <= final.Ynode], survivalOutcome, Qform[nodes$LY <= final.Ynode], gform1, abar, gbounds, det.ac.map, stratify, SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=TRUE, deterministic.Q.map=deterministic.Q.map)
         }
         cum.g[, , i] <- result$cum.g      
       }
@@ -1304,7 +1318,7 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights) {
         if (! is.na(tmle[i, j])) {
           index <- sub2ind(row=i, col=j, num.rows=num.regimens)
           h <- matrix(model.mat[index, ], ncol=1) * weights[i, j]   #index needs to pick up regimen i, time j
-          if (abs(det(C)) < 1e-18) {
+          if (abs(det(C)) < 1e-17) {
             W <- rep(NA, num.coef)
           } else {
             W <- solve(C, h)  #finds inv(C) * h
