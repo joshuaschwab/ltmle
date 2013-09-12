@@ -231,7 +231,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform, gb
   }
   if (iptw.only) return(list(cum.g=cum.g))
   Qstar.kplus1 <- matrix(data[, nodes$Y[length(nodes$Y)]], nrow=n, ncol=num.regimens)
-  Q <- matrix(nrow=n, ncol=num.regimens)
+  logitQ <- matrix(nrow=n, ncol=num.regimens)
   
   regimens.with.positive.weight <- which(weights > 0)
   for (j in length(nodes$LY):1){
@@ -249,10 +249,10 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, Qform, gform, gb
       } else {
         subs[, i] <- uncensored & !deterministic
       }
-      Q[, i] <- Estimate(Qform[j], d=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q)
+      logitQ[, i] <- Estimate(Qform[j], d=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link")
     }
     ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
-    update.list <- UpdateQ(Qstar.kplus1, Q, stacked.summary.measures, subs, cum.g[, ACnode.index, ], working.msm, uncensored, intervention.match, weights, gcomp)
+    update.list <- UpdateQ(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g[, ACnode.index, ], working.msm, uncensored, intervention.match, weights, gcomp)
     Qstar <- update.list$Qstar
     Qstar[deterministic, ] <- deterministic.list$Q
     
@@ -361,7 +361,7 @@ GetStackedSummaryMeasures <- function(summary.measures, summary.baseline.covaria
 }
 
 # Targeting step - update the initial fit of Q using clever covariates
-UpdateQ <- function(Qstar.kplus1, Q, stacked.summary.measures, subs, cum.g, working.msm, uncensored, intervention.match, weights, gcomp) { 
+UpdateQ <- function(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g, working.msm, uncensored, intervention.match, weights, gcomp) { 
   #Q, Qstar.kplus1: n x num.regimens
   #cum.g: n x num.regimens (already indexed for this node)
   #subs: n x num.regimens
@@ -373,9 +373,9 @@ UpdateQ <- function(Qstar.kplus1, Q, stacked.summary.measures, subs, cum.g, work
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
   #h.g.ratio: n x num.regimens x num.betas
   
-  n <- nrow(Q)
-  num.regimens <- ncol(Q)
-  off <- qlogis(Bound(as.vector(Q), c(.0001, .9999)))
+  n <- nrow(logitQ)
+  num.regimens <- ncol(logitQ)
+  off <- as.vector(logitQ)
   Y <- as.vector(Qstar.kplus1)
   weight.vec <- rep(weights, each=n)
   X <- stacked.summary.measures / matrix(cum.g, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures))
@@ -383,13 +383,12 @@ UpdateQ <- function(Qstar.kplus1, Q, stacked.summary.measures, subs, cum.g, work
   f <- as.formula(paste(working.msm, "+ offset(off) - 1"))
   d <- data.frame(Y, X * indicator, off)
   if (gcomp) {
-    Qstar <- Q
+    Qstar <- plogis(logitQ)
   } else {
     ctrl <- glm.control(trace=FALSE, maxit=1000)
     SuppressGivenWarnings(m <- glm(f, data=d, subset=as.vector(subs), family="quasibinomial", weights=weight.vec, control=ctrl), GetWarningsToSuppress(TRUE)) #this should include the indicators
-    
     newdata <- data.frame(Y, X, off)
-    SuppressGivenWarnings(Qstar <- matrix(predict(m, newdata=newdata, type="response"), nrow=nrow(Q)), GetWarningsToSuppress(TRUE))  #this should NOT include the indicators  #note: could also use plogis(off + X %*% coef(m))
+    SuppressGivenWarnings(Qstar <- matrix(predict(m, newdata=newdata, type="response"), nrow=nrow(logitQ)), GetWarningsToSuppress(TRUE))  #this should NOT include the indicators  #note: could also use plogis(off + X %*% coef(m))
   }
   h.g.ratio <- model.matrix(f, model.frame(f, data=d, na.action=na.pass)) #this should include the indicators
   dim(h.g.ratio) <- c(n, num.regimens, ncol(h.g.ratio))
@@ -454,7 +453,6 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
     }
     return(list(e=numeric(num.betas), solved=FALSE)) #return Q (not updated)
   }
-  
   max.objective <- 0.0001 ^ 2
   num.betas <- ncol(X)
   l <- FindMin("nlminb")
@@ -708,7 +706,7 @@ EstimateG <- function(d, gform, nodes, abar, deterministic.acnode.map, stratify,
       
       probAis1 <- rep(NaN, nrow(d))
       if (any(subs)) {
-        probAis1 <- Estimate(gform[i], d=d, subs=subs, family="binomial", newdata=newdata, SL.library=SL.library)
+        probAis1 <- Estimate(gform[i], d=d, subs=subs, family="binomial", newdata=newdata, SL.library=SL.library, type="response")
       } else {
         stop("in EstimateG, all subs are FALSE")
         #warning("in EstimateG, all subs are FALSE") #not clear what to do here
@@ -750,7 +748,7 @@ NodeToIndex <- function(d, node) {
 }
 
 # Run GLM or SuperLearner
-Estimate <- function(form, d, subs, family, newdata, SL.library) {
+Estimate <- function(form, d, subs, family, newdata, SL.library, type) {
   f <- as.formula(form)
   
   if (any(is.na(d[subs, LhsVars(f)]))) stop("NA in Estimate")
@@ -759,13 +757,14 @@ Estimate <- function(form, d, subs, family, newdata, SL.library) {
     if (sum(subs) > 1) {
       SuppressGivenWarnings({
         m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(form, data=d[subs, all.vars(f), drop=F], family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
-        predicted.values <- predict(m, newdata=newdata, type="response")
+        predicted.values <- predict(m, newdata=newdata, type=type)
       }, GetWarningsToSuppress())
     } else {
       #glm breaks when sum(subs) == 1
       predicted.values <- rep(d[subs, LhsVars(f)], nrow(newdata))
     }
   } else {
+    stop("not updated for type paramater")
     #estimate using SuperLearner
     if (family == "quasibinomial") family <- "binomial"
     rhs <- setdiff(RhsVars(f), rownames(alias(f, data=d[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
