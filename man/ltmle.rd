@@ -166,8 +166,9 @@ Y <- rexpit(-0.5 + 2 * W1^2 + 0.5 * W2 - 0.5 * A + 0.2 * W3 * A
 
 data <- data.frame(W1, W2, W3, A, Y)
 
-## Not run: ## The SuperLearner examples are a little slow.
+
 \dontrun{
+# The SuperLearner examples are a little slow.
 library(SuperLearner)
 
 #SuperLearner semiparametric estimation using all parents as regressors 
@@ -184,7 +185,6 @@ result <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y",
  SL.library=c("SL.glm", "SL.step", "SL.mean"))
 summary(result)
 }
-## End(Not run)
 
 #glm using correctly specified Qform and gform
 result.abar1 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
@@ -209,7 +209,7 @@ summary(result.abar1, result.abar0)
 
 # Helper function to generate censoring as factors
 BinaryToCensoring <- function(x) {
-  #if (! all(x %in% c(0, 1, NA))) stop("x should be binary")
+  if (! all(x \%in\% c(0, 1, NA))) stop("x should be binary")
   y <- character(length(x))
   y[x == 0] <- "censored"
   y[x == 1] <- "uncensored"
@@ -239,11 +239,20 @@ Y2[Y1 == 1] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, C1, L1, A1, Y1, C2, L2, A2, Y2)
 
 # Analyze data:
-a1.det <- (L1 < -2 | L1 > 2) & C1 == "uncensored"
-a1.prob1 <- ((L1 < -2) * 1 + (L1 > 2) * 0.1)[a1.det]
-deterministic.acnode.map <- list(
-  list(node="A1", is.deterministic=a1.det, prob1=a1.prob1), 
-  list(node="A2", is.deterministic=A1==1 & !is.na(A2), prob1=1)) 
+deterministic.acnode.map <- function(data, current.ac.node, Anodes, Cnodes) {
+  if (names(data[current.ac.node])=="A1") {
+    det <- (data$L1 < -2 | data$L1 > 2) & !is.na(L1)
+    prob1 <- ((data$L1 < -2) * 1 + (data$L1 > 2) * 0.1)[det]
+  } else if (names(data[current.ac.node])=="A2") {
+    det <- data$A1 == 1 & !is.na(data$A1)
+    prob1 <- 1
+  } else if (names(data[current.ac.node]) \%in\% c("C1", "C2")){
+    return(NULL)
+  } else {
+    stop("unexpected current.ac.node")
+  }
+  return(list(is.deterministic=det, prob1=prob1))  
+}
 
 result <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"), 
                 Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
@@ -303,7 +312,7 @@ Y2[alive & completed.study] <- 0
 Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
-result <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.map=deterministic.Q.map) 
+#result <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.map=deterministic.Q.map) #needs fixing!
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result)
 
@@ -335,12 +344,13 @@ summary(result)
 result1 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
 summary(result1)
 
-## Not run: ##Gives the same result but prints a message saying some regression formulas will be dropped:
+
 \dontrun{
+#Gives the same result but prints a message saying some regression formulas will be dropped:
 result2 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
 summary(result2)
 }
-## End(Not run)
+
 
 #If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula
 
