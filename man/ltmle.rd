@@ -8,10 +8,10 @@ Longitudinal Targeted Maximum Likelihood Estimation
 \code{ltmle} is Targeted Maximum Likelihood Estimation (TMLE) of treatment/censoring specific mean outcome for point-treatment and longitudinal data. \code{ltmleMSM} adds Marginal Structural Models. Both always provide Inverse Probability of Treatment/Censoring Weighted estimate (IPTW) as well. Maximum likelihood based G-computation estimate (G-comp) can be obtained instead of TMLE. \code{ltmle} can be used to calculate additive treatment effect, risk ratio, and odds ratio.
 }
 \usage{
-ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, abar, rule=NULL,
+ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, abar, rule=NULL,
  gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, 
  estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL)
-ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL, 
+ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
  gbounds=c(0.01, 1), deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, 
  summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, 
  stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
@@ -23,6 +23,7 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, Qform=NULL, gform=NULL,
   \item{Cnodes}{column names or indicies in \code{data} of censoring nodes}
   \item{Lnodes}{column names or indicies in \code{data} of time-dependent covariate nodes}
   \item{Ynodes}{column names or indicies in \code{data} of outcome nodes}
+  \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1.}
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
   \item{gform}{character vector of regression formulas for \eqn{g}. See 'Details'.}
   \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
@@ -121,6 +122,7 @@ An object of class "\code{ltmle}" is a list containing the following components:
   }
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
+\item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 
 \code{ltmleMSM} returns an object of class "\code{ltmleMSM}"
 The function \code{\link{summary}} (i.e. \code{\link{summary.ltmleMSM}}) can be used to obtain or print a summary of the results.
@@ -133,6 +135,7 @@ An object of class "\code{ltmleMSM}" is a list containing the following componen
 \item{cum.g}{matrix, n x numACnodes - cumulative g, after bounding}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
+\item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 }
 
 \references{
@@ -255,7 +258,7 @@ deterministic.acnode.map <- function(data, current.ac.node, Anodes, Cnodes) {
 }
 
 result <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"), 
-                Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
+                Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, abar=c(1, 1), 
                 deterministic.acnode.map=deterministic.acnode.map, SL.library=NULL)
 summary(result) 
  
@@ -276,14 +279,14 @@ abar <- matrix(nrow=n, ncol=2)
 abar[, 1] <- 1
 abar[, 2] <- L > 0
 
-result <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", abar=abar, SL.library=NULL)
+result <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", survivalOutcome=TRUE, abar=abar, SL.library=NULL)
 summary(result)
 
 # Example 3.1: The regimen can also be specified as a rule function
 
 rule <- function(row) c(1, row["L"] > 0)
 
-result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", rule=rule, SL.library=NULL)
+result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", survivalOutcome=TRUE, rule=rule, SL.library=NULL)
 # This should be the same as the above result
 summary(result.rule)
 
@@ -312,7 +315,7 @@ Y2[alive & completed.study] <- 0
 Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
-#result <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.map=deterministic.Q.map) #needs fixing!
+#result <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.map=deterministic.Q.map) #needs fixing!
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result)
 
@@ -362,8 +365,11 @@ summary(result2)
 # regimen was to switch before time.
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
+Lnodes <- c("CD4_2", "CD4_3")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
-result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, regimens=sampleDataForLtmleMSM$regimens, 
+
+result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=TRUE,
+                   regimens=sampleDataForLtmleMSM$regimens, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 print(summary(result))
@@ -375,7 +381,8 @@ regimensList <- list(function(row) c(1,1,1),
                      function(row) c(0,1,1),
                      function(row) c(0,0,1),
                      function(row) c(0,0,0))
-result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Ynodes=Ynodes, regimens=regimensList, 
+result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=TRUE,
+                   regimens=regimensList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 # This should be the same as the above result
