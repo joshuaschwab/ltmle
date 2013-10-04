@@ -1,7 +1,7 @@
 Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
-Version: 0.9
+Version: 0.91
 Date: 2013-05-03
 Author: Joshua Schwab, Maya Petersen, and Mark van der Laan, with contributions
     from Susan Gruber
