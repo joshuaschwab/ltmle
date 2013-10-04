@@ -334,7 +334,7 @@ NormalizeIC <- function(IC, summary.measures, m.beta, ignore.bad.ic=FALSE, weigh
   } else {
     normalized.IC <- t(solve(C, t(IC))) #IC %*% solve(C) 
     if (!ignore.bad.ic && any(abs(colSums(normalized.IC)) > 0.001 )) {
-      msg <- capture.outout({
+      msg <- capture.output({
         cat("normalized IC problem", colSums(normalized.IC), "\n")
         cat("inv(C) = \n")
         print(solve(C))
