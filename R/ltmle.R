@@ -259,7 +259,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
     
     curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimens.with.positive.weight)
     if (any(abs(colSums(curIC)) > 0.001) && !gcomp) {
-      cat("fixing\n")
+      message("fixing score equation\n")
       Qstar <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, deterministic.list, update.list$off, update.list$X, regimens.with.positive.weight)
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimens.with.positive.weight)
     }
@@ -297,7 +297,7 @@ FinalizeIC <- function(IC, summary.measures, summary.baseline.covariates, Qstar,
   }
   
   if (any(abs(colSums(finalIC)) > 0.001 )) {
-    msg <- cat("final IC problem", colSums(finalIC))
+    msg <- capture.output(cat("final IC problem", colSums(finalIC)))
     warning(paste(msg, collapse="\n"))
   }
   IC <- IC + finalIC
@@ -1097,24 +1097,30 @@ CheckDeterministicACNodeMap <- function(data, deterministic.acnode.map) {
       name <- names(data)[node]
     }
     if (any(index)) {
-      cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
-      if (length(prob) == 1) {
-        prob1 <- prob
-      } else {
-        prob1 <- prob[index]
-      }
-      print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
+      msg <- capture.output({
+        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
+        if (length(prob) == 1) {
+          prob1 <- prob
+        } else {
+          prob1 <- prob[index]
+        }
+        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
+      })
+      warning(paste(msg, collapse="\n"))                
       ok <- FALSE
     }
     index <- !is.na(d) & d == 0 & prob == 1
     if (any(index)) {
-      cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
-      if (length(prob) == 1) {
-        prob1 <- prob
-      } else {
-        prob1 <- prob[index]
-      }
-      print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
+      msg <- capture.output({
+        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
+        if (length(prob) == 1) {
+          prob1 <- prob
+        } else {
+          prob1 <- prob[index]
+        }
+        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
+      })
+      warning(paste(msg, collapse="\n"))          
       ok <- FALSE
     }
   }
