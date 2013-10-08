@@ -14,7 +14,7 @@
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
 ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
-                  abar, rule=NULL, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, 
+                  abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, stratify=FALSE, 
                   SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
                   iptw.only=FALSE, deterministic.Q.map=NULL) {
   if (!is.null(rule)) {
@@ -33,7 +33,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   colnames(summary.measures) <- "S1"
   summary.baseline.covariates <- NULL
 
-  temp <- ltmleMSM.private(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, gbounds=gbounds, deterministic.acnode.map=deterministic.acnode.map, SL.library=SL.library, regimens=regimens, working.msm=working.msm, summary.measures=summary.measures, summary.baseline.covariates=summary.baseline.covariates, final.Ynodes=NULL, pooledMSM=TRUE, stratify=stratify, weight.msm=FALSE, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=FALSE, mhte.iptw=FALSE, iptw.only=iptw.only, deterministic.Q.map=deterministic.Q.map) #it doesn't matter whether mhte.iptw is T or F when pooledMSM=T
+  temp <- ltmleMSM.private(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, Yrange=Yrange, gbounds=gbounds, deterministic.acnode.map=deterministic.acnode.map, SL.library=SL.library, regimens=regimens, working.msm=working.msm, summary.measures=summary.measures, summary.baseline.covariates=summary.baseline.covariates, final.Ynodes=NULL, pooledMSM=TRUE, stratify=stratify, weight.msm=FALSE, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=FALSE, mhte.iptw=FALSE, iptw.only=iptw.only, deterministic.Q.map=deterministic.Q.map) #it doesn't matter whether mhte.iptw is T or F when pooledMSM=T
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   data <- ConvertCensoringNodes(data, Cnodes)
   iptw.list <- CalcIPTW(data, nodes, abar, drop3(temp$cum.g[, , 1, drop=F]), mhte.iptw) #get cum.g for regimen 1 (there's only 1 regimen)
@@ -58,13 +58,23 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   r$gcomp <- gcomp
   r$formulas <- temp$formulas
   r$binaryOutcome <- temp$binaryOutcome
+  r$transformOutcome <- temp$transformOutcome==TRUE #Want to store transformOutcome flag without attributes
+
+  if (temp$transformOutcome) {
+    Yrange <- attr(temp$transformOutcome, "Yrange")
+    #back transform estimate and IC
+    r$estimates[1] <- r$estimates[1]*diff(Yrange) + min(Yrange)
+    estName <- names(r$estimates)[1]
+    r$IC[[estName]] <- r$IC[[estName]]*diff(Yrange)
+  }
+
   class(r) <- "ltmle"
   return(r)
 }
 
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE) {
   if (memoize && require(memoise)) {
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
@@ -73,13 +83,13 @@ ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOut
     if (!all(do.call(c, lapply(regimens, is.function)))) stop("If 'regimens' is a list, then all elements should be functions.")
     regimens <- aperm(simplify2array(lapply(regimens, function(rule) apply(data, 1, rule)), higher=TRUE), c(2, 1, 3)) 
   }
-  result <- ltmleMSM.private(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.map)
+  result <- ltmleMSM.private(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.map)
   result$call <- match.call()
   return(result) 
 }
 
 # This just shields the normalizeIC parameter, which should always be TRUE except when being called by ltmle
-ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC, mhte.iptw, iptw.only, deterministic.Q.map) {
+ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC, mhte.iptw, iptw.only, deterministic.Q.map) {
   if (length(deterministic.Q.map) != 0) stop("the code using deterministic.Q.map has a bug and needs fixing")
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   Qform <- CreateLYNodes(data, nodes, check.Qform=TRUE, Qform=Qform)$Qform
@@ -101,9 +111,10 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   }
   
   # error checking (also convert deterministic.acnode.map and deterministic.Q.map to index)
-  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map)
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map)
   deterministic.acnode.map <- check.results$deterministic.acnode.map
   deterministic.Q.map <- check.results$deterministic.Q.map
+  data <- check.results$data
   
   if (estimate.time) EstimateTime(data, nodes, survivalOutcome, Qform, gform, gbounds, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only)
   
@@ -111,6 +122,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   result$gcomp <- gcomp
   result$formulas <- list(Qform=Qform, gform=gform)
   result$binaryOutcome <- check.results$binaryOutcome
+  result$transformOutcome <- check.results$transformOutcome
   class(result) <- "ltmleMSM"
   return(result)
 }
@@ -948,7 +960,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map) {
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
   #each set of nodes should be sorted - otherwise causes confusion with gform, Qform, abar
   if (is.unsorted(nodes$A, strictly=TRUE)) stop("Anodes must be in increasing order")
@@ -969,7 +981,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
 
   if (min(all.nodes) < ncol(data)) {
     if (!all((min(all.nodes):ncol(data)) %in% all.nodes)) {
-      stop("All nodes after the A-, C-, L-, or Ynodes must be in A-, C-, L-, or Ynodes")
+      stop("All nodes after the first of A-, C-, L-, or Ynodes must be in A-, C-, L-, or Ynodes")
     }
   }
 
@@ -1046,13 +1058,45 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   all.Y <- unlist(data[, nodes$Y])
 
   binaryOutcome <- all(all.Y %in% c(0, 1, NA))
-  if (survivalOutcome && ! binaryOutcome) {
-    stop("When survivalOutcome is TRUE, all Ynodes should be 0, 1, or NA")
+
+  transformOutcome <- FALSE
+
+  if (!binaryOutcome) {
+    if (survivalOutcome) {
+      stop("When survivalOutcome is TRUE, all Ynodes should be 0, 1, or NA")
+    } else { #not a survival Outcome
+      if (!is.null(Yrange)) {
+        #if Yrange was specified
+        rng <- range(all.Y, na.rm=TRUE)
+        if (min(rng) < min(Yrange) || max(rng) > max(Yrange)) {
+          #Truncate if Y vals are outside Yrange
+          message("Some Ynodes are not in [Yrange[1], Yrange[2]], Y values are truncated")
+          data[,nodes$Y][data[,nodes$Y] < min(Yrange)]<- min(Yrange)
+          data[,nodes$Y][data[,nodes$Y] > max(Yrange)] <- max(Yrange)       
+        } 
+        #Then transform
+        transformOutcome <- TRUE
+        attr(transformOutcome, 'Yrange') <- Yrange 
+        data[,nodes$Y] <- (data[, nodes$Y]-min(Yrange))/diff(Yrange) 
+      } else {
+        #if Yrange was not specified, get it
+        Yrange <- range(all.Y, na.rm=TRUE)
+        if (min(Yrange) < 0 || max(Yrange) > 1) {
+          #And see if we need to transform
+          transformOutcome <- TRUE
+          attr(transformOutcome, 'Yrange') <- Yrange
+          message("Some Ynodes are not in [0, 1], and Yrange was NULL, so all Y nodes are being\ntransformed to (Y-min.of.all.Ys)/range.of.all.Ys") 
+          data[,nodes$Y] <- (data[, nodes$Y]-min(Yrange))/diff(Yrange)        
+        }
+      }
+    }
+  } else { #Is a binary outcome
+    if (!is.null(Yrange) && !all.equal(Yrange, c(0L,1L))) {
+      stop("All Ynodes are 0, 1, or NA, but Yrange is something other than NULL or c(0,1)")
+    }
   }
-  range.Y <- range(all.Y, na.rm=TRUE)
-  if (min(range.Y) < 0 || max(range.Y) > 1) {
-    stop("All Ynodes should either be binary or in [0, 1]")    
-  }
+
+
   
   for (i in nodes$Y) {
     deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map=NULL, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
@@ -1078,7 +1122,8 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, det
   dynamic.regimens <- !all(duplicated(regimens)[2:nrow(data)])
   #if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
   
-  return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map, binaryOutcome=binaryOutcome))
+  return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map, 
+              binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, data=data))
 }
 
 # Check deterministic.acnode.map for errors
