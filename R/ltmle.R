@@ -546,7 +546,7 @@ summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tm
   CI <- GetCI(estimate, std.dev)
   cmat <- cbind(estimate, std.dev, CI, pval)
   dimnames(cmat) <- list(names(estimate), c("Estimate", "Std. Error", "CI 2.5%", "CI 97.5%", "p-value"))
-  ans <- list(cmat=cmat, estimator=estimator)
+  ans <- list(cmat=cmat, estimator=estimator, transformOutcome=object$transformOutcome)
   class(ans) <- "summary.ltmleMSM"
   return(ans)
 }
@@ -555,9 +555,14 @@ summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tm
 #' @S3method print summary.ltmleMSM
 print.summary.ltmleMSM <- function(x, digits = max(3, getOption("digits") - 3), signif.stars = getOption("show.signif.stars"), ...) {
   cat("Estimator: ", x$estimator, "\n")
-  if (x$estimator=="gcomp") {cat("Warning: inference for gcomp is not accurate! It is based on TMLE influence curves.\n")}
+    if (x$estimator=="gcomp") {cat("Warning: inference for gcomp is not accurate! It is based on TMLE influence curves.\n")}
   printCoefmat(x$cmat, digits = digits, signif.stars = signif.stars, 
                na.print = "NA", has.Pvalue=TRUE, ...)
+  if (x$transformOutcome) {
+    Yrange <- attr(x$transformOutcome, "Yrange")
+    cat("NOTE: The MSM is modeling the transformed outcome ( Y -", min(Yrange),
+      ")/(", max(Yrange),"-", min(Yrange),")")
+  }
   invisible(x)
 }
 
@@ -602,6 +607,11 @@ print.ltmleMSM <- function(x, ...) {
     cat("TMLE Beta Estimates: \n")
   }
   print(x$beta)
+ if (x$transformOutcome) {
+    Yrange <- attr(x$transformOutcome, "Yrange")
+    cat("NOTE: The MSM is modeling the transformed outcome ( Y -", min(Yrange),
+      ")/(", max(Yrange),"-", min(Yrange),")")
+  }
   invisible(x)
 }
 
@@ -613,7 +623,7 @@ print.ltmle <- function(x, ...) {
     cat("GCOMP Estimate: ", x$estimates["gcomp"], "\n")
   } else {
     cat("TMLE Estimate: ", x$estimates["tmle"], "\n")
-  }
+  }  
   invisible(x)
 }
 
