@@ -9,10 +9,10 @@ Longitudinal Targeted Maximum Likelihood Estimation
 }
 \usage{
 ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, abar, rule=NULL,
- gbounds=c(0.01, 1), deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, 
+ gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, 
  estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
- gbounds=c(0.01, 1), deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, 
+ gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, 
  summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, 
  stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
  iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE)
@@ -29,6 +29,7 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, 
   \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
   \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes}
   \item{gbounds}{lower and upper bounds on estimated probabilities for g-factors. Vector of length 2, order unimportant.}
+  \item{Yrange}{NULL or a numerical vector where the min and max of \code{Yrange} specify the range of all Y nodes. See 'Details'.}
   \item{deterministic.acnode.map}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{stratify}{if \code{TRUE} stratify on following \code{abar} when estimating Q and g. If \code{FALSE}, pool over \code{abar}.}
   \item{SL.library}{optional character vector of libraries to pass to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. '\code{default}' indicates a standard set of libraries. May be separately specified for \eqn{Q} and \eqn{g}. See 'Details'.}
@@ -55,17 +56,18 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, 
   \itemize{
       \item in censoring columns (Cnodes): factor with two levels: "censored" and "uncensored". 
       \item in treatment columns (Anodes): 1 = treated, 0 = untreated (must be binary)
-      \item in event columns (Ynodes): binary where 1 = event (e.g. death) 0 = no event OR continuous in [0, 1). Note that Y may not be exactly equal to 1 in the case of continuous Y. Genral continous Y may be scaled to [0, 0.999999] and then unscaled.
+      \item in event columns (Ynodes): If \code{survivalOutcome} is \code{TRUE}, then Y nodes are treated as indicators of a one-time event. See details for \code{survivalOutocme}. If \code{survivalOutcome} is \code{FALSE}, Y nodes are treated as binary if all values are 0 or 1, and are treated as continuous otherwise. If Y nodes are continuous, they may be automatically scaled. See details for \code{Yrange}.
       \item time-dependent covariate columns (Lnodes): can be any numeric data
-  }
+      \item  Data in \code{Cnodes}, \code{Anodes}, \code{Lnodes} and \code{Ynodes} are not used after (to the right of) censoring (or an event when \code{survivalOutcome==TRUE}) and may be coded as \code{NA} or any other value.
+      \item Columns in \code{data} that are before (to the left of) the first of \code{Cnodes} or \code{Anodes} are treated as baseline variables, even if they are specified as \code{Lnodes}. 
+      \item After the first of \code{Cnodes}, \code{Anodes}, \code{Ynodes}, or \code{Lnodes}, every column must be in one of \code{Cnodes}, \code{Anodes}, \code{Ynodes}, or \code{Lnodes}. 
+      }
   
-  There may be columns in \code{data} that are not in any of \code{Cnodes}, \code{Anodes}, \code{Ynodes}, and \code{Lnodes}.
-  
+  If \code{survivalOutcome} is \code{TRUE},  all Y values are indicators of an event (e.g. death) at or before the current time, where 1 = event and 0 = no event.
   The events in Ynodes must be of the form where once Y jumps to 1, Y remains 1 at subsequent nodes. Future releases of this package may relax this assumption. 
   
-  Data in Cnodes, Anodes, and Lnodes is not used after an event (e.g. death) or censoring and may be coded as NA or any other value.
-  
-  A node should only be classified as an Lnode if it comes after a Cnode or Anode. If it does not, it is considered a a baseline covariate, not a time-dependent covariate. 
+  For continuous outcomes, (\code{survivalOutcome==FALSE} and some Y nodes are not 0 or 1,) Y values are truncated at the minimum and maximum of \code{Yrange} if specified, and then transformed and scaled to be in [0,1]. That is, transformed to \code{(Y-min(Yrange))/(max(Yrange)-min(Yrange))}. If \code{Yrange} is \code{NULL}, it is set to the range of all Y nodes. In that case, Y nodes are only scaled if any values fall outside of [0,1]. For intervention specific means (\code{ltmle}), parameter estimates are transformed back based \code{Yrange}. 
+ 
   
   \code{Qform} should be \code{NULL}, in which case all parent nodes of each L and Y node will be used as regressors, or a named character vector that can be coerced to class "\code{\link{formula}}". The length of \code{Qform} must be equal to \code{length(Lnodes) + length(Ynodes)}** and the names and order of the formulas must be the same as the names and order of the L and Y nodes in \code{data}. The left hand side of each formula should be "\code{Q.kplus1}". If \code{SL.library} is \code{NULL}, \code{glm} will be called using the elements of \code{Qform}. If \code{SL.library} is specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all variables appearing on the right hand side of a formula will be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional form of the formula is unimportant if \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
   
