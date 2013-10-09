@@ -14,7 +14,7 @@ test_that("Lnodes, Anodes, Cnodes, Ynodes include all columns after the first on
      Lnodes = NULL, 
      Ynodes = "Y", 
      abar = c(1,1)),
-     throws_error("All nodes after the A-, C-, L-, or Ynodes must be in A-, C-, L-, or Ynodes"))
+     throws_error("All nodes after the first of A-, C-, L-, or Ynodes must be in A-, C-, L-, or Ynodes"))
   })
 
 test_that("In formulas RHS variables are parents of the current node", {
@@ -89,4 +89,20 @@ test_that("binaryOutcome flag set correctly", {
 
   expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1)$binaryOutcome, is_false())
   expect_that(ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=1)$binaryOutcome, is_true())  
+})
+
+
+test_that("Y outside of [0, 1] is scaled", {
+  n <- 10
+  set.seed(50)
+  data <- data.frame(W = rnorm(n),
+                     A = rbinom(n, 1, .5), 
+                     Y = runif(n)*10)
+
+  expect_that(l <- ltmle(data, Anodes="A", Ynodes="Y", abar=1), 
+    shows_message("Some Ynodes are not in \\[0, 1\\], and Yrange was NULL, so all Y nodes are being\\ntransformed to \\(Y-min.of.all.Ys\\)/range.of.all.Ys"))  
+  expect_that(l$transformOutcome, is_true())
+  expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1, Yrange=c(0, 3)), 
+    shows_message("Some Ynodes are not in \\[Yrange\\[1\\], Yrange\\[2\\]\\], Y values are truncated"))
+  expect_that(ltmle(transform(data, Y=Y/10), Anodes="A", Ynodes="Y", abar=1)$transformOutcome, is_false())
 })
