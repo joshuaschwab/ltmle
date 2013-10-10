@@ -215,7 +215,7 @@ summary(result.abar1, result.abar0)
 ua <- rep(TRUE, n)   #ua = uncensored and alive
 L1 <- A1 <- Y1 <- C2.binary <- L2 <- A2 <- Y2 <- as.numeric(rep(NA, n))
 W <- rnorm(n)
-C1 <- BinaryToCensoring(rexpit(2 + W))
+C1 <- BinaryToCensoring(is.uncensored=rexpit(2 + W))
 ua <- ua & C1 == "uncensored"
 L1[ua] <- rnorm(n)[ua] + W[ua]
 A1[ua] <- rexpit(L1[ua])
@@ -224,7 +224,7 @@ A1[ua & L1 >  2] <- rbinom(n, size=1, prob=0.1)[ua & L1 >  2]
 Y1[ua] <- rexpit((W + L1 - A1)[ua])
 ua <- ua & !Y1
 C2.binary[ua] <- rexpit((1 + 0.7 * L1 - A1)[ua])
-C2 <- BinaryToCensoring(C2.binary)
+C2 <- BinaryToCensoring(is.uncensored=C2.binary)
 ua <- ua & C2 == "uncensored"
 L2[ua] <- (0.5 * L1 - 0.9 * A1 + rnorm(n))[ua]
 A2[ua] <- rexpit((0.5 * L1 + 0.8 * L2)[ua]) | A1[ua]
@@ -321,7 +321,6 @@ summary(result4)
 # Example 5: Multiple time-dependent covariates and treatments at each time point, continuous Y values
 # age -> gender -> A1 -> L1a -> L1b -> Y1 -> A2 -> L2a -> L2b -> Y2
 n <- 1000
-Y1 <- A2 <- L2a <- L2b <- C2 <- Y2 <- as.numeric(rep(NA, n))
 age <- rbinom(n, 1, 0.5)
 gender <- rbinom(n, 1, 0.5)
 A1 <- rexpit(age + gender)
@@ -335,14 +334,14 @@ Y2 <- plogis(age - gender + L1a + L1b + A1 + 1.8*A2 + rnorm(n))
 data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 
 #also show some different ways of specifying the nodes:
-result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE)
+result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE)
 summary(result5)
 
-result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, gform=c("A1 ~ gender", "A2 ~ age"))
+result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"))
 summary(result5a)
 
 #Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case L1a, L1b, Y1 is a "block" of L/Y nodes not separated by Anodes or Cnodes (the same is true for L2a, L2b, Y2). Only one regression is required at the first L/Y node in a block. You can pass regression formulas for the other L/Y nodes, but they'll be ignored.
-result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
+result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
 summary(result5b)
 
 

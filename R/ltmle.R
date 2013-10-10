@@ -22,6 +22,7 @@
 #include example det g and Q functions [done - in switchfunctions]
 #write functions to create shell for det.g and det.Q functions [in progress-see LinhBug/ dswitch functions - mostly done, check with maya re det q function]
 #update release notes, update version, update authors
+#write sam re changing default on survivalFunction to true
 
 # General code flow:
 #ltmle -> ltmleMSM.private(pooledMSM=T) -> ...
@@ -30,7 +31,7 @@
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
-ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
+ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=TRUE, Qform=NULL, gform=NULL, 
                   abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, 
                   SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
                   iptw.only=FALSE, deterministic.Q.function=NULL) {
@@ -94,7 +95,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
 
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=TRUE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE) {
   if (memoize && require(memoise)) {
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
@@ -130,9 +131,9 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
     summary.measures <- array(repmat(summary.measures, m=1, n=num.final.Ynodes), dim=c(nrow(summary.measures), ncol(summary.measures), num.final.Ynodes), dimnames=list(rownames(summary.measures), colnames(summary.measures), NULL))
   }
   
-  #Check Inputs (also transform Y in data if using continuous Y)
-  data <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.function)
-
+  #error checking (also transform Y in data if using continuous Y)
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.function)
+  data <- check.results$data
   
   if (estimate.time) EstimateTime(data, nodes, survivalOutcome, Qform, gform, gbounds, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only)
   
@@ -256,7 +257,8 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
     } else {
       abar <- GetABar(regimens, i)
       # estimate each g factor, and cumulative probabilities
-      cum.g[, , i] <- EstimateG(data, survivalOutcome, gform, nodes, abar=abar, deterministic.g.function, stratify, gbounds, SL.library.g, deterministic.Q.function)
+      g.list <- EstimateG(data, survivalOutcome, gform, nodes, abar=abar, deterministic.g.function, stratify, gbounds, SL.library.g, deterministic.Q.function)
+      cum.g[, , i] <- g.list$cum.g
       weights[i] <- ComputeGA(data, nodes$A, nodes$C, abar, final.Ynode=max(nodes$Y), weight.msm)
     } 
     fit.g[[i]] <- g.list$fit
@@ -277,7 +279,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
       abar <- GetABar(regimens, i)
       intervention.match[, i] <- InterventionMatch(data, abar=abar, nodes$A, cur.node)  
       newdata <- SetA(data, abar=abar, nodes, cur.node)
-      deterministic.list.newdata <- IsDeterministic(newdata, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=FALSE)
+      deterministic.list.newdata <- IsDeterministic(newdata, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=FALSE, survivalOutcome)
       if (stratify) {
         subs[, i] <- uncensored & intervention.match & !deterministic.list.origdata$is.deterministic
       } else {
@@ -925,7 +927,7 @@ IsDeterministic <- function(data, cur.node, deterministic.Q.function, nodes, cal
   if (survivalOutcome) {
      is.deterministic <- XMatch(data, Xbar=1, nodes$Y, cur.node, any, default=FALSE) #deterministic if any previous y node is 1
   } else {
-    is.deterministic <- rep(FALSE, nrow(d))
+    is.deterministic <- rep(FALSE, nrow(data))
   }
 
   #get Q values from deterministic.Q.function
@@ -1154,7 +1156,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
 
   
   for (i in nodes$Y) {
-    deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.function=NULL, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
+    deterministic <- IsDeterministic(data, cur.node=i, deterministic.Q.function=NULL, nodes, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
     if (survivalOutcome && any(is.na(data[deterministic, i])) || ! all(data[deterministic, i] == 1)) stop("For survival outcomes, once a Ynode jumps to 1 (e.g. death), all subsequent Ynode values should be 1.")    
   }
   
@@ -1165,7 +1167,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   for (i in seq_along(nodes$A)) {
     cur.node <- nodes$A[i]
     uncensored <- IsUncensored(data, nodes$C, cur.node)
-    deterministic <- IsDeterministic(data, cur.node, deterministic.Q.function, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic
+    deterministic <- IsDeterministic(data, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic
     if (any(is.na(regimens[uncensored & !deterministic, i, ]))) {
       stop("NA in regimens/abar not allowed (except after censoring/death)")
     }
@@ -1176,7 +1178,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if (! all(RhsVars(working.msm) %in% colnames(summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures")
   dynamic.regimens <- !all(duplicated(regimens)[2:nrow(data)])
   #if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
-    return(data)
+    return(list(data=data, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome))
 }
 
 
