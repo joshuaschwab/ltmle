@@ -1,10 +1,28 @@
-# Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
+ # Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
 
 
 #v0.9: 5/3/13 Joshua Schwab  released package
 
 #v0.91 - started fixing det.ac.map bug - lots to clean up:
-# rename det.ac.map, document (clean example), fix det.Q.map, fix det.Q example (disabled), include example det.g.function, ...
+#rename det.ac.map [done]
+
+#fix det.Q.map [done]
+#clean up CheckInputs [done]
+#testdetgfun gives diff answers - i think they should be the same but maybe not? fix this and then check that appropriate error messages are thrown if detgfun is inconsistent with data [fixed/done]
+# make the "all subs false" error clearer [done]
+#SetA should also set all Cnodes to 1 [done]
+#return all glm fits [done] error if Anodes and Cnodes both NULL [done] 
+#replace all "d" with "data" [done]
+
+#check with maya re ex 4 (says "check this")
+
+#export BinaryToCensoring [in switch functions, just need to export]
+#convert binary C to factor in ltmleMSM.private [done]
+#document (change existing docs [done, except creating rd file for deterministic templates and example functions], clean g and Q examples [done] - also note that is.deterministic in det.Q.fun will be used by EstimateG unless user checks for this in function [check with maya])
+#include example det g and Q functions [done - in switchfunctions]
+#write functions to create shell for det.g and det.Q functions [in progress-see LinhBug/ dswitch functions - mostly done, check with maya re det q function]
+#update release notes, update version, update authors
+#write sam re changing default on survivalFunction to true
 
 # General code flow:
 #ltmle -> ltmleMSM.private(pooledMSM=T) -> ...
@@ -13,10 +31,10 @@
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
-ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
-                  abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, stratify=FALSE, 
+ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=TRUE, Qform=NULL, gform=NULL, 
+                  abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, 
                   SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
-                  iptw.only=FALSE, deterministic.Q.map=NULL) {
+                  iptw.only=FALSE, deterministic.Q.function=NULL) {
   if (!is.null(rule)) {
     if (!(missing(abar) || is.null(abar))) stop("'abar' should not be specified when using a 'rule' function")
     abar <- t(apply(data, 1, rule))
@@ -33,7 +51,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   colnames(summary.measures) <- "S1"
   summary.baseline.covariates <- NULL
 
-  temp <- ltmleMSM.private(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, Yrange=Yrange, gbounds=gbounds, deterministic.acnode.map=deterministic.acnode.map, SL.library=SL.library, regimens=regimens, working.msm=working.msm, summary.measures=summary.measures, summary.baseline.covariates=summary.baseline.covariates, final.Ynodes=NULL, pooledMSM=TRUE, stratify=stratify, weight.msm=FALSE, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=FALSE, mhte.iptw=FALSE, iptw.only=iptw.only, deterministic.Q.map=deterministic.Q.map) #it doesn't matter whether mhte.iptw is T or F when pooledMSM=T
+  temp <- ltmleMSM.private(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimens=regimens, working.msm=working.msm, summary.measures=summary.measures, summary.baseline.covariates=summary.baseline.covariates, final.Ynodes=NULL, pooledMSM=TRUE, stratify=stratify, weight.msm=FALSE, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=FALSE, mhte.iptw=FALSE, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function) #it doesn't matter whether mhte.iptw is T or F when pooledMSM=T
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   data <- ConvertCensoringNodes(data, Cnodes)
   iptw.list <- CalcIPTW(data, nodes, abar, drop3(temp$cum.g[, , 1, drop=F]), mhte.iptw) #get cum.g for regimen 1 (there's only 1 regimen)
@@ -53,9 +71,12 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   if (gcomp) {
     names(r$estimates)[1] <- names(r$IC)[1] <- "gcomp"
   }
-  r$cum.g <- temp$cum.g
+  r$cum.g <- temp$cum.g[, , 1] #only one regimen
   r$call <- match.call()
   r$gcomp <- gcomp
+  r$fit <- temp$fit
+  r$fit$g <- r$fit$g[[1]]  #only one regimen
+
   r$formulas <- temp$formulas
   r$binaryOutcome <- temp$binaryOutcome
   r$transformOutcome <- temp$transformOutcome==TRUE #Want to store transformOutcome flag without attributes
@@ -74,7 +95,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
 
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=TRUE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE) {
   if (memoize && require(memoise)) {
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
@@ -83,17 +104,17 @@ ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOut
     if (!all(do.call(c, lapply(regimens, is.function)))) stop("If 'regimens' is a list, then all elements should be functions.")
     regimens <- aperm(simplify2array(lapply(regimens, function(rule) apply(data, 1, rule)), higher=TRUE), c(2, 1, 3)) 
   }
-  result <- ltmleMSM.private(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.map)
+  result <- ltmleMSM.private(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.function)
   result$call <- match.call()
   return(result) 
 }
 
 # This just shields the normalizeIC parameter, which should always be TRUE except when being called by ltmle
-ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC, mhte.iptw, iptw.only, deterministic.Q.map) {
-  if (length(deterministic.Q.map) != 0) stop("the code using deterministic.Q.map has a bug and needs fixing")
+ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, estimate.time, gcomp, normalizeIC, mhte.iptw, iptw.only, deterministic.Q.function) {
+
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   Qform <- CreateLYNodes(data, nodes, check.Qform=TRUE, Qform=Qform)$Qform
-  data <- ConvertCensoringNodes(data, Cnodes)
+  data <- ConvertCensoringNodes(data, Cnodes, has.deterministic.functions=!is.null(deterministic.g.function) && is.null(deterministic.Q.function))
   if (is.null(final.Ynodes)) {
     final.Ynodes <- max(nodes$Y)
   } else {
@@ -110,15 +131,13 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
     summary.measures <- array(repmat(summary.measures, m=1, n=num.final.Ynodes), dim=c(nrow(summary.measures), ncol(summary.measures), num.final.Ynodes), dimnames=list(rownames(summary.measures), colnames(summary.measures), NULL))
   }
   
-  # error checking (also convert deterministic.acnode.map and deterministic.Q.map to index)
-  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map)
-  deterministic.acnode.map <- check.results$deterministic.acnode.map
-  deterministic.Q.map <- check.results$deterministic.Q.map
+  #error checking (also transform Y in data if using continuous Y)
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.function)
   data <- check.results$data
   
   if (estimate.time) EstimateTime(data, nodes, survivalOutcome, Qform, gform, gbounds, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only)
   
-  result <- MainCalcs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map)
+  result <- MainCalcs(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.function)
   result$gcomp <- gcomp
   result$formulas <- list(Qform=Qform, gform=gform)
   result$binaryOutcome <- check.results$binaryOutcome
@@ -128,10 +147,10 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
 }
 
 # Loop over final Ynodes, run main calculations
-MainCalcs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map) {
+MainCalcs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, normalizeIC, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.function) {
   if (! pooledMSM) {
     if (! is.null(summary.baseline.covariates)) stop("summary.baseline.covariates not supported")
-    return(NonpooledMSM(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map))
+    return(NonpooledMSM(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.g.function, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.function))
   }
   if (iptw.only) {
     final.Ynodes <- final.Ynodes[length(final.Ynodes)]
@@ -158,9 +177,7 @@ MainCalcs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deter
     }
     
     #It would be better to reuse g instead of calculating the same thing every time final.Ynode varies (note: g does need to be recalculated for each abar/regimen) - memoizing gets around this to some degree but it could be written better
-    det.ac.map <- TruncateDeterministicNodeMap(data, deterministic.acnode.map, final.Ynode)
-    det.Q.map <- TruncateDeterministicNodeMap(data, deterministic.Q.map, final.Ynode)
-    fixed.tmle <- FixedTimeTMLE(data[, 1:final.Ynode, drop=FALSE], nodes$A[nodes$A <= final.Ynode], nodes$C[nodes$C <= final.Ynode], nodes$L[nodes$L <= final.Ynode], nodes$Y[nodes$Y <= final.Ynode], survivalOutcome, Qform[nodes$LY <= final.Ynode], gform1, gbounds, det.ac.map, SL.library, regimens[, nodes$A <= final.Ynode, , drop=FALSE], working.msm, summary.measures[, , j, drop=FALSE], summary.baseline.covariates, stratify, weight.msm, gcomp, iptw.only, det.Q.map)
+    fixed.tmle <- FixedTimeTMLE(data[, 1:final.Ynode, drop=FALSE], nodes$A[nodes$A <= final.Ynode], nodes$C[nodes$C <= final.Ynode], nodes$L[nodes$L <= final.Ynode], nodes$Y[nodes$Y <= final.Ynode], survivalOutcome, Qform[nodes$LY <= final.Ynode], gform1, gbounds,  deterministic.g.function, SL.library, regimens[, nodes$A <= final.Ynode, , drop=FALSE], working.msm, summary.measures[, , j, drop=FALSE], summary.baseline.covariates, stratify, weight.msm, gcomp, iptw.only, deterministic.Q.function)
     if (iptw.only) return(list(cum.g=fixed.tmle$cum.g))
     if (j == 1) {
       IC <- fixed.tmle$IC
@@ -174,7 +191,7 @@ MainCalcs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deter
   IC <- FinalizeIC(IC, summary.measures, summary.baseline.covariates, Qstar, fitted.msm$m.beta, weights, normalizeIC)
   beta <- coef(fitted.msm$m)
   names(beta) <- main.terms$beta.names
-  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g)) #note: only returns cum.g for the last final.Ynode
+  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g, fit=fixed.tmle$fit)) #note: only returns cum.g and fit for the last final.Ynode
 }
 
 # Fit the MSM
@@ -208,7 +225,7 @@ FitPooledMSM <- function(working.msm, Qstar, summary.measures, weights, summary.
 }
 
 # ltmleMSM for a single final.Ynode
-FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, stratify, weight.msm, gcomp, iptw.only, deterministic.Q.map) {
+FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, stratify, weight.msm, gcomp, iptw.only, deterministic.Q.function) {
   #summary.measures: num.regimens x num.summary.measures
   #summary.baseline.covariates: names/indicies: num.summary.baseline.covariates x 1 
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
@@ -232,55 +249,84 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
     is.duplicate <- FALSE  #without this if statement there were problems when abar=NULL (ncol(regimens)=0)
   }
   
+  fit.g <- vector("list", num.regimens)
   for (i in 1:num.regimens) {
     if (is.duplicate[i]) {
       weights[i] <- 0
+      g.list <- list(fit=list("no g fits because this is a duplicate regimen"))
     } else {
       abar <- GetABar(regimens, i)
       # estimate each g factor, and cumulative probabilities
-      cum.g[, , i] <- EstimateG(data, survivalOutcome, gform, nodes, abar=abar, deterministic.acnode.map, stratify, gbounds, SL.library.g, deterministic.Q.map)
+      g.list <- EstimateG(data, survivalOutcome, gform, nodes, abar=abar, deterministic.g.function, stratify, gbounds, SL.library.g, deterministic.Q.function)
+      cum.g[, , i] <- g.list$cum.g
       weights[i] <- ComputeGA(data, nodes$A, nodes$C, abar, final.Ynode=max(nodes$Y), weight.msm)
     } 
+    fit.g[[i]] <- g.list$fit
   }
   if (iptw.only) return(list(cum.g=cum.g))
   Qstar.kplus1 <- matrix(data[, nodes$Y[length(nodes$Y)]], nrow=n, ncol=num.regimens)
   logitQ <- matrix(nrow=n, ncol=num.regimens)
   
   regimens.with.positive.weight <- which(weights > 0)
+  fit.Q <- fit.Qstar <- vector("list", length(nodes$LY))
+  names(fit.Q) <- names(fit.Qstar) <- names(data)[nodes$LY]
   for (j in length(nodes$LY):1){
     cur.node <- nodes$LY[j]
-    deterministic.list <- IsDeterministic(data, nodes$Y, cur.node, deterministic.Q.map, called.from.estimate.g=FALSE, survivalOutcome)
-    deterministic <- deterministic.list$is.deterministic
+    deterministic.list.origdata <- IsDeterministic(data, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=FALSE, survivalOutcome)
     uncensored <- IsUncensored(data, nodes$C, cur.node)
     intervention.match <- subs <- matrix(nrow=n, ncol=num.regimens)
     for (i in regimens.with.positive.weight) {
       abar <- GetABar(regimens, i)
       intervention.match[, i] <- InterventionMatch(data, abar=abar, nodes$A, cur.node)  
-      newdata <- SetA(data, abar=abar, nodes$A, cur.node)
+      newdata <- SetA(data, abar=abar, nodes, cur.node)
+      deterministic.list.newdata <- IsDeterministic(newdata, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=FALSE, survivalOutcome)
       if (stratify) {
-        subs[, i] <- uncensored & intervention.match & !deterministic
+        subs[, i] <- uncensored & intervention.match & !deterministic.list.origdata$is.deterministic
       } else {
-        subs[, i] <- uncensored & !deterministic
+        subs[, i] <- uncensored & !deterministic.list.origdata$is.deterministic
       }
-      logitQ[, i] <- Estimate(Qform[j], d=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link")
+      #check that sum(subs[,i]) > 0
+      if (any(subs[, i])) {
+        Q.est <- Estimate(Qform[j], data=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link")
+        logitQ[, i] <- Q.est$predicted.values
+        #pass back Q.est$fit
+      } else {
+        if (! all(deterministic.list.newdata$is.deterministic)) {
+          msg <- paste0("ltmle failed trying to estimate ", Qform[j], " because there are no observations that are\nuncensored", ifelse(stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.Q.function\n")
+          stop(msg)
+        }
+        Q.est <- list(fit="no estimation of Q at this node because all rows are set deterministically")
+      }
     }
-    ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
-    update.list <- UpdateQ(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g[, ACnode.index, ], working.msm, uncensored, intervention.match, weights, gcomp)
-    Qstar <- update.list$Qstar
-    Qstar[deterministic, ] <- deterministic.list$Q
-    
-    curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimens.with.positive.weight)
-    if (any(abs(colSums(curIC)) > 0.001) && !gcomp) {
-      message("fixing score equation\n")
-      Qstar <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, deterministic.list, update.list$off, update.list$X, regimens.with.positive.weight)
+    if (all(deterministic.list.newdata$is.deterministic)) {
+      #no updating needed if all rows are set deterministically
+      Qstar <- matrix(deterministic.list.newdata$Q, nrow=n, ncol=num.regimens)
+      if (max(abs(Qstar.kplus1 - Qstar)) > 1e-8) {
+        #if Qstar.kplus1 != Qstar when all deterministic score equation will not be solved
+        stop("inconsistency in deterministic data - all rows are set deterministically but the deterministically set values are not equal to Qstar.kplus1") 
+      }
+      Qstar.est <- list(fit="no updating at this node because all rows are set deterministically")
+    } else {
+      ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
+      update.list <- UpdateQ(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g[, ACnode.index, ], working.msm, uncensored, intervention.match, weights, gcomp)
+      Qstar <- update.list$Qstar
+      
+      Qstar[deterministic.list.newdata$is.deterministic, ] <- deterministic.list.newdata$Q
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimens.with.positive.weight)
+      if (any(abs(colSums(curIC)) > 0.001) && !gcomp) {
+        fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, deterministic.list.newdata, update.list$off, update.list$X, regimens.with.positive.weight)
+        Qstar <- fix.score.list$Qstar
+        curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimens.with.positive.weight)
+        update.list$fit <- fix.score.list$fit
+      } 
+      IC <- IC + curIC
     }
-    
-    IC <- IC + curIC
     Qstar.kplus1 <- Qstar
+    fit.Q[[j]] <- Q.est$fit
+    fit.Qstar[[j]] <- update.list$fit
   }
   #tmle <- colMeans(Qstar)
-  return(list(IC=IC, Qstar=Qstar, weights=weights, cum.g=cum.g)) 
+  return(list(IC=IC, Qstar=Qstar, weights=weights, cum.g=cum.g, fit=list(g=fit.g, Q=fit.Q, Qstar=fit.Qstar))) 
 }
 
 #final step in calculating TMLE influence curve
@@ -400,16 +446,17 @@ UpdateQ <- function(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g,
   X <- stacked.summary.measures / matrix(cum.g, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures))
   indicator <- matrix(uncensored, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) *matrix(intervention.match, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) #I(A=rule and uncensored)
   f <- as.formula(paste(working.msm, "+ offset(off) - 1"))
-  d <- data.frame(Y, X * indicator, off)
+  data.temp <- data.frame(Y, X * indicator, off)
   if (gcomp) {
     Qstar <- plogis(logitQ)
+    m <- "no Qstar fit because gcomp=TRUE (so no updating step)"
   } else {
     ctrl <- glm.control(trace=FALSE, maxit=1000)
-    SuppressGivenWarnings(m <- glm(f, data=d, subset=as.vector(subs), family="quasibinomial", weights=weight.vec, control=ctrl), GetWarningsToSuppress(TRUE)) #this should include the indicators
+    SuppressGivenWarnings(m <- glm(f, data=data.temp, subset=as.vector(subs), family="quasibinomial", weights=weight.vec, control=ctrl), GetWarningsToSuppress(TRUE)) #this should include the indicators
     newdata <- data.frame(Y, X, off)
     SuppressGivenWarnings(Qstar <- matrix(predict(m, newdata=newdata, type="response"), nrow=nrow(logitQ)), GetWarningsToSuppress(TRUE))  #this should NOT include the indicators  #note: could also use plogis(off + X %*% coef(m))
   }
-  h.g.ratio <- model.matrix(f, model.frame(f, data=d, na.action=na.pass)) #this should include the indicators
+  h.g.ratio <- model.matrix(f, model.frame(f, data=data.temp, na.action=na.pass)) #this should include the indicators
   dim(h.g.ratio) <- c(n, num.regimens, ncol(h.g.ratio))
   for (i in 1:num.regimens) {
     if (weights[i] > 0) {
@@ -419,7 +466,7 @@ UpdateQ <- function(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g,
     }
   }
   if (ncol(stacked.summary.measures) != dim(h.g.ratio)[3]) stop("only works if working.msm has only main terms")
-  return(list(Qstar=Qstar, h.g.ratio=h.g.ratio, X=X, off=off))
+  return(list(Qstar=Qstar, h.g.ratio=h.g.ratio, X=X, off=off, fit=m))
 }
 
 # Sometimes GLM doesn't converge and the updating step of TMLE doesn't solve the score equation (sum of TMLE influence curve not equal to zero). This function attempts to solve the score equation directly using various optimizers.
@@ -443,7 +490,7 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
     } else {
       num.tries <- 30 #increase this to solve more problems at the cost of longer run time
     }
-    init.e <- numeric(num.betas)
+    init.e <- numeric(num.betas) #first try an initial estimate of epsilon=0
     for (i in 1:num.tries) {
       if (minimizer == "nlminb") {
         m <- nlminb(start=init.e, objective=CalcScore, control=list(abs.tol=max.objective, eval.max=500, iter.max=500, x.tol=1e-14, rel.tol=1e-14))
@@ -459,28 +506,34 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
         obj.val <- m$minimum
       } else if (minimizer == "DEoptim") {
         m1 <- nlminb(start=init.e, objective=CalcScore, control=list(abs.tol=max.objective, eval.max=500, iter.max=500, x.tol=1e-14, rel.tol=1e-14))
-        m <- DEoptim(CalcScore, lower=rep(-100,num.betas), upper=rep(100,num.betas), control=DEoptim.control(VTR=max.objective, itermax=20000, strategy=5, initialpop=rbind(init.e, m1$par, matrix(rnorm(10*num.betas^2, sd=3), ncol=num.betas)), NP= 2 + 10*num.betas))
+        m <- DEoptim(CalcScore, lower=rep(-100,num.betas), upper=rep(100,num.betas), control=DEoptim.control(VTR=max.objective, itermax=20000, strategy=5, initialpop=rbind(init.e, m1$par, matrix(rnorm(10*num.betas^2, sd=3), ncol=num.betas)), NP= 2 + 10*num.betas, trace=500))
         e <- m$optim$bestmem
         obj.val <- m$optim$bestval
       } else {
         stop("bad minimizer")
       }
       if (obj.val < max.objective) {
-        return(list(e=e, solved=TRUE))
+        m$ltmle.msg <- paste("updating step using glm failed to solve score equation; solved using", minimizer)
+        return(list(e=e, solved=TRUE, m=m))
       }
-      init.e <- rnorm(num.betas)
+      init.e <- rnorm(num.betas) #if the first try didn't work, try a random initial estimate of epsilon
     }
-    return(list(e=numeric(num.betas), solved=FALSE)) #return Q (not updated)
+    return(list(e=numeric(num.betas), solved=FALSE, m="score equation not solved!")) #return Q (not updated)
   }
   max.objective <- 0.0001 ^ 2
   num.betas <- ncol(X)
-  l <- FindMin("nlminb")
-  if (! l$solved) l <- FindMin("optim")
-  if (! l$solved) l <- FindMin("nlm")
+  
+  for (offset.lbound in c(1e-8,0.0001, 0.001, 0.01)) {
+    off <- Bound(off, qlogis(c(offset.lbound, 1-offset.lbound)))
+    l <- FindMin("nlminb")
+    if (! l$solved) l <- FindMin("optim")
+    if (! l$solved) l <- FindMin("nlm")
+    if (l$solved) break
+  }
   if (! l$solved && require(DEoptim)) l <- FindMin("DEoptim")   #comment out this line to turn off DEoptim (it's slow)
   if (! l$solved) {warning("------ all minimizers failed, returning non-updated Q ------")}
   Qstar <- QstarFromE(l$e)
-  return(Qstar)
+  return(list(Qstar=Qstar, fit=l$m))
 }
 
 # Estimate how long it will take to run ltmleMSM
@@ -488,7 +541,7 @@ EstimateTime <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, SL
   sample.index <- sample(nrow(data), size=50)
   start.time <- Sys.time()
   if (is.matrix(gform)) gform <- gform[sample.index, , drop=F]
-  try.result <- try(  MainCalcs(data[sample.index, ], nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map=NULL, SL.library, regimens[sample.index, , , drop=F], working.msm, summary.measures, summary.baseline.covariates[sample.index, , drop=F], final.Ynodes, normalizeIC=FALSE, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map=NULL), silent=TRUE)
+  try.result <- try(  MainCalcs(data[sample.index, ], nodes, survivalOutcome, Qform, gform, gbounds, deterministic.g.function=NULL, SL.library, regimens[sample.index, , , drop=F], working.msm, summary.measures, summary.baseline.covariates[sample.index, , drop=F], final.Ynodes, normalizeIC=FALSE, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.function=NULL), silent=TRUE)
   if (inherits(try.result, "try-error")) {
     message("Timing estimate unavailable")
   } else {
@@ -697,15 +750,15 @@ GetEffectMeasures <- function(est0, IC0, est1, IC1, binaryOutcome) {
 }
 
 # Calculate IPTW and naive estimates
-CalcIPTW <- function(d, nodes, abar, cum.g, mhte.iptw) {
-  n <- nrow(d)
+CalcIPTW <- function(data, nodes, abar, cum.g, mhte.iptw) {
+  n <- nrow(data)
   final.Ynode <- nodes$Y[length(nodes$Y)]
   
-  uncensored <- IsUncensored(d, nodes$C, final.Ynode)
-  intervention.match <- InterventionMatch(d, abar, nodes$A, final.Ynode)  #A==abar for all A
+  uncensored <- IsUncensored(data, nodes$C, final.Ynode)
+  intervention.match <- InterventionMatch(data, abar, nodes$A, final.Ynode)  #A==abar for all A
   index <- uncensored & intervention.match
   
-  Y <- d[index, final.Ynode]
+  Y <- data[index, final.Ynode]
   g <- cum.g[index, ncol(cum.g)]
   
   iptw.IC <- rep(0, n)
@@ -718,59 +771,68 @@ CalcIPTW <- function(d, nodes, abar, cum.g, mhte.iptw) {
     iptw.IC <- iptw.IC - iptw.estimate 
   }  
   
-  naive.estimate <- mean( (d[, final.Ynode])[index] )
+  naive.estimate <- mean( (data[, final.Ynode])[index] )
   return(list(iptw.estimate=iptw.estimate, naive.estimate=naive.estimate, iptw.IC=iptw.IC))
 }
 
 # Parametric estimation of each g-factor
-EstimateG <- function(d, survivalOutcome, gform, nodes, abar, deterministic.acnode.map, stratify, gbounds, SL.library, deterministic.Q.map) {
-  gmat <- matrix(NaN, nrow=nrow(d), ncol=length(nodes$AC))
-  uncensored <- rep(TRUE, nrow(d))
+EstimateG <- function(data, survivalOutcome, gform, nodes, abar, deterministic.g.function, stratify, gbounds, SL.library, deterministic.Q.function) {
+  gmat <- matrix(NaN, nrow=nrow(data), ncol=length(nodes$AC))
+  uncensored <- rep(TRUE, nrow(data))
+  fit <- vector("list", length(nodes$AC))
+  names(fit) <- names(data)[nodes$AC]
   for (i in 1:length(nodes$AC)) {
     cur.node <- nodes$AC[i]
     if (cur.node %in% nodes$A) {
       cur.abar <- abar[, nodes$A == cur.node]
     } else {
-      cur.abar <- rep(1, nrow(d))  #if this is a cnode, abar is always 1
+      cur.abar <- rep(1, nrow(data))  #if this is a cnode, abar is always 1
     }
-    newdata <- SetA(d, abar, nodes$A, cur.node)
-    deterministic <- IsDeterministic(d, nodes$Y, cur.node, deterministic.Q.map, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic #deterministic due to death or Q.map
-    if (! is.numeric(gform)) {
-      deterministic.g.list.origdata <- IsDeterministicG(d, cur.node, deterministic.acnode.map, nodes$A, nodes$C) #deterministic due to acnode map - using original data
-      deterministic.g.list.newdata <- IsDeterministicG(newdata, cur.node, deterministic.acnode.map, nodes$A, nodes$C) #deterministic due to acnode map - using data modified so A = abar
+    newdata <- SetA(data, abar, nodes, cur.node)
+    deterministic.origdata <- IsDeterministic(data, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic #deterministic due to death or Q.function
+    deterministic.newdata <- IsDeterministic(newdata, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic #deterministic due to death or Q.function - using data modified so A = abar
+    if (is.numeric(gform)) {
+      probAis1 <- gform[, i]  #if gform is numeric, it's a matrix of probAis1
+      g.est <- list(fit="gform passed as numeric, so no estimation took place")
+    } else {
+      deterministic.g.list.origdata <- IsDeterministicG(data, cur.node, deterministic.g.function, nodes) #deterministic due to acnode map - using original data
+      deterministic.g.list.newdata <- IsDeterministicG(newdata, cur.node, deterministic.g.function, nodes) #deterministic due to acnode map - using data modified so A = abar
       deterministic.g.origdata <- deterministic.g.list.origdata$is.deterministic
-      
-      uncensored <- IsUncensored(d, nodes$C, cur.node)
+      uncensored <- IsUncensored(data, nodes$C, cur.node)
       
       if (stratify) {
-        intervention.match <- InterventionMatch(d, abar, nodes$A, nodes$AC[i]) 
-        subs <- uncensored & intervention.match & !deterministic & !deterministic.g.origdata
+        intervention.match <- InterventionMatch(data, abar, nodes$A, nodes$AC[i]) 
+        subs <- uncensored & intervention.match & !deterministic.origdata & !deterministic.g.origdata
       } else {
-        subs <- uncensored & !deterministic & !deterministic.g.origdata
+        subs <- uncensored & !deterministic.origdata & !deterministic.g.origdata
       }
       
-      probAis1 <- rep(NaN, nrow(d))
-      if (any(subs)) {
-        probAis1 <- Estimate(gform[i], d=d, subs=subs, family="binomial", newdata=newdata, SL.library=SL.library, type="response")
+      if (all(deterministic.g.list.newdata$is.deterministic | deterministic.newdata)) {
+        # all rows are set deterministically, no need to estimate
+        g.est <- list(fit="all rows are set deterministically, no estimation at this node")
+        probAis1 <- rep(NaN, nrow(data)) #this will be filled in below
       } else {
-        stop("in EstimateG, all subs are FALSE")
-        #warning("in EstimateG, all subs are FALSE") #not clear what to do here
-        #probAis1 <- rep(0.5, nrow(d))
+        # not all rows are set deterministically
+        if (any(subs)) {
+          g.est <- Estimate(gform[i], data=data, subs=subs, family="binomial", newdata=newdata, SL.library=SL.library, type="response")
+          probAis1 <- g.est$predicted.values
+        } else {
+          msg <- paste0("ltmle failed trying to estimate ", gform[i], " because there are no observations that are\nuncensored", ifelse(stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.g.function or deterministic.Q.function\n")
+          stop(msg)
+        }
       }
-      
       probAis1[deterministic.g.list.newdata$is.deterministic] <- deterministic.g.list.newdata$prob1
-    } else {
-      probAis1 <- gform[, i]  #if gform is numeric, it's a matrix of probAis1
-    }
+    } 
     #probAis1 is prob(a=1), gmat is prob(a=abar)
     #cur.abar can be NA after censoring/death if treatment is dynamic
     gmat[!is.na(cur.abar) & cur.abar == 1, i] <- probAis1[!is.na(cur.abar) & cur.abar == 1]
     gmat[!is.na(cur.abar) & cur.abar == 0, i] <- 1 - probAis1[!is.na(cur.abar) & cur.abar == 0]
     
-    gmat[deterministic, i] <- 1  #a=abar deterministically after death or other deterministic Q
+    gmat[deterministic.newdata, i] <- 1  #a=abar deterministically after death or other deterministic Q
+    fit[[i]] <- g.est$fit
   }
   cum.g <- CalcCumG(gmat, gbounds)
-  return(cum.g)
+  return(list(cum.g=cum.g, fit=fit))
 }
 
 # Truncate values within supplied bounds
@@ -781,11 +843,11 @@ Bound <- function(x, bounds) {
 }
 
 # Convert named nodes to indicies of nodes
-NodeToIndex <- function(d, node) {
-  if (! is.data.frame(d)) stop("data must be a data frame")
+NodeToIndex <- function(data, node) {
+  if (! is.data.frame(data)) stop("data must be a data frame")
   if (is.numeric(node) || is.null(node)) return(node)
   if (! is.character(node)) stop("nodes must be numeric, character, or NULL")
-  index <- match(node, names(d))
+  index <- match(node, names(data))
   if (any(is.na(index))) {
     stop(paste("\nnamed node(s) not found:", node[is.na(index)]))
   }
@@ -793,36 +855,41 @@ NodeToIndex <- function(d, node) {
 }
 
 # Run GLM or SuperLearner
-Estimate <- function(form, d, subs, family, newdata, SL.library, type) {
+Estimate <- function(form, data, subs, family, newdata, SL.library, type) {
+  stopifnot(type %in% c("link", "response"))
   f <- as.formula(form)
   
-  if (any(is.na(d[subs, LhsVars(f)]))) stop("NA in Estimate")
+  if (any(is.na(data[subs, LhsVars(f)]))) stop("NA in Estimate")
   if (is.null(SL.library) || length(RhsVars(f)) == 0) { #in a formula like "Y ~ 1", call glm
     #estimate using GLM
     if (sum(subs) > 1) {
       SuppressGivenWarnings({
-        m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(form, data=d[subs, all.vars(f), drop=F], family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
+        m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(form, data=data[subs, all.vars(f), drop=F], family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
         predicted.values <- predict(m, newdata=newdata, type=type)
       }, GetWarningsToSuppress())
     } else {
       #glm breaks when sum(subs) == 1
-      predicted.values <- rep(d[subs, LhsVars(f)], nrow(newdata))
+      predicted.values <- rep(data[subs, LhsVars(f)], nrow(newdata))
+      m <- "fit not returned because there was only 1 observation to fit"
     }
   } else {
-    stop("not updated for type paramater")
     #estimate using SuperLearner
     if (family == "quasibinomial") family <- "binomial"
-    rhs <- setdiff(RhsVars(f), rownames(alias(f, data=d[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
+    rhs <- setdiff(RhsVars(f), rownames(alias(f, data=data[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
     new.subs <- apply(newdata[, rhs, drop=FALSE], 1, function (x) !any(is.na(x)))  #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
     
-    m <- SuperLearner(Y=d[subs, LhsVars(f)], X=d[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE])
+    m <- SuperLearner(Y=data[subs, LhsVars(f)], X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE])
     predicted.values <- rep(NA, nrow(newdata))
     predicted.values[new.subs] <- m$SL.predict
     if (max(predicted.values, na.rm=T) > 1 || min(predicted.values, na.rm=T) < 0) {
       stop("predicted.values > 1 or < 0")
     }
+    if (type == "link") {
+      stopifnot(family == "binomial")
+      predicted.values <- qlogis(Bound(predicted.values, bounds=c(0.0001, 0.9999)))
+    }
   }
-  return(predicted.values)
+  return(list(predicted.values=predicted.values, fit=m))
 }
 
 # This is here for memoizing
@@ -839,96 +906,100 @@ CalcCumG <- function(g, gbounds) {
 
 # Determine which patients are following specified treatment regimen (abar)
 #return vector of [numObservations x 1] I(A==abar) from Anodes[1] to the Anode just before cur.node
-InterventionMatch <- function(d, abar, Anodes, cur.node) {
-  intervention.match <- XMatch(d, abar, Anodes, cur.node, all, default=TRUE)
+InterventionMatch <- function(data, abar, Anodes, cur.node) {
+  intervention.match <- XMatch(data, abar, Anodes, cur.node, all, default=TRUE)
   return(intervention.match)
 }
 
 # Determine which patients are uncensored
-#return vector of [numDataRows x 1] I(C=1) from Cnodes[1] to the Cnode just before cur.node
-IsUncensored <- function(d, Cnodes, cur.node) {
-  uncensored <- XMatch(d, Xbar=1, Cnodes, cur.node, all, default=TRUE)
+#return vector of [numDataRows x 1] I(C=uncensored) from Cnodes[1] to the Cnode just before cur.node
+IsUncensored <- function(data, Cnodes, cur.node) {
+  uncensored <- XMatch(data, Xbar="uncensored", Cnodes, cur.node, all, default=TRUE)
   return(uncensored)
 }
 
-# Determine which patients have died
+# Determine which patients have died or have Q set deterministically by user function
 # return list:
-#    is.deterministic: vector of [numObservations x 1] - true if patient is already dead before cur.node or set by deterministic.Q.map
+#    is.deterministic: vector of [numObservations x 1] - true if patient is already dead before cur.node or set by deterministic.Q.function
 #    Q.value: vector of [which(is.deterministic) x 1] - value of Q
-IsDeterministic <- function(d, Ynodes, cur.node, deterministic.Q.map, called.from.estimate.g, survivalOutcome) {
-  Q.value <- rep(NA, nrow(d)) 
+IsDeterministic <- function(data, cur.node, deterministic.Q.function, nodes, called.from.estimate.g, survivalOutcome) {
+  #set Q.value to 1 if previous y node is 1
   if (survivalOutcome) {
-     is.deterministic <- XMatch(d, Xbar=1, Ynodes, cur.node, any, default=FALSE) #deterministic if any previous y node is 1
-    Q.value[is.deterministic] <- 1
+     is.deterministic <- XMatch(data, Xbar=1, nodes$Y, cur.node, any, default=FALSE) #deterministic if any previous y node is 1
   } else {
-    is.deterministic <- rep(FALSE, nrow(d))
+    is.deterministic <- rep(FALSE, nrow(data))
+  }
+
+  #get Q values from deterministic.Q.function
+  default <- list(is.deterministic=is.deterministic, Q.value=1)
+  if (is.null(deterministic.Q.function)) return(default)
+  #put this in a try-catch?
+  det.list <- deterministic.Q.function(data=data, current.node=cur.node, nodes=nodes, called.from.estimate.g=called.from.estimate.g)
+  if (is.null(det.list)) return(default)
+  if (called.from.estimate.g) {
+    #it's ok if Q.value isn't returned if called.from.estimate.g
+    if (!is.list(det.list) || !("is.deterministic" %in% names(det.list)) || !(length(det.list) %in% 1:2)) stop("deterministic.Q.function should return a list with names: is.deterministic, Q.value")
+  } else {
+    if (!is.list(det.list) || !setequal(names(det.list), c("is.deterministic", "Q.value")) || length(det.list) != 2) stop("deterministic.Q.function should return a list with names: is.deterministic, Q.value")
   }
   
-  for (i in seq_along(deterministic.Q.map)) {
-    if (deterministic.Q.map[[i]]$node < cur.node) {
-      if (!called.from.estimate.g || deterministic.Q.map[[i]]$implies.deterministic.g) {
-        is.det <- deterministic.Q.map[[i]]$is.deterministic
-        val <- deterministic.Q.map[[i]]$Q.value
-        
-        prev.Q <- Q.value[is.deterministic & is.det]
-        temp <- numeric(nrow(d))
-        temp[is.det] <- val
-        new.Q <- temp[is.deterministic & is.det]
-        
-        if (! is.equal(prev.Q, new.Q)) {
-          stop(paste("inconsistent deterministic Q at node:", names(d)[deterministic.Q.map[[i]]$node]))
-        }
-        Q.value[is.det] <- val
-        is.deterministic <- is.deterministic | is.det
-      }
-    }
-  } 
+  if (! length(det.list$Q.value) %in% c(1, length(which(det.list$is.deterministic)))) stop("the length of the 'Q.value' element of deterministic.Q.function's return argument should be either 1 or length(which(det.list$is.deterministic))")
+  
+  #check that these observations where Q.value is 1 due to death (previous y is 1) aren't set to anything conflicting by deterministic.Q.function
+  Q.value.from.function <- rep(NA, nrow(data))
+  Q.value.from.function[det.list$is.deterministic] <- det.list$Q.value
+  set.by.function.and.death <- is.deterministic & det.list$is.deterministic
+  if (any(Q.value.from.function[set.by.function.and.death] != 1)) {
+    stop(paste("inconsistent deterministic Q at node:", names(data)[cur.node]))
+  }
+  finalY <- data[, max(nodes$Y)]
+  inconsistent.rows <- (det.list$Q.value %in% c(0,1)) & (det.list$Q.value != finalY[det.list$is.deterministic]) & !is.na(finalY[det.list$is.deterministic])
+  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.Q.function is inconsistent with data - Q.value is either 0 or 1 but this does not match the final Y node value\nCheck data rows:", rownames(data)[det.list$is.deterministic][inconsistent.rows]))
+  
+  #return combined values
+  Q.value <- rep(NA, nrow(data))
+  Q.value[is.deterministic] <- 1
+  Q.value[det.list$is.deterministic] <- det.list$Q.value
+  is.deterministic <- is.deterministic | det.list$is.deterministic
   Q.value <- Q.value[is.deterministic]
   if (any(is.na(c(is.deterministic, Q.value)))) stop("NA in is.deterministic or Q.value")
   return(list(is.deterministic=is.deterministic, Q.value=Q.value))
+}
+
+# Determine which patients have an Anode value which is deterministic 
+# For example, deterministic.g.function may be used to specify that once a patient starts treatment, they stay on treatment and this should be taken into consideration during estimation of G
+IsDeterministicG <- function(data, cur.node, deterministic.g.function, nodes) {
+  default <- list(is.deterministic=rep(FALSE, nrow(data)), prob1=NULL)
+  if (is.null(deterministic.g.function)) return(default)
+  #put this in a try-catch?
+  det.list <- deterministic.g.function(data=data, current.node=cur.node, nodes=nodes)
+  if (is.null(det.list)) return(default)
+  if (!is.list(det.list) || !setequal(names(det.list), c("is.deterministic", "prob1")) || length(det.list) != 2) stop("deterministic.g.function should return a list with names: is.deterministic, prob1")
+  if (! length(det.list$prob1) %in% c(1, length(which(det.list$is.deterministic)))) stop("the length of the 'prob1' element of deterministic.g.function's return argument should be either 1 or length(which(det.list$is.deterministic))")
+  
+  inconsistent.rows <- (det.list$prob1 %in% c(0,1)) & (det.list$prob1 != data[det.list$is.deterministic, cur.node]) & !is.na(data[det.list$is.deterministic, cur.node])
+  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.g.function is inconsistent with data - prob1 is either 0 or 1 but this does not match the node value.\nCheck data rows:", rownames(data)[det.list$is.deterministic][inconsistent.rows]))
+  return(det.list)
 }
 
 #Utility function called by IsUncensored, IsDeterministic - compares history in d within Xnodes prior to cur.node to Xbar
 #
 #any.all should be either the function 'any' or the function 'all'
 #default: value to return if value is NA or there are no nodes before cur.node (TRUE for InterventionMatch and IsUncensored because NA indicates person matches intervention/is uncensored until they died; FALSE for IsDeterministic because NA indicates person was alive until they were censored)
-XMatch <- function(d, Xbar, Xnodes, cur.node, any.all, default) {
-  if (!any(Xnodes < cur.node)) return(rep(default, nrow(d)))
+XMatch <- function(data, Xbar, Xnodes, cur.node, any.all, default) {
+  if (!any(Xnodes < cur.node)) return(rep(default, nrow(data)))
   last.Xnode.index <- which.max(Xnodes[Xnodes < cur.node])
   
   Xnodes.subset <- Xnodes[1:last.Xnode.index]
-  if (identical(Xbar, 1)) {
-    Xbar.subset <- 1 
+  if (identical(Xbar, 1) || identical(Xbar, "uncensored")) {
+    Xbar.subset <- Xbar 
   } else {
     Xbar.subset <- Xbar[, 1:last.Xnode.index]
   } 
-  d.subset <- d[, Xnodes.subset, drop=FALSE]
+  d.subset <- data[, Xnodes.subset, drop=FALSE]
   matches <- apply(d.subset == Xbar.subset, 1, any.all)
   matches[is.na(matches)] <- default
   return(matches)
-}
-
-# Determine which patients have an Anode value which is deterministic 
-# For example, deterministic.acnode.map may be used to specify that once a patient starts treatment, they stay on treatment and this should be taken into consideration during estimation of G
-IsDeterministicG.old <- function(d, cur.node, deterministic.acnode.map) {
-  default <- list(is.deterministic=rep(FALSE, nrow(d)), prob1=NULL)
-  if (is.null(deterministic.acnode.map)) return(default)
-  index <- which(sapply(deterministic.acnode.map, function (x) x$node) == cur.node)
-  if (length(index) == 0) return(default)
-  if (length(index) > 1) stop("bad acnode.map")
-  is.deterministic <- deterministic.acnode.map[[index]]$is.deterministic
-  return(list(is.deterministic=is.deterministic, prob1=deterministic.acnode.map[[index]]$prob1))
-}
-
-IsDeterministicG <- function(d, cur.node, deterministic.g.function, Anodes, Cnodes) {
-  default <- list(is.deterministic=rep(FALSE, nrow(d)), prob1=NULL)
-  if (is.null(deterministic.g.function)) return(default)
-  #put this in a try-catch?
-  det.list <- deterministic.g.function(data=d, current.ac.node=cur.node, Anodes=Anodes, Cnodes=Cnodes)
-  if (is.null(det.list)) return(default)
-  if (!is.list(det.list) || !setequal(names(det.list), c("is.deterministic", "prob1")) || length(det.list) != 2) stop("deterministic.g.function should return a list with names: is.deterministic, prob1")
-  if (! length(det.list$prob1) %in% c(1, length(which(det.list$is.deterministic)))) stop("the length of the 'prob1' element of deterministic.g.function's return argument should be either 1 or length(which(det.list$is.deterministic))")
-  return(det.list)
 }
 
 # Calculate the TMLE influence curve for one node
@@ -949,12 +1020,14 @@ CalcIC <- function(Qstar.kplus1, Qstar, h.g.ratio, uncensored, intervention.matc
   return(IC)
 }
 
-#Set the Anodes of d to abar
-SetA <- function(d, abar, Anodes, cur.node) {
-  if (!any(Anodes < cur.node)) return(d)
-  last.Anode.index  <- which.max(Anodes[Anodes < cur.node]) 
-  d[, Anodes[1:last.Anode.index]] <- abar[, 1:last.Anode.index]
-  return(d)
+#Set the Anodes of d to abar and Cnodes to uncensored (up to and including cur.node - cur.node itself is included for consistency checking in DeterministicG)
+SetA <- function(data, abar, nodes, cur.node) {
+  Anode.index <- nodes$A <= cur.node
+  data[, nodes$A[Anode.index]] <- abar[, Anode.index]
+  
+  Cnode.index <- nodes$C <= cur.node
+  data[, nodes$C[Cnode.index]] <- 1 #uncensored
+  return(data)
 }
 
 # Return the left hand side variable of formula f as a character
@@ -970,7 +1043,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.acnode.map, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.map) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.function) {
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
   #each set of nodes should be sorted - otherwise causes confusion with gform, Qform, abar
   if (is.unsorted(nodes$A, strictly=TRUE)) stop("Anodes must be in increasing order")
@@ -1032,34 +1105,8 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   }
   
   if (length(gbounds) != 2) stop("gbounds should have length 2")
-  if (length(deterministic.acnode.map) == 0) {
-    deterministic.acnode.map <- NULL   #user can pass list() but package is expecting NULL
-  }
-  if (! is.null(deterministic.acnode.map)) {
-    if (! is.function(deterministic.acnode.map)) stop("deterministic.acnode.map should be a function")
-  }
-  
-  if (length(deterministic.Q.map) == 0) {
-    deterministic.Q.map <- NULL   #user can pass list() but package is expecting NULL
-  }
-  if (! is.null(deterministic.Q.map)) {
-    for (i in 1:length(deterministic.Q.map)) {
-      map <- deterministic.Q.map[[i]]
-      if (! setequal(names(map), c("node", "is.deterministic", "Q.value", "implies.deterministic.g"))) stop("each element of deterministic.Q.map should have names: node, is.deterministic, Q.value, implies.deterministic.g")
-      if (! map$implies.deterministic.g %in% c(0,1)) stop(paste0("length of deterministic.Q.map[[", i, "]]$implies.deterministic.g should be binary"))
-      deterministic.Q.map[[i]]$node <- NodeToIndex(data, map$node)
-      if (! length(map$Q.value) %in% c(1, length(which(map$is.deterministic)))) stop(paste0("length of deterministic.Q.map[[", i, "]]$Q.value  should be either 1 or length(which(deterministic.Q.map[[", i, "]]$is.deterministic))"))
-    }
-  }
-
-  #CheckDeterministicACNodeMap(data, deterministic.acnode.map)
-  
-  if (! is.null(deterministic.Q.map)) {
-    finalY <- data[, max(final.Ynodes)]
-    for (i in nodes$LY[nodes$LY <= max(final.Ynodes)]) {
-      deterministic.list <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map, called.from.estimate.g=FALSE, survivalOutcome)
-      if (any((deterministic.list$Q.value %in% c(0,1)) & (deterministic.list$Q.value != finalY[deterministic.list$is.deterministic]))) stop("deterministic.Q.map is inconsistent with data")
-    }
+  if (! (is.null(deterministic.g.function) || is.function(deterministic.g.function))) {
+    stop("deterministic.g.function should be a function or NULL")
   }
   
   if (! all(unlist(data[, nodes$A]) %in% c(0, 1, NA))) stop("in data, all Anodes should be binary")
@@ -1101,15 +1148,15 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
       }
     }
   } else { #Is a binary outcome
-    if (!is.null(Yrange) && !all.equal(Yrange, c(0L,1L))) {
+    if (!is.null(Yrange) && !is.equal(Yrange, c(0L,1L))) {
       stop("All Ynodes are 0, 1, or NA, but Yrange is something other than NULL or c(0,1)")
     }
   }
-
+  
 
   
   for (i in nodes$Y) {
-    deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map=NULL, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
+    deterministic <- IsDeterministic(data, cur.node=i, deterministic.Q.function=NULL, nodes, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
     if (survivalOutcome && any(is.na(data[deterministic, i])) || ! all(data[deterministic, i] == 1)) stop("For survival outcomes, once a Ynode jumps to 1 (e.g. death), all subsequent Ynode values should be 1.")    
   }
   
@@ -1120,7 +1167,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   for (i in seq_along(nodes$A)) {
     cur.node <- nodes$A[i]
     uncensored <- IsUncensored(data, nodes$C, cur.node)
-    deterministic <- IsDeterministic(data, nodes$Y, cur.node, deterministic.Q.map, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic
+    deterministic <- IsDeterministic(data, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic
     if (any(is.na(regimens[uncensored & !deterministic, i, ]))) {
       stop("NA in regimens/abar not allowed (except after censoring/death)")
     }
@@ -1131,57 +1178,9 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if (! all(RhsVars(working.msm) %in% colnames(summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures")
   dynamic.regimens <- !all(duplicated(regimens)[2:nrow(data)])
   #if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
-  
-  return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map, 
-              binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, data=data))
+    return(list(data=data, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome))
 }
 
-# Check deterministic.acnode.map for errors
-CheckDeterministicACNodeMap <- function(data, deterministic.acnode.map) {
-  ok <- TRUE
-  if (is.null(deterministic.acnode.map)) return(NULL)
-  for (i in 1:length(deterministic.acnode.map)) {
-    isdet <- deterministic.acnode.map[[i]]$is.deterministic
-    node <- deterministic.acnode.map[[i]]$node
-    prob <- deterministic.acnode.map[[i]]$prob
-    d <- data[isdet, node]
-    index <- !is.na(d) & d == 1 & prob == 0
-    if (is.character(node)) {
-      name <- node
-    } else {
-      name <- names(data)[node]
-    }
-    if (any(index)) {
-      msg <- capture.output({
-        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 0, but these nodes are 1:\n", sep="")
-        if (length(prob) == 1) {
-          prob1 <- prob
-        } else {
-          prob1 <- prob[index]
-        }
-        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
-      })
-      warning(paste(msg, collapse="\n"))                
-      ok <- FALSE
-    }
-    index <- !is.na(d) & d == 0 & prob == 1
-    if (any(index)) {
-      msg <- capture.output({
-        cat("deterministic.acnode.map indicates Prob(", name, ") = 1 is 1, but these nodes are 0:\n", sep="")
-        if (length(prob) == 1) {
-          prob1 <- prob
-        } else {
-          prob1 <- prob[index]
-        }
-        print(head(data.frame(data[isdet,node,drop=F][index,,drop=F], prob=prob1)))
-      })
-      warning(paste(msg, collapse="\n"))          
-      ok <- FALSE
-    }
-  }
-  if (! ok) stop("Inconsistent data in deterministic.acnode.map - see diagnostic output above.")
-  return(NULL)
-}
 
 # Get the default Q or g formula - each formula consists of all parent nodes except censoring and event nodes [also except A nodes if stratifying]
 GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome) {
@@ -1201,7 +1200,7 @@ GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome) {
     stratify.nodes <- c(stratify.nodes, nodes$Y)
   }
   form <- NULL
-  for (i in 1:length(node.set)) {
+  for (i in seq_along(node.set)) {
     cur.node <- node.set[i]
     if (cur.node == 1) {
       form[i] <- paste(lhs[i], "~ 1")  #no parent nodes
@@ -1284,7 +1283,7 @@ GetLibrary <- function(SL.library, estimate.type) {
 }
 
 # The non-pooled version of the ltmleMSM 
-NonpooledMSM <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.acnode.map, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.map) {  
+NonpooledMSM <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, deterministic.g.function, stratify, SL.library, regimens, working.msm, final.Ynodes, summary.measures, weight.msm, gcomp, mhte.iptw, iptw.only, deterministic.Q.function) {  
   tmle.index <- ifelse(gcomp, "gcomp", "tmle")
   num.regimens <- dim(regimens)[3]
   num.final.Ynodes <- length(final.Ynodes)
@@ -1306,13 +1305,11 @@ NonpooledMSM <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, de
     for (i in which(! is.duplicate)) {
       abar <- drop3(regimens[, , i, drop=F])
       abar <- abar[, nodes$A < final.Ynode, drop=FALSE]
-      det.ac.map <- TruncateDeterministicNodeMap(data, deterministic.acnode.map, final.Ynode)
-      det.Q.map <- TruncateDeterministicNodeMap(data, deterministic.Q.map, final.Ynode)
       
       weights[i, j] <- ComputeGA(data[, 1:final.Ynode, drop=FALSE], nodes$A[nodes$A <= final.Ynode], nodes$C[nodes$C <= final.Ynode], abar, final.Ynode, weight.msm)
       
       if (weights[i, j] > 0) {
-        result <- ltmle(data=data[, 1:final.Ynode, drop=FALSE], Anodes=nodes$A[nodes$A <= final.Ynode], Cnodes=nodes$C[nodes$C <= final.Ynode], Lnodes=nodes$L[nodes$L <= final.Ynode], Ynodes=nodes$Y[nodes$Y <= final.Ynode], survivalOutcome=survivalOutcome, Qform=Qform[nodes$LY <= final.Ynode], gform=gform1, abar=abar, gbounds=gbounds, deterministic.acnode.map=det.ac.map, stratify=stratify, SL.library=SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.map=det.Q.map)
+        result <- ltmle(data=data[, 1:final.Ynode, drop=FALSE], Anodes=nodes$A[nodes$A <= final.Ynode], Cnodes=nodes$C[nodes$C <= final.Ynode], Lnodes=nodes$L[nodes$L <= final.Ynode], Ynodes=nodes$Y[nodes$Y <= final.Ynode], survivalOutcome=survivalOutcome, Qform=Qform[nodes$LY <= final.Ynode], gform=gform1, abar=abar, gbounds=gbounds, deterministic.g.function=deterministic.g.function, stratify=stratify, SL.library=SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function)
         tmle[i, j] <- result$estimates[tmle.index]
         iptw[i, j] <- min(1, result$estimates["iptw"])
         IC[i, j, ] <- result$IC[[tmle.index]]
@@ -1321,7 +1318,7 @@ NonpooledMSM <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, de
       if (j == num.final.Ynodes) {
         if (weights[i, j] == 0) {
           #we didn't calculate cum.g because weight was 0 but we need to return it
-          result <- ltmle(data=data[, 1:final.Ynode, drop=FALSE], Anodes=nodes$A[nodes$A <= final.Ynode], Cnodes=nodes$C[nodes$C <= final.Ynode], Lnodes=nodes$L[nodes$L <= final.Ynode], Ynodes=nodes$Y[nodes$Y <= final.Ynode], survivalOutcome=survivalOutcome, Qform=Qform[nodes$LY <= final.Ynode], gform=gform1, abar=abar, gbounds=gbounds, deterministic.acnode.map=det.ac.map, stratify=stratify, SL.library=SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=TRUE, deterministic.Q.map=deterministic.Q.map)
+          result <- ltmle(data=data[, 1:final.Ynode, drop=FALSE], Anodes=nodes$A[nodes$A <= final.Ynode], Cnodes=nodes$C[nodes$C <= final.Ynode], Lnodes=nodes$L[nodes$L <= final.Ynode], Ynodes=nodes$Y[nodes$Y <= final.Ynode], survivalOutcome=survivalOutcome, Qform=Qform[nodes$LY <= final.Ynode], gform=gform1, abar=abar, gbounds=gbounds, deterministic.g.function=deterministic.g.function, stratify=stratify, SL.library=SL.library, estimate.time=FALSE, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=TRUE, deterministic.Q.function=deterministic.Q.function)
         }
         cum.g[, , i] <- result$cum.g      
       }
@@ -1429,44 +1426,20 @@ ConvertToMainTerms <- function(msm, summary.measures) {
   return(list(msm=main.terms.msm, summary.measures=main.terms.summary.measures, beta.names=colnames(temp.model.matrix)))
 }
 
-# Truncate the parts of deterministic.acnode.map after final.Ynode
-# Most of the code should work ok without this but it helps to pass CheckInputs
-TruncateDeterministicNodeMap <- function(data, deterministic.node.map, final.Ynode) {
-  return(deterministic.node.map) #this needs to be cleaned up
-  det.map <- deterministic.node.map
-  if (! is.null(det.map)) {
-    index <- NULL
-    for (k in 1:length(det.map)) {
-      node.index <- NodeToIndex(data, det.map[[k]]$node)
-      if (node.index <= final.Ynode) {
-        index <- c(index, k)
-      }
-    }
-    det.map <- det.map[index]
-    if (length(det.map) == 0) det.map <- NULL
-  }
-  return(det.map)
-}
-
-# Convert censoring nodes stored as factors into binaries (the ltmle code was originally written for binaries but factors confusion in inputs)
-ConvertCensoringNodes <- function(data, Cnodes) {
-  CensoringToBinary <- function(x) {
-    if (! all(levels(x) %in% c("censored", "uncensored"))) {
-      stop("all levels of data[, Cnodes] should be in censored, uncensored (NA should not be a level)")
-    }
-    b <- rep(NA_integer_, length(x))
-    b[x == "censored"] <- 0L
-    b[x == "uncensored"] <- 1L
-    return(b)
-  }
-  
-  error.msg <- "in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored' \n (binary is also accepted, where 0=censored, 1=uncensored, but is not recommended)"
+# Convert censoring nodes stored as binaries into factors (factors are recommended but binaries are currently accepted)
+ConvertCensoringNodes <- function(data, Cnodes, has.deterministic.functions=FALSE) {
+  error.msg <- "in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored'\n See ?BinaryToCensoring \n (binary is also accepted, where 0=censored, 1=uncensored, but this is not recommended)"
   for (i in Cnodes) {
     col <- data[, i]
     if (is.numeric(col)) {
       if (! all(col %in% c(0, 1, NA))) stop(error.msg)
+      data[, i] <- BinaryToCensoring(is.uncensored=col)
+      if (has.deterministic.functions) warning("Censoring nodes have been converted from binaries to factors - see ?BinaryToCensoring.\n Note that if you are writing your own deterministic.g.function or deterministic.Q.function that censoring nodes are converted to factors\n before these functions are called.")
     } else if (is.factor(col)) {
-      data[, i] <- CensoringToBinary(col)
+      if (! all(levels(col) %in% c("censored", "uncensored"))) {
+        stop("all levels of data[, Cnodes] should be in censored, uncensored (NA should not be a level)")
+      }
+      #no action required
     } else {
       stop(error.msg)
     } 
@@ -1483,5 +1456,3 @@ GetWarningsToSuppress <- function(update.step=FALSE) {
   }
   return(warnings.to.suppress)
 }
-
-Default.SL.Library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))
