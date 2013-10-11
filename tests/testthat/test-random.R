@@ -16,8 +16,8 @@ test_that("treatment specific mean point treatment matches Susan Gruber tmle pac
   r1 <- tmle(Y, A, W, Qform = Qform, gform = gform, family = "binomial", Qbounds=c(0,1), alpha=0.9999, gbound=lgbound)
     
   data <- data.frame(W, A, Y)
-  r2.1 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=1, gbounds=gbounds, estimate.time=FALSE)
-  r2.0 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=0, gbounds=gbounds, estimate.time=FALSE)
+  r2.1 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=1, gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE)
+  r2.0 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=0, gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE)
   s <- summary(r2.1, r2.0)
   
   expect_equals(r1$estimates$ATE$psi, s$effect.measures$ATE$estimate)
@@ -61,7 +61,7 @@ test_that("simple longitudinal data matches code from Susan Gruber paper", {
 
   r1 <- SuppressGivenWarnings(ltmle.sg(data, Inodes=Anodes, Lnodes=c(6, 9), Ynodes=9, Qform=Qform, gform=gform, gbd=lgbound),
                               "prediction from a rank-deficient fit may be misleading")
-  r2 <- ltmle(data, Anodes=Anodes, Lnodes=6, Ynodes=9, Qform=Qform, gform=gform, abar=c(1, 1, 1, 1), stratify=TRUE, gbounds=c(lgbound, 1), estimate.time=FALSE)
+  r2 <- ltmle(data, Anodes=Anodes, Lnodes=6, Ynodes=9, Qform=Qform, gform=gform, abar=c(1, 1, 1, 1), stratify=TRUE, gbounds=c(lgbound, 1), survivalOutcome=TRUE, estimate.time=FALSE)
   
   expect_equals(r1["iptw"], r2$estimates["iptw"])
   expect_equals(r1["tmle"], r2$estimates["tmle"])
