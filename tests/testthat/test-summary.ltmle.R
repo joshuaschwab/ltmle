@@ -14,8 +14,8 @@ test_that("OR and RR are not calculated when Y is not binary", {
 
   expect_that(names(s$effect.measures), equals(c("ATE")))
 
-  t1 <- ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=1)
-  t0 <- ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=0)  
+  t1 <- ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=1, survivalOutcome=FALSE)
+  t0 <- ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=0, survivalOutcome=FALSE)  
 
   u <- summary(t1, t0)
 
