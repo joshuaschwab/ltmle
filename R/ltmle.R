@@ -13,7 +13,7 @@
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
-ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, 
+ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
                   abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, stratify=FALSE, 
                   SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
                   iptw.only=FALSE, deterministic.Q.map=NULL) {
@@ -74,7 +74,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
 
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE) {
   if (memoize && require(memoise)) {
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
@@ -102,6 +102,9 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
    
   if (identical(SL.library, 'default')) SL.library <- get("Default.SL.Library")
   
+  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome)
+  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome)
+  
   if (length(dim(summary.measures)) == 2) {
     num.final.Ynodes <- length(final.Ynodes)
     summary.measures <- array(repmat(summary.measures, m=1, n=num.final.Ynodes), dim=c(nrow(summary.measures), ncol(summary.measures), num.final.Ynodes), dimnames=list(rownames(summary.measures), colnames(summary.measures), NULL))
@@ -112,10 +115,6 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   deterministic.acnode.map <- check.results$deterministic.acnode.map
   deterministic.Q.map <- check.results$deterministic.Q.map
   data <- check.results$data
-  survivalOutcome <- check.results$survivalOutcome
-
-  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome)
-  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome)  
   
   if (estimate.time) EstimateTime(data, nodes, survivalOutcome, Qform, gform, gbounds, SL.library, regimens, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, gcomp, mhte.iptw, iptw.only)
   
@@ -996,46 +995,40 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     }
   }
 
-  #if gform is NULL, it will be set by GetDefaultForm, so don't need to check here.
-  if (!is.null(gform)) {
-    if (is.character(gform)) {
-      if (length(gform) != length(nodes$AC)) stop("length(gform) != length(c(Anodes, Cnodes))")
-      for (i in 1:length(gform)) {
-        if (LhsVars(gform[i]) != names(data)[nodes$AC[i]]) {
-          stop("The LHS of gform[", i, "] should be the name of the ", i, "th A or C node")
-        }
-        parents <- if(nodes$AC[i] > 1) {
-          names(data)[1:(nodes$AC[i]-1)]
-          } else {
-            NULL
-          }
-        if (!all(RhsVars(gform[i]) %in% parents)) {
-          stop("Some nodes in gform[", i, "] are not parents of ", LhsVars(gform[i]))
-        }
+  if (is.character(gform)) {
+    if (length(gform) != length(nodes$AC)) stop("length(gform) != length(c(Anodes, Cnodes))")
+    for (i in 1:length(gform)) {
+      if (LhsVars(gform[i]) != names(data)[nodes$AC[i]]) {
+        stop("The LHS of gform[", i, "] should be the name of the ", i, "th A or C node")
       }
-    } else {
-      if (! is.numeric(gform)) stop("gform should be a character vector or numeric")
-      g <- as.matrix(gform)
-      if (nrow(g) != nrow(data)) stop("if gform is numeric, it should have the same number of rows as data")
-      if (ncol(g) != length(nodes$AC)) stop("if gform is numeric, it should have the same number of columns as length(c(Anodes, Cnodes))")
+      parents <- if(nodes$AC[i] > 1) {
+        names(data)[1:(nodes$AC[i]-1)]
+        } else {
+          NULL
+        }
+      if (!all(RhsVars(gform[i]) %in% parents)) {
+        stop("Some nodes in gform[", i, "] are not parents of ", LhsVars(gform[i]))
+      }
     }
+  } else {
+    if (! is.numeric(gform)) stop("gform should be a character vector or numeric")
+    g <- as.matrix(gform)
+    if (nrow(g) != nrow(data)) stop("if gform is numeric, it should have the same number of rows as data")
+    if (ncol(g) != length(nodes$AC)) stop("if gform is numeric, it should have the same number of columns as length(c(Anodes, Cnodes))")
   }
-
-  #if Qform is NULL, it will be set by GetDefaultForm, so don't need to check here. 
-  if (!is.null(Qform)) {
-    if (! is.character(Qform)) stop("Qform should be a character vector")
-    if (length(Qform) != length(nodes$LY)) {
-      stop("length of Qform is not equal to number of L/Y nodes")
-    }
-    for (i in 1:length(Qform)) {
-      if (LhsVars(Qform[i]) != "Q.kplus1") stop("LHS of each Qform should be Q.kplus1")
-      if (length(names(Qform[i])) == 0) stop("Each element of Qform must be named. The name must match the name of the corresponding L/Y node in data.")
-      if (names(Qform[i]) != names(data)[nodes$LY[i]]) stop("The name of each element of Q must match the name of the corresponding L/Y node in data.")
-      parents <- names(data)[1:(nodes$LY[i]-1)]
-      if (!all(RhsVars(Qform[i]) %in% parents)) {
-        stop("Some nodes in Qform[", i, "] are not parents of ", names(Qform[i]))
-      }    
-    }
+  
+  if (! is.character(Qform)) stop("Qform should be a character vector")
+  if (length(Qform) != length(nodes$LY)) {
+    stop("length of Qform is not equal to number of L/Y nodes")
+  }
+  for (i in 1:length(Qform)) {
+    if (LhsVars(Qform[i]) != "Q.kplus1") stop("LHS of each Qform should be Q.kplus1")
+    if (length(names(Qform[i])) == 0) stop("Each element of Qform must be named. The name must match the name of the corresponding L/Y node in data.")
+    if (names(Qform[i]) != names(data)[nodes$LY[i]]) stop("The name of each element of Q must match the name of the corresponding L/Y node in data.")
+    parents <- names(data)[1:(nodes$LY[i]-1)]
+    if (!all(RhsVars(Qform[i]) %in% parents)) {
+      stop("Some nodes in Qform[", i, "] are not parents of ", names(Qform[i]))
+    }    
   }
   
   if (length(gbounds) != 2) stop("gbounds should have length 2")
@@ -1068,12 +1061,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
 
   transformOutcome <- FALSE
 
-
-
   if (!binaryOutcome) {
-    if (is.null(survivalOutcome)) {
-      survivalOutcome <- FALSE
-    }
     if (survivalOutcome) {
       stop("When survivalOutcome is TRUE, all Ynodes should be 0, 1, or NA")
     } else { #not a survival Outcome
@@ -1103,9 +1091,6 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
       }
     }
   } else { #Is a binary outcome
-    if (is.null(survivalOutcome)) {
-      stop("All Ynodes are 0, 1, or NA; the outcome is treated as binary. The 'survivalOutcome' argument must be specified.")
-    }
     if (!is.null(Yrange) && !all.equal(Yrange, c(0L,1L))) {
       stop("All Ynodes are 0, 1, or NA, but Yrange is something other than NULL or c(0,1)")
     }
@@ -1146,7 +1131,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   #if (dynamic.regimens && weight.msm) stop("dynamic regimens are not currently supported with weight.msm=TRUE [under development]")
   
   return(list(deterministic.acnode.map=deterministic.acnode.map, deterministic.Q.map=deterministic.Q.map, 
-              binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, data=data, survivalOutcome=survivalOutcome))
+              binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, data=data))
 }
 
 # Check deterministic.acnode.map for errors
