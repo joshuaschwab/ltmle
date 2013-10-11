@@ -1052,6 +1052,16 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     }
   }
 
+  #CheckDeterministicACNodeMap(data, deterministic.acnode.map)
+  
+  if (! is.null(deterministic.Q.map)) {
+    finalY <- data[, max(final.Ynodes)]
+    for (i in nodes$LY[nodes$LY <= max(final.Ynodes)]) {
+      deterministic.list <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map, called.from.estimate.g=FALSE, survivalOutcome)
+      if (any((deterministic.list$Q.value %in% c(0,1)) & (deterministic.list$Q.value != finalY[deterministic.list$is.deterministic]))) stop("deterministic.Q.map is inconsistent with data")
+    }
+  }
+  
   if (! all(unlist(data[, nodes$A]) %in% c(0, 1, NA))) stop("in data, all Anodes should be binary")
   #note: Cnodes are checked in ConvertCensoringNodes
 
@@ -1096,15 +1106,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     }
   }
 
-  #CheckDeterministicACNodeMap(data, deterministic.acnode.map)
-  
-  if (! is.null(deterministic.Q.map)) {
-    finalY <- data[, max(final.Ynodes)]
-    for (i in nodes$LY[nodes$LY <= max(final.Ynodes)]) {
-      deterministic.list <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map, called.from.estimate.g=FALSE, survivalOutcome)
-      if (any((deterministic.list$Q.value %in% c(0,1)) & (deterministic.list$Q.value != finalY[deterministic.list$is.deterministic]))) stop("deterministic.Q.map is inconsistent with data")
-    }
-  }
+
   
   for (i in nodes$Y) {
     deterministic <- IsDeterministic(data, nodes$Y, cur.node=i, deterministic.Q.map=NULL, called.from.estimate.g=FALSE, survivalOutcome)$is.deterministic
