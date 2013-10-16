@@ -122,8 +122,11 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   } else {
     final.Ynodes <- NodeToIndex(data, final.Ynodes)
   }
-   
+  
+  #Using get to avoid the "no visible binding for global variable" note in R CMD check 
   if (identical(SL.library, 'default')) SL.library <- get("Default.SL.Library")
+
+
   
   if (length(dim(summary.measures)) == 2) {
     num.final.Ynodes <- length(final.Ynodes)
@@ -238,7 +241,6 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
   stacked.summary.measures <- GetStackedSummaryMeasures(summary.measures, data[, summary.baseline.covariates, drop=FALSE])
   
-  if (identical(SL.library, 'default')) SL.library <- get("Default.SL.library") #Using get to avoid the "no visible binding for global variable" note in R CMD check
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   
   SL.library.Q <- GetLibrary(SL.library, "Q")
@@ -885,7 +887,8 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type) {
     rhs <- setdiff(RhsVars(f), rownames(alias(f, data=data[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
     new.subs <- apply(newdata[, rhs, drop=FALSE], 1, function (x) !any(is.na(x)))  #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
     
-    m <- SuperLearner(Y=data[subs, LhsVars(f)], X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE])
+    m <- SuppressGivenWarnings(SuperLearner(Y=data[subs, LhsVars(f)], X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE]),
+                          "non-integer #successes in a binomial glm!")
     predicted.values <- rep(NA, nrow(newdata))
     predicted.values[new.subs] <- m$SL.predict
     if (max(predicted.values, na.rm=T) > 1 || min(predicted.values, na.rm=T) < 0) {
@@ -1475,3 +1478,15 @@ GetWarningsToSuppress <- function(update.step=FALSE) {
   }
   return(warnings.to.suppress)
 }
+
+
+Default.SL.Library <- list("SL.glm",
+                           "SL.stepAIC",
+                           "SL.bayesglm", 
+                           c("SL.glm", "screen.corP"), 
+                           c("SL.step", "screen.corP"), 
+                           c("SL.step.forward", "screen.corP"), 
+                           c("SL.stepAIC", "screen.corP"), 
+                           c("SL.step.interaction", "screen.corP"), 
+                           c("SL.bayesglm", "screen.corP")
+                           ) 
