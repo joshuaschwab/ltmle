@@ -14,15 +14,18 @@
 #return all glm fits [done] error if Anodes and Cnodes both NULL [done] 
 #replace all "d" with "data" [done]
 
-#check with maya re ex 4 (says "check this")
+#check with maya re ex 4 (says "check this") [done]
 
 #export BinaryToCensoring [in switch functions, just need to export]
 #convert binary C to factor in ltmleMSM.private [done]
-#document (change existing docs [done, except creating rd file for deterministic templates and example functions], clean g and Q examples [done] - also note that is.deterministic in det.Q.fun will be used by EstimateG unless user checks for this in function [check with maya])
+#document (change existing docs [done, except creating rd file for deterministic templates and example functions], clean g and Q examples [done] - also note that is.deterministic in det.Q.fun will be used by EstimateG unless user checks for this in function [done])
 #include example det g and Q functions [done - in switchfunctions]
-#write functions to create shell for det.g and det.Q functions [in progress-see LinhBug/ dswitch functions - mostly done, check with maya re det q function]
-#update release notes, update version, update authors
-#write sam re changing default on survivalFunction to true
+#write functions to create shell for det.g and det.Q functions [in progress-see LinhBug/ dswitch functions - just need to move and document]
+#update news, update version [done], update authors [done]
+#wrap SuperLearner in try-catch [done]
+#fix problem with tests-prevRelease (inc tolerance if score eq not solved?) [done - due to Qbounds]
+#fix bug Sam found - convert factor back to binary [done, add to test cases]
+#modify so survivalOutcome not required if only 1 Y node?
 
 # General code flow:
 #ltmle -> ltmleMSM.private(pooledMSM=T) -> ...
@@ -255,7 +258,6 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   } else {
     is.duplicate <- FALSE  #without this if statement there were problems when abar=NULL (ncol(regimens)=0)
   }
-  
   fit.g <- vector("list", num.regimens)
   for (i in 1:num.regimens) {
     if (is.duplicate[i]) {
@@ -292,11 +294,9 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
       } else {
         subs[, i] <- uncensored & !deterministic.list.origdata$is.deterministic
       }
-      #check that sum(subs[,i]) > 0
       if (any(subs[, i])) {
-        Q.est <- Estimate(Qform[j], data=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link")
+        Q.est <- Estimate(Qform[j], data=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link", nodes=nodes)
         logitQ[, i] <- Q.est$predicted.values
-        #pass back Q.est$fit
       } else {
         if (! all(deterministic.list.newdata$is.deterministic)) {
           msg <- paste0("ltmle failed trying to estimate ", Qform[j], " because there are no observations that are\nuncensored", ifelse(stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.Q.function\n")
@@ -555,7 +555,7 @@ EstimateTime <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, SL
     elapsed.time <- Sys.time() - start.time 
     est.time <- round(sqrt(as.double(elapsed.time, units="mins") * nrow(data) / 50), digits=0)
     if (est.time == 0) est.time <- "< 1"
-    message("Estimate of time to completion: ", est.time, " minutes ")
+    message("Estimate of time to completion: ", est.time, " minute", ifelse(est.time==1 || is.character(est.time), "", "s"))
   }
   invisible(NULL)
 }
@@ -821,7 +821,7 @@ EstimateG <- function(data, survivalOutcome, gform, nodes, abar, deterministic.g
       } else {
         # not all rows are set deterministically
         if (any(subs)) {
-          g.est <- Estimate(gform[i], data=data, subs=subs, family="binomial", newdata=newdata, SL.library=SL.library, type="response")
+          g.est <- Estimate(gform[i], data=data, subs=subs, family="binomial", newdata=newdata, SL.library=SL.library, type="response", nodes=nodes)
           probAis1 <- g.est$predicted.values
         } else {
           msg <- paste0("ltmle failed trying to estimate ", gform[i], " because there are no observations that are\nuncensored", ifelse(stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.g.function or deterministic.Q.function\n")
@@ -862,7 +862,7 @@ NodeToIndex <- function(data, node) {
 }
 
 # Run GLM or SuperLearner
-Estimate <- function(form, data, subs, family, newdata, SL.library, type) {
+Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes) {
   stopifnot(type %in% c("link", "response"))
   f <- as.formula(form)
   
@@ -882,10 +882,22 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type) {
   } else {
     #estimate using SuperLearner
     if (family == "quasibinomial") family <- "binomial"
+    data <- ConvertCensoringNodesToBinary(data, nodes$C) #convert factors to binaries for compatability with some SL libraries
+    
     rhs <- setdiff(RhsVars(f), rownames(alias(f, data=data[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
     new.subs <- apply(newdata[, rhs, drop=FALSE], 1, function (x) !any(is.na(x)))  #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
+    Y <- data[subs, LhsVars(f)]
+    try.result <- try({
+      m <- SuperLearner(Y=Y, X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE])
+    })
     
-    m <- SuperLearner(Y=data[subs, LhsVars(f)], X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE])
+    GetSLStopMsg <- function(Y) ifelse(all(Y %in% c(0, 1, NA)), "", "\n Note that many SuperLeaner libraries crash when called with continuous dependent variables, as in the case of initial Q regressions with continuous Y or subsequent Q regressions even if Y is binary.")
+    if (inherits(try.result, "try-error")) {
+      stop(paste("\n\nError occured during call to SuperLearner:\n", form, GetSLStopMsg(Y), "\n The error reported is:\n", try.result))
+    }
+    if (all(is.na(m$SL.predict))) {
+      stop(paste("\n\nSuperLearner returned all NAs during regression:\n", form, GetSLStopMsg(Y)))
+    }
     predicted.values <- rep(NA, nrow(newdata))
     predicted.values[new.subs] <- m$SL.predict
     if (max(predicted.values, na.rm=T) > 1 || min(predicted.values, na.rm=T) < 0) {
@@ -1192,6 +1204,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     }
   }
  
+  if ((length(dim(summary.measures)) != 3) || ! is.equal(dim(summary.measures)[c(1, 3)], c(num.regimens, length(final.Ynodes)))) stop("summary.measures should be an array with dimensions num.regimens x num.summary.measures x num.final.Ynodes")
   if (! is.null(summary.baseline.covariates)) stop("summary.baseline.covariates is currently in development and is not yet supported - set summary.baseline.covariates to NULL")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (! all(RhsVars(working.msm) %in% colnames(summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures")
@@ -1466,6 +1479,32 @@ ConvertCensoringNodes <- function(data, Cnodes, has.deterministic.functions=FALS
   return(data)
 }
 
+#Before passing data to SuperLearner, convert factors to binary
+ConvertCensoringNodesToBinary <- function(data, Cnodes) {
+  CensoringToBinary <- function(x) {
+    if (! all(levels(x) %in% c("censored", "uncensored"))) {
+      stop("all levels of data[, Cnodes] should be in censored, uncensored (NA should not be a level)")
+    }
+    b <- rep(NA_integer_, length(x))
+    b[x == "censored"] <- 0L
+    b[x == "uncensored"] <- 1L
+    return(b)
+  }
+  
+  error.msg <- "in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored' \n (binary is also accepted, where 0=censored, 1=uncensored, but is not recommended)"
+  for (i in Cnodes) {
+    col <- data[, i]
+    if (is.numeric(col)) {
+      if (! all(col %in% c(0, 1, NA))) stop(error.msg)
+    } else if (is.factor(col)) {
+      data[, i] <- CensoringToBinary(col)
+    } else {
+      stop(error.msg)
+    } 
+  }
+  return(data)
+}
+
 # We don't want to show all of the warnings 
 GetWarningsToSuppress <- function(update.step=FALSE) {
   warnings.to.suppress <- c("glm.fit: fitted probabilities numerically 0 or 1 occurred", "prediction from a rank-deficient fit may be misleading")
@@ -1475,3 +1514,5 @@ GetWarningsToSuppress <- function(update.step=FALSE) {
   }
   return(warnings.to.suppress)
 }
+
+Default.SL.Library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP")) 
