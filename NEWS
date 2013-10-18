@@ -1,3 +1,34 @@
+ltmle 0.9.1
+===========
+
+MAJOR CHANGES
+
+* A bug has been fixed in the use of deterministic maps. This has required removing the deterministic.acnode.map and deterministic.Q.map parameters and replacing them with deterministic.g.function and deterministic.Q.function. The new arguments are functions rather than lists. Please recalculate any results from version 0.9 that used deterministic maps! Differences in most cases should be minor, but could be significant in some cases. My apologies for the error and for the trouble updating your code. Thanks to Linh Tran for finding the bug.
+
+* survivalOutcome parameter has been added and is required when there are multiple binary Y nodes
+
+* scaling for continuous Y values added
+
+MINOR CHANGES
+
+* fits for g and Q regressions are returned
+
+* added BinaryToCensoring helper function
+
+* default SuperLearner library has changed
+
+* messages are used instead of cat and print
+
+* default formulas are shown if gform or Qform is NULL
+
+* dynamic regimes can be specified using a rule function instead of abar
+
+* formulas are returned
+
+* some improved warning messages and error checking
+
+* minor bug fixes
+
 ltmle 0.9
 ===========
 

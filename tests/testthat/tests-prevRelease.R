@@ -1,3 +1,5 @@
+context("Test that results match previous release")
+
 expect_equals <- function(...) expect_equal(..., tolerance=0.0001, scale=1, check.attributes=FALSE)
 
 IsSurvival <- function(data) {
@@ -5,7 +7,7 @@ IsSurvival <- function(data) {
   return(all(finalY %in% c(0, 1, NA)))
 }
 
-test_that("results match previous release", {
+test_that("tests from 'create tests to compare versions.R'", {
   data(PreviousReleaseTests)
   for (j in seq_along(btests)) {
     additional.args <- list(survivalOutcome=IsSurvival(btests[[j]]$args$data))

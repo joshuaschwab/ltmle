@@ -1,32 +1,5 @@
  # Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
 
-
-#v0.9: 5/3/13 Joshua Schwab  released package
-
-#v0.91 - started fixing det.ac.map bug - lots to clean up:
-#rename det.ac.map [done]
-
-#fix det.Q.map [done]
-#clean up CheckInputs [done]
-#testdetgfun gives diff answers - i think they should be the same but maybe not? fix this and then check that appropriate error messages are thrown if detgfun is inconsistent with data [fixed/done]
-# make the "all subs false" error clearer [done]
-#SetA should also set all Cnodes to 1 [done]
-#return all glm fits [done] error if Anodes and Cnodes both NULL [done] 
-#replace all "d" with "data" [done]
-
-#check with maya re ex 4 (says "check this") [done]
-
-#export BinaryToCensoring [in switch functions, just need to export]
-#convert binary C to factor in ltmleMSM.private [done]
-#document (change existing docs [done, except creating rd file for deterministic templates and example functions], clean g and Q examples [done] - also note that is.deterministic in det.Q.fun will be used by EstimateG unless user checks for this in function [done])
-#include example det g and Q functions [done - in switchfunctions]
-#write functions to create shell for det.g and det.Q functions [in progress-see LinhBug/ dswitch functions - just need to move and document]
-#update news, update version [done], update authors [done]
-#wrap SuperLearner in try-catch [done]
-#fix problem with tests-prevRelease (inc tolerance if score eq not solved?) [done - due to Qbounds]
-#fix bug Sam found - convert factor back to binary [done, add to test cases]
-#modify so survivalOutcome not required if only 1 Y node?
-
 # General code flow:
 #ltmle -> ltmleMSM.private(pooledMSM=T) -> ...
 #ltmleMSM(pooledMSM=T) -> ltmleMSM.private(pooledMSM=T) -> ...
@@ -126,6 +99,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
     final.Ynodes <- NodeToIndex(data, final.Ynodes)
   }
    
+  #Using get to avoid the "no visible binding for global variable" note in R CMD check
   if (identical(SL.library, 'default')) SL.library <- get("Default.SL.Library")
   
   if (length(dim(summary.measures)) == 2) {
@@ -240,8 +214,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
   #summary.baseline.covariates: names/indicies: num.summary.baseline.covariates x 1 
   #stacked.summary.measures: (n*num.regimens) x (num.summary.measures + num.summary.baseline.covariates)
   stacked.summary.measures <- GetStackedSummaryMeasures(summary.measures, data[, summary.baseline.covariates, drop=FALSE])
-  
-  if (identical(SL.library, 'default')) SL.library <- get("Default.SL.library") #Using get to avoid the "no visible binding for global variable" note in R CMD check
+
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   
   SL.library.Q <- GetLibrary(SL.library, "Q")
@@ -888,7 +861,7 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes)
     new.subs <- apply(newdata[, rhs, drop=FALSE], 1, function (x) !any(is.na(x)))  #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
     Y <- data[subs, LhsVars(f)]
     try.result <- try({
-      m <- SuperLearner(Y=Y, X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE])
+      SuppressGivenWarnings(m <- SuperLearner(Y=Y, X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE]), "non-integer #successes in a binomial glm!") 
     })
     
     GetSLStopMsg <- function(Y) ifelse(all(Y %in% c(0, 1, NA)), "", "\n Note that many SuperLeaner libraries crash when called with continuous dependent variables, as in the case of initial Q regressions with continuous Y or subsequent Q regressions even if Y is binary.")
@@ -1177,7 +1150,11 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     }
   } else { #Is a binary outcome
     if (is.null(survivalOutcome)) {
-      stop("All Ynodes are 0, 1, or NA; the outcome is treated as binary. The 'survivalOutcome' argument must be specified.")
+      if (length(nodes$Y) == 1) {
+        survivalOutcome <- FALSE #doesn't matter 
+      } else {
+        stop("All Ynodes are 0, 1, or NA; the outcome is treated as binary. The 'survivalOutcome' argument must be specified if there are multiple Ynodes.")
+      }
     }    
     if (!is.null(Yrange) && !is.equal(Yrange, c(0L,1L))) {
       stop("All Ynodes are 0, 1, or NA, but Yrange is something other than NULL or c(0,1)")
@@ -1515,4 +1492,13 @@ GetWarningsToSuppress <- function(update.step=FALSE) {
   return(warnings.to.suppress)
 }
 
-Default.SL.Library <- list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP")) 
+Default.SL.Library <- list("SL.glm",
+    "SL.stepAIC",
+    "SL.bayesglm", 
+    c("SL.glm", "screen.corP"), 
+    c("SL.step", "screen.corP"), 
+    c("SL.step.forward", "screen.corP"), 
+    c("SL.stepAIC", "screen.corP"), 
+    c("SL.step.interaction", "screen.corP"), 
+    c("SL.bayesglm", "screen.corP")
+)  

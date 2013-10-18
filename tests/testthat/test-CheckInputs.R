@@ -112,13 +112,14 @@ test_that("Y outside of [0, 1] is scaled", {
   expect_that(ltmle(transform(data, Y=Y/10), Anodes="A", Ynodes="Y", abar=1)$transformOutcome, is_false())
 })
 
-test_that("survivalOutcome required if outocome is binary", {
+test_that("survivalOutcome required if outcome is binary", {
   n <- 10
   set.seed(50)
   data <- data.frame(W = rnorm(n),
                      A = rbinom(n, 1, .5), 
-                     Y = rbinom(n, 1, .5))
+                     Y1 = rbinom(n, 1, .5),
+                     Y2 = rbinom(n, 1, .5))
 
-  expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1),
+  expect_that(ltmle(data, Anodes="A", Ynodes=c("Y1", "Y2"), abar=1),
     throws_error("All Ynodes are 0, 1, or NA; the outcome is treated as binary. The 'survivalOutcome' argument must be specified."))
 })
