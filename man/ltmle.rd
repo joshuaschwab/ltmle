@@ -89,7 +89,8 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
 
 \code{SL.library} may be a character vector of libraries (or \code{NULL} or '\code{default}'), in which case these libraries are     used to estimate both \eqn{Q} and \eqn{g} OR a list with two components, \code{Q} and \code{g}, where each is a character vector of libraries (or \code{NULL} or '\code{default}'). 
 \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}
-If \code{SL.library} is the string '\code{default}', \code{SL.library} is set to \code{list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))}. Note that the default set of libraries consists of main terms models. It may be advisable to include squared terms, interaction terms, etc in \code{data} or include libraries that consider non-linear terms.
+If \code{SL.library} is the string '\code{default}', \code{SL.library} is set to \code{list("SL.glm", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP")}. 
+Note that the default set of libraries consists of main terms models. It may be advisable to include squared terms, interaction terms, etc in \code{data} or include libraries that consider non-linear terms.
 
 The print method for \code{ltmle} objects only prints the tmle estimates. 
 }
