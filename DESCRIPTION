@@ -1,15 +1,15 @@
 Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
-Version: 0.91
-Date: 2013-05-03
-Author: Joshua Schwab, Maya Petersen, and Mark van der Laan, with contributions
-    from Susan Gruber
+Version: 0.9.1
+Date: 2013-10-17
 Maintainer: Joshua Schwab <joshuaschwab@yahoo.com>
 Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
-    email="joshuaschwab@yahoo.com"), person("Maya", "Petersen", role="aut"),
-    person("Mark", "van der Laan", role="aut"), person("Susan", "Gruber",
-    role="ctb"))
+    email="joshuaschwab@yahoo.com"), person("Samuel", "Lendle", role="aut"),
+    person("Maya", "Petersen", role="aut"), person("Mark", "van der Laan",
+    role="aut"), person("Susan", "Gruber", role="ctb"))
+Depends:
+    R(>= 2.10.0)
 Suggests:
     SuperLearner,
     memoise,
@@ -24,3 +24,5 @@ Collate:
     'GeneralUtilities.R'
     'ltmle.R'
     'ltmle_sg.R'
+    'BinaryToCensoring.R'
+    'DeterministicFunctions.R'

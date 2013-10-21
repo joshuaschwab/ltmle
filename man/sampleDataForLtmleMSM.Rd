@@ -12,7 +12,7 @@ In summary.measures, switch.time is first time where At is 1 (4 if never switch)
 }
 \usage{data(sampleDataForLtmleMSM)}
 \format{
-  Llist with three components: data, regiments, summary.measures
+  List with three components: data, regiments, summary.measures
 }
 \details{
 	regimens: 200 x 3 x 4 [n x numACnodes x numRegimens]

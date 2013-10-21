@@ -12,7 +12,8 @@ Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation (lt
 These functions are methods for class \code{ltmle} or \code{summary.ltmle} objects.
 }
 \usage{
-\method{summary}{ltmle}(object, control.object = NULL, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
+\method{summary}{ltmle}(object, control.object = NULL, 
+        estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
 \method{summary}{ltmleMSM}(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
 \method{print}{ltmle}(x, ...)
 \method{print}{ltmleMSM}(x, ...)

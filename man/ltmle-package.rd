@@ -11,20 +11,20 @@ Targeted Maximum Likelihood Estimation (TMLE) of treatment/censoring specific me
 \tabular{ll}{
 Package: \tab ltmle\cr
 Type: \tab Package\cr
-Version: \tab 0.8\cr
-Date: \tab 2013-03-06\cr
+Version: \tab 0.9.1\cr
+Date: \tab 2013-10-17\cr
 License: \tab GPL-2\cr
 }
 }
 \author{
-Joshua Schwab, based on the work of Susan Gruber and Mark van der Laan
+Joshua Schwab, Samuel Lendle, Maya Petersen, and Mark van der Laan, with contributions from Susan Gruber
 
 Maintainer: Joshua Schwab \email{joshuaschwab@yahoo.com}
 }
 \references{
-Schwab, Joshua "software paper coming soon..."	
+Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based Estimation for Longitudinal Data", Forthcoming	
 	
-Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, ""Targeted Maximum Likelihood Estimation of Marginal Structural Working Models for Dynamic Treatments Time-Dependent Outcomes", Forthcoming
+Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum Likelihood Estimation of Marginal Structural Working Models for Dynamic Treatments Time-Dependent Outcomes", Forthcoming
 
 van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C. Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
 \url{http://biostats.bepress.com/ucbbiostat/paper290}

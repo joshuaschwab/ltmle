@@ -8,14 +8,17 @@ Longitudinal Targeted Maximum Likelihood Estimation
 \code{ltmle} is Targeted Maximum Likelihood Estimation (TMLE) of treatment/censoring specific mean outcome for point-treatment and longitudinal data. \code{ltmleMSM} adds Marginal Structural Models. Both always provide Inverse Probability of Treatment/Censoring Weighted estimate (IPTW) as well. Maximum likelihood based G-computation estimate (G-comp) can be obtained instead of TMLE. \code{ltmle} can be used to calculate additive treatment effect, risk ratio, and odds ratio.
 }
 \usage{
-ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, abar, rule=NULL,
- gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, stratify=FALSE, SL.library=NULL, 
- estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.map=NULL)
-ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, Qform=NULL, gform=NULL, 
- gbounds=c(0.01, 1), Yrange=NULL, deterministic.acnode.map=NULL, SL.library=NULL, regimens, working.msm, 
- summary.measures, summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, 
- stratify=FALSE, weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
- iptw.only=FALSE, deterministic.Q.map=NULL, memoize=TRUE)
+ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, 
+ gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, 
+ deterministic.g.function=NULL, stratify=FALSE, SL.library=NULL, 
+ estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, 
+ deterministic.Q.function=NULL)
+ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
+ gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
+ SL.library=NULL, regimens, working.msm, summary.measures, 
+ summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, 
+ weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
+ iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE)
 }
 \arguments{
   \item{data}{data frame following the time-ordering of the nodes. See 'Details'.}
@@ -23,14 +26,14 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=FALSE, 
   \item{Cnodes}{column names or indicies in \code{data} of censoring nodes}
   \item{Lnodes}{column names or indicies in \code{data} of time-dependent covariate nodes}
   \item{Ynodes}{column names or indicies in \code{data} of outcome nodes}
-  \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1.}
+  \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1. Required to be \code{TRUE} or \code{FALSE} if outcomes are binary and there are multiple Ynodes.}
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
   \item{gform}{character vector of regression formulas for \eqn{g}. See 'Details'.}
   \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
   \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes}
   \item{gbounds}{lower and upper bounds on estimated probabilities for g-factors. Vector of length 2, order unimportant.}
   \item{Yrange}{NULL or a numerical vector where the min and max of \code{Yrange} specify the range of all Y nodes. See 'Details'.}
-  \item{deterministic.acnode.map}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
+  \item{deterministic.g.function}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{stratify}{if \code{TRUE} stratify on following \code{abar} when estimating Q and g. If \code{FALSE}, pool over \code{abar}.}
   \item{SL.library}{optional character vector of libraries to pass to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. '\code{default}' indicates a standard set of libraries. May be separately specified for \eqn{Q} and \eqn{g}. See 'Details'.}
   \item{estimate.time}{if \code{TRUE}, run an initial estimate using only 50 observations and use this to print a very rough estimate of the total time to completion. No action if there are fewer than 50 observations.}
@@ -140,19 +143,22 @@ An object of class "\code{ltmleMSM}" is a list containing the following componen
 }
 
 \references{
+Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based Estimation for Longitudinal Data", Forthcoming  
+	
+Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum Likelihood Estimation of Marginal Structural Working Models for Dynamic Treatments Time-Dependent Outcomes", Forthcoming
+
 van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C. Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
 \url{http://biostats.bepress.com/ucbbiostat/paper290}
 
 van der Laan, Mark J. and Rose, Sherri, "Targeted Learning: Causal Inference for Observational and Experimental Data" New York: Springer, 2011.
-
-Maya Petersen, Joshua Schwab, Susan Gruber, Nello Blaser, Michael Schomaker, and Mark van der Laan. "Targeted Maximum Likelihood Estimation for Longitudinal Marginal Structural Working Models". Forthcoming.
 }
+
 \author{
-Joshua Schwab \email{joshuaschwab@yahoo.com}, Maya Petersen, and Mark van der Laan
+Joshua Schwab \email{joshuaschwab@yahoo.com}, Samuel Lendle, Maya Petersen, and Mark van der Laan
 }
 
 \seealso{
-\code{\link{summary.ltmle}}, \code{\link{summary.ltmleMSM}}, \code{\link[SuperLearner:SuperLearner]{SuperLearner}}
+\code{\link{summary.ltmle}}, \code{\link{summary.ltmleMSM}}, \code{\link[SuperLearner:SuperLearner]{SuperLearner}}, \code{\link{deterministic.g.function_template}}, \code{\link{deterministic.Q.function_template}}
 }
 \examples{
 rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
@@ -232,17 +238,16 @@ Y2[ua] <- rexpit((0.7 * L1 + L2 - 0.8 * A1 - A2)[ua])
 Y2[Y1 == 1] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, C1, L1, A1, Y1, C2, L2, A2, Y2)
 
-# Analyze data:
 deterministic.g.function <- function(data, current.node, nodes) {
-  cur.node.name <- names(data)[current.node]
-  if (cur.node.name == "A1") {
+  if (names(data)[current.node] == "A1") {
     det <- (data$L1 < -2 | data$L1 > 2) & !is.na(data$L1)
     prob1 <- ((data$L1 < -2) * 1 + (data$L1 > 2) * 0.1)[det]
-  } else if (cur.node.name == "A2") {
-    det <- data$A1 == 1 & !is.na(data$A1) 
+  } else if (names(data)[current.node] == "A2") {
+    det <- data$A1 == 1 & !is.na(data$A1)
     prob1 <- 1
-  } else if (cur.node.name \%in\% c("C1", "C2")) {
-    return(NULL)
+  } else if (names(data[current.node]) \%in\% c("C1", "C2")){
+    return(NULL)  #this returns the default of no deterministic links 
+    #note that it is not necessary to specify that prior censoring indicates future censoring
   } else {
     stop("unexpected current.node")
   }
@@ -251,15 +256,16 @@ deterministic.g.function <- function(data, current.node, nodes) {
 
 result2 <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"), 
                 Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
-                deterministic.g.function=deterministic.g.function, SL.library=NULL)
+                deterministic.g.function=deterministic.g.function, survivalOutcome=TRUE)
 summary(result2) 
  
 # Example 3: Dynamic treatment
 # W -> A1 -> L -> A2 -> Y
-# Treatment regimen of interest is: Always treat at time 1 (A1 = 1), treat at at time 2 (A2 = 1), iff L > 0
+# Treatment regimen of interest is: Always treat at time 1 (A1 = 1), 
+#   treat at at time 2 (A2 = 1), iff L > 0
 # True value of E[Y_d] is approximately 0.346
 
-n <- 10000
+n <- 1000
 W <- rnorm(n)
 A1 <- rexpit(W)
 L <- 0.3 * W + 0.2 * A1 + rnorm(n)
@@ -271,20 +277,22 @@ abar <- matrix(nrow=n, ncol=2)
 abar[, 1] <- 1
 abar[, 2] <- L > 0
 
-result3 <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", survivalOutcome=TRUE, abar=abar, SL.library=NULL)
+result3 <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", 
+  survivalOutcome=TRUE, abar=abar)
 summary(result3)
 
 # Example 3.1: The regimen can also be specified as a rule function
 
 rule <- function(row) c(1, row["L"] > 0)
 
-result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", survivalOutcome=TRUE, rule=rule, SL.library=NULL)
+result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", 
+  survivalOutcome=TRUE, rule=rule)
 # This should be the same as the above result
 summary(result.rule)
 
-# Example 4: Deterministic Q map
+# Example 4: Deterministic Q function
 # W -> A1 -> Y1 -> L2 -> A2 -> Y2
-n <- 1000
+n <- 200
 L2 <- A2 <- Y2 <- as.numeric(rep(NA, n))
 W <- rnorm(n)
 A1 <- rexpit(W)
@@ -293,10 +301,12 @@ alive <- Y1 == 0
 L2[alive] <- (0.5 * W - 0.9 * A1 + rnorm(n))[alive]
 completed.study <- alive & L2 > 0
 
-#Specify that Q is deterministically 0 when L2 is in the history of the current Q regression and L2 > 0
-#Note 1: det.Q.fun doesn't condition on called.from.estimate.g so g will also be set deterministically after L2 > 0 [check this!]
-#Note 2: It is not necessary to specify that Q is deterministically 1 if Y1 is 1 - this is automatic
-det.Q.fun <- function(data, current.node, nodes, called.from.estimate.g) {
+#Specify that Q is deterministically 0 when L2 is in the history of the 
+# current Q regression and L2 > 0
+#Note 1: det.Q.fun doesn't condition on called.from.estimate.g so g will also be set 
+#        deterministically after L2 > 0 
+#Note 2: It is not necessary to specify that Q is deterministically 1 if Y1 is 1; this is automatic
+det.Q.fun.4a <- function(data, current.node, nodes, called.from.estimate.g) {
   L2.index <- which(names(data) == "L2")
   stopifnot(length(L2.index) == 1)
   L2.in.history <- L2.index < current.node
@@ -307,20 +317,47 @@ det.Q.fun <- function(data, current.node, nodes, called.from.estimate.g) {
 }
 
 A2[alive & !completed.study] <- rexpit((0.5 * W + 0.8 * L2)[alive & !completed.study])
-A2[alive & completed.study] <- A1[alive & completed.study] #patients don't change treatment after leaving study
+A2[alive & completed.study] <- A1[alive & completed.study] #patients don't change 
+                                                           #treatment after leaving study
 Y2[alive & !completed.study] <- rexpit((L2 - 0.8 * A1 - A2)[alive & !completed.study])
 Y2[alive & completed.study] <- 0
 Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
-result4 <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun) 
+result4a <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE)
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
-summary(result4)
+summary(result4a)
 
+#In this variation, suppose that treatment can still change after a patient leaves the study
 
-# Example 5: Multiple time-dependent covariates and treatments at each time point, continuous Y values
+det.Q.fun.4b <- function(data, current.node, nodes, called.from.estimate.g) {
+  #there is no deterministic information when calculating g - treatment may still change
+  if (called.from.estimate.g) return(NULL)  
+  
+  L2.index <- which(names(data) == "L2")
+  stopifnot(length(L2.index) == 1)
+  L2.in.history <- L2.index < current.node
+  if (! L2.in.history) return(NULL)
+  
+  is.deterministic <- data$L2 > 0 & !is.na(data$L2)
+  return(list(is.deterministic=is.deterministic, Q.value=0))
+}
+
+A2[alive] <- rexpit((0.5 * W + 0.8 * L2)[alive])  #patients can change treatment after leaving study
+Y2[alive & !completed.study] <- rexpit((L2 - 0.8 * A1 - A2)[alive & !completed.study])
+Y2[alive & completed.study] <- 0
+Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
+data <- data.frame(W, A1, Y1, L2, A2, Y2)
+
+result4b <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE) 
+summary(result4b)
+
+# Example 5: Multiple time-dependent covariates and treatments at each time point, 
+#            continuous Y values
 # age -> gender -> A1 -> L1a -> L1b -> Y1 -> A2 -> L2a -> L2b -> Y2
-n <- 1000
+n <- 100
 age <- rbinom(n, 1, 0.5)
 gender <- rbinom(n, 1, 0.5)
 A1 <- rexpit(age + gender)
@@ -334,26 +371,35 @@ Y2 <- plogis(age - gender + L1a + L1b + A1 + 1.8*A2 + rnorm(n))
 data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 
 #also show some different ways of specifying the nodes:
-result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE)
+result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=
+ grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE)
 summary(result5)
 
-result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"))
+result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
+ Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
+ survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"))
 summary(result5a)
 
-#Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case L1a, L1b, Y1 is a "block" of L/Y nodes not separated by Anodes or Cnodes (the same is true for L2a, L2b, Y2). Only one regression is required at the first L/Y node in a block. You can pass regression formulas for the other L/Y nodes, but they'll be ignored.
-result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
+#Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case 
+# L1a, L1b, Y1 is a "block" of L/Y nodes not separated by Anodes or Cnodes (the same is true for 
+# L2a, L2b, Y2). Only one regression is required at the first L/Y node in a block. You can pass 
+# regression formulas for the other L/Y nodes, but they'll be ignored.
+result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
+ Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
+ gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
 summary(result5b)
 
 
 \dontrun{
 #Gives the same result but prints a message saying some regression formulas will be dropped:
-result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
+result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
+ Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
+ gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", 
+ Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
 summary(result5c)
 }
 
-
 #If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula
-
 
 
 # Example 6: MSM
@@ -365,7 +411,8 @@ Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_2", "CD4_3")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
 
-result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=TRUE,
+result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+                   survivalOutcome=TRUE,
                    regimens=sampleDataForLtmleMSM$regimens, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
@@ -378,8 +425,8 @@ regimensList <- list(function(row) c(1,1,1),
                      function(row) c(0,1,1),
                      function(row) c(0,0,1),
                      function(row) c(0,0,0))
-result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=TRUE,
-                   regimens=regimensList, 
+result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+                   survivalOutcome=TRUE, regimens=regimensList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 # This should be the same as the above result
