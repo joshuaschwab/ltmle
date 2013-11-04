@@ -409,7 +409,7 @@ summary(result5c)
 # regimen was to switch before time.
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
-Lnodes <- c("CD4_2", "CD4_3")
+Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
 
 result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
