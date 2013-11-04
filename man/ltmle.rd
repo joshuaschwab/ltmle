@@ -416,7 +416,7 @@ result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Yn
                    survivalOutcome=TRUE,
                    regimens=sampleDataForLtmleMSM$regimens, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
+                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
 print(summary(result6))
 
 
