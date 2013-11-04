@@ -15,7 +15,7 @@ ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qfor
  deterministic.Q.function=NULL)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
  gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
- SL.library=NULL, regimens, working.msm, summary.measures, 
+ SL.library=NULL, regimes, working.msm, summary.measures, 
  summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, 
  weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
  iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE)
@@ -38,13 +38,13 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{SL.library}{optional character vector of libraries to pass to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. '\code{default}' indicates a standard set of libraries. May be separately specified for \eqn{Q} and \eqn{g}. See 'Details'.}
   \item{estimate.time}{if \code{TRUE}, run an initial estimate using only 50 observations and use this to print a very rough estimate of the total time to completion. No action if there are fewer than 50 observations.}
   \item{gcomp}{if \code{TRUE}, run the maximum likelihood based G-computation estimate \emph{instead} of TMLE}
-  \item{regimens}{binary array: n x numAnodes x numRegimens of counterfactual treatment or a list of 'rule' functions}
+  \item{regimes}{binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions}
   \item{working.msm}{character formula for the working marginal structural model}
-  \item{summary.measures}{array: num.regimens x num.summary.measures x num.final.Ynodes - measures summarizing the regimens that will be used on the right hand side of working.msm}
+  \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of working.msm}
   \item{summary.baseline.covariates}{NOT FULLY IMPLEMENTED YET - leave as NULL (default)}
   \item{final.Ynodes}{vector subset of Ynodes - used in MSM to pool over a set of outcome nodes}
-  \item{pooledMSM}{if \code{TRUE}, the TMLE targeted step will pool across regimens}
-  \item{weight.msm}{if \code{TRUE}, the working.msm will be weighted by the empirical probability of each regimen [in the future more flexible weighting may be possible]} 
+  \item{pooledMSM}{if \code{TRUE}, the TMLE targeted step will pool across regimes}
+  \item{weight.msm}{if \code{TRUE}, the working.msm will be weighted by the empirical probability of each regime [in the future more flexible weighting may be possible]} 
   \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights)}
   \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM(pooledMSM=FALSE)}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster. This parameter is not used in \code{ltmleMSM(pooledMSM=FALSE)} since IPTW is not run.}
   \item{deterministic.Q.function}{optional information on Q given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
@@ -81,7 +81,7 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
 
   \code{rule} can be used to specify a dynamic treatment rule. \code{rule} is a function applied to each row of \code{data} which returns the a numeric vector of the same length as \code{Anodes}.
 
-  \code{regimens} can be a binary array: n x numAnodes x numRegimens of counterfactual treatment or a list of 'rule' functions as described above for the \code{rule} parameter for the \code{ltmle} function
+  \code{regimes} can be a binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions as described above for the \code{rule} parameter for the \code{ltmle} function
   
   \code{deterministic.g.function} can be a function used to specify model knowledge about value of Anodes and/or Cnodes that are set deterministically. For example, it may be the case that once a patient starts treatment, they always stay on treatment. For details on the form of the function and examples, see \code{\link{deterministic.g.function_template}}
 
@@ -89,7 +89,8 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
 
 \code{SL.library} may be a character vector of libraries (or \code{NULL} or '\code{default}'), in which case these libraries are     used to estimate both \eqn{Q} and \eqn{g} OR a list with two components, \code{Q} and \code{g}, where each is a character vector of libraries (or \code{NULL} or '\code{default}'). 
 \code{NULL} indicates \link{glm} should be called instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}}
-If \code{SL.library} is the string '\code{default}', \code{SL.library} is set to \code{list("SL.glm", "SL.glmnet", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.glmnet", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP"))}. Note that the default set of libraries consists of main terms models. It may be advisable to include squared terms, interaction terms, etc in \code{data} or include libraries that consider non-linear terms.
+If \code{SL.library} is the string '\code{default}', \code{SL.library} is set to \code{list("SL.glm", "SL.stepAIC", "SL.bayesglm", c("SL.glm", "screen.corP"), c("SL.step", "screen.corP"), c("SL.step.forward", "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction", "screen.corP"), c("SL.bayesglm", "screen.corP")}. 
+Note that the default set of libraries consists of main terms models. It may be advisable to include squared terms, interaction terms, etc in \code{data} or include libraries that consider non-linear terms.
 
 The print method for \code{ltmle} objects only prints the tmle estimates. 
 }
@@ -130,13 +131,13 @@ An object of class "\code{ltmleMSM}" is a list containing the following componen
 \item{IC}{matrix, n x numBetas - influence curve values for TMLE (without updating if \code{gcomp} input is \code{TRUE})}
 \item{IC.iptw}{matrix, n x numBetas - influence curve values for IPTW (\code{NULL} if \code{pooledMSM} is \code{TRUE})}
 \item{msm}{object of class glm - the result of fitting the working.msm}
-\item{cum.g}{array, n x numACnodes x numRegimens - cumulative g, after bounding}
+\item{cum.g}{array, n x numACnodes x numRegimes - cumulative g, after bounding}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 \item{fit}{a list with the following components}
   \itemize{
-  \item \code{g} - list of length numRegimens of list of length numACnodes - \code{glm} or \code{SuperLearner} return objects from fitting g regressions
+  \item \code{g} - list of length numRegimes of list of length numACnodes - \code{glm} or \code{SuperLearner} return objects from fitting g regressions
   \item \code{Q} - list of length numLYnodes - \code{glm} or \code{SuperLearner} return objects from fitting Q regressions
   \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical optimization if \code{glm} fails to solve the score equation) return objects from updating the Q fit
   }
@@ -261,7 +262,7 @@ summary(result2)
  
 # Example 3: Dynamic treatment
 # W -> A1 -> L -> A2 -> Y
-# Treatment regimen of interest is: Always treat at time 1 (A1 = 1), 
+# Treatment regime of interest is: Always treat at time 1 (A1 = 1), 
 #   treat at at time 2 (A2 = 1), iff L > 0
 # True value of E[Y_d] is approximately 0.346
 
@@ -281,7 +282,7 @@ result3 <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y",
   survivalOutcome=TRUE, abar=abar)
 summary(result3)
 
-# Example 3.1: The regimen can also be specified as a rule function
+# Example 3.1: The regime can also be specified as a rule function
 
 rule <- function(row) c(1, row["L"] > 0)
 
@@ -405,28 +406,28 @@ summary(result5c)
 # Example 6: MSM
 # Given data over 3 time points where A switches to 1 once and then stays 1. We want to know
 # how death varies as a function of time and an indicator of whether a patient's intended
-# regimen was to switch before time.
+# regime was to switch before time.
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
-Lnodes <- c("CD4_2", "CD4_3")
+Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
 
 result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE,
-                   regimens=sampleDataForLtmleMSM$regimens, 
+                   regimes=sampleDataForLtmleMSM$regimes, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
+                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
 print(summary(result6))
 
 
-# Example 6.1: regimens can also be specified as a list of rule functions
+# Example 6.1: regimes can also be specified as a list of rule functions
 
-regimensList <- list(function(row) c(1,1,1),
+regimesList <- list(function(row) c(1,1,1),
                      function(row) c(0,1,1),
                      function(row) c(0,0,1),
                      function(row) c(0,0,0))
 result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
-                   survivalOutcome=TRUE, regimens=regimensList, 
+                   survivalOutcome=TRUE, regimes=regimesList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
                    working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
 # This should be the same as the above result
