@@ -268,7 +268,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
         subs[, i] <- uncensored & !deterministic.list.origdata$is.deterministic
       }
       if (any(subs[, i])) {
-        Q.est <- Estimate(Qform[j], data=data.frame(Q.kplus1=Qstar.kplus1[, i], data), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link", nodes=nodes)
+        Q.est <- Estimate(Qform[j], data=data.frame(data, Q.kplus1=Qstar.kplus1[, i]), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=SL.library.Q, type="link", nodes=nodes)
         logitQ[, i] <- Q.est$predicted.values
       } else {
         if (! all(deterministic.list.newdata$is.deterministic)) {
@@ -290,7 +290,6 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
       ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
       update.list <- UpdateQ(Qstar.kplus1, logitQ, stacked.summary.measures, subs, cum.g[, ACnode.index, ], working.msm, uncensored, intervention.match, weights, gcomp)
       Qstar <- update.list$Qstar
-      
       Qstar[deterministic.list.newdata$is.deterministic, ] <- deterministic.list.newdata$Q
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimens.with.positive.weight)
       if (any(abs(colSums(curIC)) > 0.001) && !gcomp) {
@@ -333,7 +332,6 @@ FinalizeIC <- function(IC, summary.measures, summary.baseline.covariates, Qstar,
       }
     }  
   }
-  
   if (any(abs(colSums(finalIC)) > 0.001 )) {
     msg <- capture.output(cat("final IC problem", colSums(finalIC)))
     warning(paste(msg, collapse="\n"))
@@ -763,11 +761,6 @@ EstimateG <- function(data, survivalOutcome, gform, nodes, abar, deterministic.g
   names(fit) <- names(data)[nodes$AC]
   for (i in 1:length(nodes$AC)) {
     cur.node <- nodes$AC[i]
-    if (cur.node %in% nodes$A) {
-      cur.abar <- abar[, nodes$A == cur.node]
-    } else {
-      cur.abar <- rep(1, nrow(data))  #if this is a cnode, abar is always 1
-    }
     newdata <- SetA(data, abar, nodes, cur.node)
     deterministic.origdata <- IsDeterministic(data, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic #deterministic due to death or Q.function
     deterministic.newdata <- IsDeterministic(newdata, cur.node, deterministic.Q.function, nodes, called.from.estimate.g=TRUE, survivalOutcome)$is.deterministic #deterministic due to death or Q.function - using data modified so A = abar
@@ -805,6 +798,11 @@ EstimateG <- function(data, survivalOutcome, gform, nodes, abar, deterministic.g
     } 
     #probAis1 is prob(a=1), gmat is prob(a=abar)
     #cur.abar can be NA after censoring/death if treatment is dynamic
+    if (cur.node %in% nodes$A) {
+      cur.abar <- abar[, nodes$A == cur.node]
+    } else {
+      cur.abar <- rep(1, nrow(data))  #if this is a cnode, abar is always 1 (uncensored)
+    }
     gmat[!is.na(cur.abar) & cur.abar == 1, i] <- probAis1[!is.na(cur.abar) & cur.abar == 1]
     gmat[!is.na(cur.abar) & cur.abar == 0, i] <- 1 - probAis1[!is.na(cur.abar) & cur.abar == 0]
     
@@ -837,8 +835,8 @@ NodeToIndex <- function(data, node) {
 # Run GLM or SuperLearner
 Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes) {
   stopifnot(type %in% c("link", "response"))
+  data <- ConvertCensoringNodesToBinary(data, nodes$C) #convert factors to binaries for compatability with glm and some SL libraries
   f <- as.formula(form)
-  
   if (any(is.na(data[subs, LhsVars(f)]))) stop("NA in Estimate")
   if (is.null(SL.library) || length(RhsVars(f)) == 0) { #in a formula like "Y ~ 1", call glm
     #estimate using GLM
@@ -855,7 +853,6 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes)
   } else {
     #estimate using SuperLearner
     if (family == "quasibinomial") family <- "binomial"
-    data <- ConvertCensoringNodesToBinary(data, nodes$C) #convert factors to binaries for compatability with some SL libraries
     
     rhs <- setdiff(RhsVars(f), rownames(alias(f, data=data[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
     new.subs <- apply(newdata[, rhs, drop=FALSE], 1, function (x) !any(is.na(x)))  #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
@@ -906,11 +903,12 @@ InterventionMatch <- function(data, abar, Anodes, cur.node) {
 # Determine which patients are uncensored
 #return vector of [numDataRows x 1] I(C=uncensored) from Cnodes[1] to the Cnode just before cur.node
 IsUncensored <- function(data, Cnodes, cur.node) {
+  if (! all(sapply(data[, Cnodes], is.factor))) stop("something has gone wrong in ltmle:::IsUncensored - all Cnodes should have been converted to factors")
   uncensored <- XMatch(data, Xbar="uncensored", Cnodes, cur.node, all, default=TRUE)
   return(uncensored)
 }
 
-# Determine which patients have died or have Q set deterministically by user function
+# Determine which patients have died or have Q set deterministically by user function before cur.node
 # return list:
 #    is.deterministic: vector of [numObservations x 1] - true if patient is already dead before cur.node or set by deterministic.Q.function
 #    Q.value: vector of [which(is.deterministic) x 1] - value of Q
@@ -946,7 +944,7 @@ IsDeterministic <- function(data, cur.node, deterministic.Q.function, nodes, cal
   }
   finalY <- data[, max(nodes$Y)]
   inconsistent.rows <- (det.list$Q.value %in% c(0,1)) & (det.list$Q.value != finalY[det.list$is.deterministic]) & !is.na(finalY[det.list$is.deterministic])
-  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.Q.function is inconsistent with data - Q.value is either 0 or 1 but this does not match the final Y node value\nCheck data rows:", rownames(data)[det.list$is.deterministic][inconsistent.rows]))
+  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.Q.function is inconsistent with data - Q.value is either 0 or 1 but this does not match the final Y node value\nCheck data rows:", paste(head(rownames(data)[det.list$is.deterministic][inconsistent.rows]), collapse=" ")))
   
   #return combined values
   Q.value <- rep(NA, nrow(data))
@@ -970,7 +968,7 @@ IsDeterministicG <- function(data, cur.node, deterministic.g.function, nodes) {
   if (! length(det.list$prob1) %in% c(1, length(which(det.list$is.deterministic)))) stop("the length of the 'prob1' element of deterministic.g.function's return argument should be either 1 or length(which(det.list$is.deterministic))")
   
   inconsistent.rows <- (det.list$prob1 %in% c(0,1)) & (det.list$prob1 != data[det.list$is.deterministic, cur.node]) & !is.na(data[det.list$is.deterministic, cur.node])
-  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.g.function is inconsistent with data - prob1 is either 0 or 1 but this does not match the node value.\nCheck data rows:", rownames(data)[det.list$is.deterministic][inconsistent.rows]))
+  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.g.function is inconsistent with data - prob1 is either 0 or 1 but this does not match the node value.\nCheck data rows:", paste(head(rownames(data)[det.list$is.deterministic][inconsistent.rows]), collapse=" ")))
   return(det.list)
 }
 
@@ -1018,7 +1016,7 @@ SetA <- function(data, abar, nodes, cur.node) {
   data[, nodes$A[Anode.index]] <- abar[, Anode.index]
   
   Cnode.index <- nodes$C <= cur.node
-  data[, nodes$C[Cnode.index]] <- 1 #uncensored
+  data[, nodes$C[Cnode.index]] <- factor(rep("uncensored", nrow(data))) #recycled
   return(data)
 }
 
@@ -1339,7 +1337,6 @@ NonpooledMSM <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, de
     m <- FitMSM(tmle, summary.measures, working.msm, IC, weights)
   }
   m.iptw <- FitMSM(iptw, summary.measures, working.msm, IC.iptw, weights)
-  
   return(list(IC=m$beta.IC, msm=m$msm, beta=m$beta, cum.g=cum.g, beta.iptw=m.iptw$beta, IC.iptw=m.iptw$beta.IC))
 }
 
