@@ -29,7 +29,10 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
 
   temp <- ltmleMSM.private(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, summary.baseline.covariates=summary.baseline.covariates, final.Ynodes=NULL, pooledMSM=TRUE, stratify=stratify, weight.msm=FALSE, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=FALSE, mhte.iptw=FALSE, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function) #it doesn't matter whether mhte.iptw is T or F when pooledMSM=T
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
+  
+  #This is somewhat inefficient and can lead to coding errors - we convert censoring and clean data twice - once in ltmleMSM.private and again here. This needs to be fixed soon. Can pass back data from ltmleMSM.private but CalcIPTW is expected untransformed outcomes - wil need to transform iptw and naive. Other issues?
   data <- ConvertCensoringNodes(data, Cnodes)
+  data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome=temp$survivalOutcome)
   iptw.list <- CalcIPTW(data, nodes, abar, drop3(temp$cum.g[, , 1, drop=F]), mhte.iptw) #get cum.g for regime 1 (there's only 1 regime)
   
   r <- list()
@@ -113,6 +116,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, weight.msm, deterministic.Q.function)
   data <- check.results$data
   survivalOutcome <- check.results$survivalOutcome
+  data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome)
 
   if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome)
   if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome)  
@@ -128,6 +132,7 @@ ltmleMSM.private <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutco
   result$formulas <- list(Qform=Qform, gform=gform)
   result$binaryOutcome <- check.results$binaryOutcome
   result$transformOutcome <- check.results$transformOutcome
+  result$survivalOutcome <- survivalOutcome
   class(result) <- "ltmleMSM"
   return(result)
 }
@@ -1185,11 +1190,55 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if (! is.null(summary.baseline.covariates)) stop("summary.baseline.covariates is currently in development and is not yet supported - set summary.baseline.covariates to NULL")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (! all(RhsVars(working.msm) %in% colnames(summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures")
-  dynamic.regimes <- !all(duplicated(regimes)[2:nrow(data)])
-  #if (dynamic.regimes && weight.msm) stop("dynamic regimes are not currently supported with weight.msm=TRUE [under development]")
-    return(list(data=data, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, survivalOutcome=survivalOutcome))
+  return(list(data=data, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, survivalOutcome=survivalOutcome))
 }
 
+# Set all nodes (except Y) to NA after death or censoring; Set Y nodes to 1 after death
+CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome) {
+  #make sure binaries have already been converted before calling this function
+  is.nan.df <- function (x) {
+    y <- if (length(x)) {
+      do.call("cbind", lapply(x, "is.nan"))
+    } else {
+      matrix(FALSE, length(row.names(x)), 0)
+    }
+  }
+  is.na.strict <- function (x) is.na(x) & !is.nan.df(x)  #only for data.frames
+  changed <- FALSE
+  ua <- rep(TRUE, nrow(data))  #uncensored and alive
+  if (ncol(data) == 1) return(data)
+  deterministic.Q.function.depends.on.called.from.estimate.g <- length(grep("called.from.estimate.g", as.character(body(deterministic.Q.function)))) > 0
+  for (i in 1:(ncol(data)-1)) {
+    if (any(is.na(data[ua, 1:i]))) stop("NA values are not permitted in data except after censoring or a survival event")
+    is.deterministic <- ua & IsDeterministic(data, cur.node=i + 1, deterministic.Q.function=deterministic.Q.function, nodes=nodes, called.from.estimate.g=TRUE, survivalOutcome=survivalOutcome)$is.deterministic #check determinisitic including node i 
+    
+    if (deterministic.Q.function.depends.on.called.from.estimate.g) {
+      is.deterministic.Q <- ua & IsDeterministic(data, cur.node=i + 1, deterministic.Q.function=deterministic.Q.function, nodes=nodes, called.from.estimate.g=FALSE, survivalOutcome=survivalOutcome)$is.deterministic 
+      if (any(is.deterministic[ua] & !is.deterministic.Q[ua])) stop("Any row set deterministic by deterministic.Q.function(..., called.from.estimate.g=TRUE) must imply that the row is also set deterministic by deterministic.Q.function(..., called.from.estimate.g=FALSE)") #det.Q.fun(T) should imply det.Q.fun(F)
+    }
+    
+    ua[ua] <- !is.deterministic[ua]
+    if (any(is.na(ua))) stop("internal ltmle error - ua should not be NA in CleanData")
+    if (! all(is.na.strict(data[is.deterministic, setdiff((i+1):ncol(data), nodes$Y), drop=FALSE]))) {
+      data[is.deterministic, setdiff((i+1):ncol(data), nodes$Y)] <- NA #if deterministic, set all nodes except Y to NA
+      changed <- TRUE
+    }
+    
+    if (i %in% nodes$C) {
+      censored <- data[, i] == "censored" & ua
+      if (! all(is.na.strict(data[censored, (i+1):ncol(data), drop=FALSE]))) {
+        data[censored, (i+1):ncol(data)] <- NA  #if censored, set all nodes (including Y) to NA
+        changed <- TRUE
+      }
+      ua[ua] <- !censored[ua] 
+      if (any(is.na(ua))) stop("internal ltmle error - ua should not be NA in CleanData")
+    } 
+  }
+  if (changed) {
+    message("Note: for internal purposes, all nodes after a censoring event are set to NA and \n all nodes (except Ynodes) are set to NA after Y=1 if survivalFunction is TRUE.\n Your data did not conform and has been adjusted. This may be relevant if you are \n writing your own deterministic function(s) or debugging ltmle.")
+  }
+  return(data)
+}
 
 # Get the default Q or g formula - each formula consists of all parent nodes except censoring and event nodes [also except A nodes if stratifying]
 GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome) {

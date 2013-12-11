@@ -1,3 +1,17 @@
+ltmle 0.9.3
+===========
+
+* A bug has been fixed where if your A values were not set to NA after death, IPTW point treatment estimates were incorrect and if weight.msm=TRUE, the weights were calculated incorrectly in ltmleMSM.
+
+* A bug has been fixed where if you were using glm and had a censoring node at which all observations were "uncensored" (as a factor), results could be off by a lot.
+
+* A bug has been fixed where if you were using SuperLearner and had censoring nodes you may have seen an error (even though your data was specified correctly):
+Error in ConvertCensoringNodesToBinary(data, nodes$C) : 
+  in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored' 
+
+* The 'regimens' input parameter in ltmleMSM has been changed to 'regimes' to better match existing literature.
+
+
 ltmle 0.9.1
 ===========
 
@@ -28,6 +42,7 @@ MINOR CHANGES
 * some improved warning messages and error checking
 
 * minor bug fixes
+
 
 ltmle 0.9
 ===========

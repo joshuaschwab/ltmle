@@ -13,6 +13,8 @@ test_that("tests from 'create tests to compare versions.R'", {
     additional.args <- list(survivalOutcome=IsSurvival(btests[[j]]$args$data))
 
     args <- c(btests[[j]]$args, additional.args)
+    args$regimes <- args$regimens #regimens were previously referred to as regimes
+    args$regimens <- NULL
     set.seed(1) #keep superlearner synced
     result <- do.call(btests[[j]]$fun, args)
     

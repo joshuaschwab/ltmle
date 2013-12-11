@@ -317,9 +317,9 @@ det.Q.fun.4a <- function(data, current.node, nodes, called.from.estimate.g) {
   return(list(is.deterministic=is.deterministic, Q.value=0))
 }
 
+#patients don't change treatment after leaving study; leave their A2 as NA
 A2[alive & !completed.study] <- rexpit((0.5 * W + 0.8 * L2)[alive & !completed.study])
-A2[alive & completed.study] <- A1[alive & completed.study] #patients don't change 
-                                                           #treatment after leaving study
+
 Y2[alive & !completed.study] <- rexpit((L2 - 0.8 * A1 - A2)[alive & !completed.study])
 Y2[alive & completed.study] <- 0
 Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
@@ -429,7 +429,7 @@ regimesList <- list(function(row) c(1,1,1),
 result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE, regimes=regimesList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
+                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
 # This should be the same as the above result
 print(summary(result.regList))         
 
