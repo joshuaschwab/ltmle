@@ -4,7 +4,7 @@ test_that("transformOutcome NOTE is printed by print.summary.ltmleMSM", {
 
   data(sampleDataForLtmleMSM)
   Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
-  Lnodes <- c("CD4_2", "CD4_3")
+  Lnodes <- c("CD4_1", "CD4_2")
   Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
 
   data <- sampleDataForLtmleMSM$data
@@ -16,10 +16,10 @@ test_that("transformOutcome NOTE is printed by print.summary.ltmleMSM", {
 
   result <- ltmleMSM(data, Anodes=Anodes, Lnodes=Lnodes,
              Ynodes=Ynodes, survivalOutcome=FALSE,
-                     regimens=sampleDataForLtmleMSM$regimens, 
+                     regimes=sampleDataForLtmleMSM$regimes, 
                      summary.measures=sampleDataForLtmleMSM$summary.measures,
                      final.Ynodes=Ynodes, 
-                     working.msm="Y ~ time + I(switch.time <= time)", estimate.time=FALSE)
+                     working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
 
   expect_that(print(result), prints_text("NOTE: The MSM is modeling the transformed outcome"))
   expect_that(print(summary(result)), prints_text("NOTE: The MSM is modeling the transformed outcome"))    

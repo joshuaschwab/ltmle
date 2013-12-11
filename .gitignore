@@ -1,3 +1,11 @@
 .DS_Store
 */.DS_Store
 .Rproj.user
+
+.Rbuildignore
+
+.Rhistory
+
+data/PreviousReleaseTests copy.RData
+
+ltmle-dev.Rproj
