@@ -32,7 +32,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   
   #This is somewhat inefficient and can lead to coding errors - we convert censoring and clean data twice - once in ltmleMSM.private and again here. This needs to be fixed soon. Can pass back data from ltmleMSM.private but CalcIPTW is expected untransformed outcomes - wil need to transform iptw and naive. Other issues?
   data <- ConvertCensoringNodes(data, Cnodes)
-  data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome=temp$survivalOutcome)
+  data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome=temp$survivalOutcome, showMessage=FALSE) #don't show the message, it's already been shown the first time data was cleaned (once above issue is fixed, get rid of showMessage)
   iptw.list <- CalcIPTW(data, nodes, abar, drop3(temp$cum.g[, , 1, drop=F]), mhte.iptw) #get cum.g for regime 1 (there's only 1 regime)
   
   r <- list()
@@ -1194,7 +1194,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
 }
 
 # Set all nodes (except Y) to NA after death or censoring; Set Y nodes to 1 after death
-CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome) {
+CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, showMessage=TRUE) {
   #make sure binaries have already been converted before calling this function
   is.nan.df <- function (x) {
     y <- if (length(x)) {
@@ -1234,7 +1234,7 @@ CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome) {
       if (any(is.na(ua))) stop("internal ltmle error - ua should not be NA in CleanData")
     } 
   }
-  if (changed) {
+  if (changed && showMessage) {
     message("Note: for internal purposes, all nodes after a censoring event are set to NA and \n all nodes (except Ynodes) are set to NA after Y=1 if survivalFunction is TRUE.\n Your data did not conform and has been adjusted. This may be relevant if you are \n writing your own deterministic function(s) or debugging ltmle.")
   }
   return(data)
