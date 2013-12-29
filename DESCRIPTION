@@ -26,5 +26,4 @@ Collate:
     'ltmle_sg.R'
     'BinaryToCensoring.R'
     'DeterministicFunctions.R'
-    'boundedlogistic.R'
     'zzz.R'
