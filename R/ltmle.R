@@ -251,6 +251,7 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
       g.list <- EstimateG(data, survivalOutcome, gform, nodes, abar=abar, deterministic.g.function, stratify, gbounds, SL.library.g, deterministic.Q.function)
       cum.g[, , i] <- g.list$cum.g
       cum.g.nobound[, , i] <- g.list$cum.g.nobound
+      #pass msm.weights: NULL (CalcDefaultMSMWeights - calls computeGA - move to CreateInputs),  or set of weights [num.regimes x num.final.ynodes]; deprecate weight.msm? move duplicate checking to CalcDefaultMSMWeights; update NonPooled also
       weights[i] <- ComputeGA(data, nodes$A, nodes$C, abar, final.Ynode=max(nodes$Y), weight.msm)
     } 
     fit.g[[i]] <- g.list$fit
@@ -315,12 +316,19 @@ FixedTimeTMLE <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome,
           curIC <- 0
           sparsity.data <- data
           
+          #fix indexing of cum.g, cum.g.nobound, Qstar - replace 1 with i; move into regimes loop above
           if (USE.NOBOUND) {
             sparsity.data[, nodes$Y[length(nodes$Y)]] <- tempY <- 1/cum.g.nobound[, length(nodes$AC), 1] * Qstar[, 1] * (1 - Qstar[, 1])
           } else {
             sparsity.data[, nodes$Y[length(nodes$Y)]] <- tempY <- 1/cum.g[, length(nodes$AC), 1] * Qstar[, 1] * (1 - Qstar[, 1])
           }
+          #if MSM
+            #for i in 1:numBetas
+              #h1.squared <- (summary.measures[, i] * weights)^2
           
+              #do we want Y~1 or Y~-1 + S1 with S1=1s with right size? like ltmle
+              #sparsityAdj[i] <- ltmleMSM(sparsity.data,msm.weights=h1.squared, working.msm="Y~1")$beta[1] * sum(h1.squared) 
+          #else
             #not sure about some parameters in calling ltmle
             #Ynodes probably excluded from Qform if Qform=NULL and survivalFunction - is that ok?
           sparsityAdj <- ltmle(sparsity.data, Anodes=nodes$A, Cnodes=nodes$C, Lnodes=nodes$L, Ynodes=nodes$Y, survivalOutcome=FALSE, Qform=Qform, gform=drop3(cum.g[, , 1, drop=FALSE]), abar=drop3(regimes[, , 1, drop=FALSE]), gbounds=gbounds, deterministic.g.function=deterministic.g.function, stratify=stratify, SL.library=SL.library, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, sparsityVarAdj=FALSE, Yrange=c(0, max(tempY)))$estimates["tmle"]
@@ -604,7 +612,7 @@ summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tm
   }
   
   n <- nrow(IC)
-  v <- apply(IC, 2, var)
+  v <- apply(IC, 2, var) #add sparsityAdj if/else here
   std.dev <- sqrt(v/n)
   pval <- 2 * pnorm(-abs(estimate / std.dev))
   CI <- GetCI(estimate, std.dev)
