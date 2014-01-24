@@ -18,10 +18,10 @@ test_that("tests from 'create tests to compare versions.R'", {
       args$regimens <- NULL
     }
     set.seed(1) #keep superlearner synced
-    result <- do.call(btests[[j]]$fun, args)
+    result <- btests[[j]]$compareFun(do.call(btests[[j]]$fun, args))
     
-    current <- btests[[j]]$compareFun(result)
-    prev <- btests[[j]]$compareFun(btests[[j]]$result)
+    current <- result
+    prev <- btests[[j]]$result
     expect_equals(current, prev, info=paste(btests[[j]]$info, "j = ", j, "current = ", paste(current, collapse=" "), "prev = ", paste(prev, collapse=" ")))
   }
 })
