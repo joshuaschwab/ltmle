@@ -7,7 +7,7 @@ is.equal <- function(...) {
 #same as model.matrix, but leave NA rows
 model.matrix.NA <- function(object, data) {
   MM <- model.matrix(object, data)
-  MM <- MM[match(rownames(data), rownames(MM)), ]
+  MM <- MM[match(rownames(data), rownames(MM)), , drop=FALSE]
   rownames(MM) <- rownames(data)
   return(MM)
 }
