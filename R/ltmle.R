@@ -373,9 +373,9 @@ FixedTimeTMLE <- function(inputs, weights) {
           if (!inputs$binaryOutcome) stop("sparsityVarAdj currently not compatible with non binary outcomes")
           lastIC <- curIC 
           sparsity.data <- data
-          
-          if (!LTMLE.SPECIAL.CASE || !is.equal(inputs$working.msm, "Y ~ -1 + S1")) { #MSM case [note: not a good test of if this is the MSM case!!]
-            #stop("should not be called - using nonpooled")
+          is.msm <- inputs$normalizeIC
+          if (!LTMLE.SPECIAL.CASE || is.msm) { #MSM case 
+            stop("should not be called - using nonpooled")
             sparsityAdj <- numeric(num.betas)
             if (inputs$stratify) stop("sparsityVarAdj currently not compatible with stratify=TRUE")
             #should be able to make ~MSM special case of MSM
@@ -409,10 +409,8 @@ FixedTimeTMLE <- function(inputs, weights) {
               if (F) {
                 #fill in $temp with sigmasq estimates
                 stopifnot(num.betas==1)
-                
                 sparsity.data[, nodes$Y[length(nodes$Y)]] <- tempY <- 1/cum.g.for.sparsity.adj[, length(nodes$AC), 1] * Qstar[, 1] * (1 - Qstar[, 1])
                 sparsityAdj.tsm <- ltmle(sparsity.data, Anodes=inputs$nodes$A, Cnodes=inputs$nodes$C, Lnodes=inputs$nodes$L, Ynodes=inputs$nodes$Y, survivalOutcome=FALSE, Qform=inputs$Qform, gform=drop3(prob.A.is.1[, , 1, drop=FALSE]), abar=drop3(inputs$regimes[, , 1, drop=FALSE]), gbounds=inputs$gbounds, deterministic.g.function=inputs$deterministic.g.function, stratify=inputs$stratify, SL.library=NULL, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.options=NULL, Yrange=c(0, max(tempY)))$estimates["tmle"]
-                
                 sigmasq <- mean(Qstar[, 1] * (1 - Qstar[, 1]) / cum.g.for.sparsity.adj[, 1, 1])
                 varic <- var(curIC)
                 names(sparsityAdj.tsm) <- NULL
@@ -422,8 +420,11 @@ FixedTimeTMLE <- function(inputs, weights) {
           } else {
             #not sure about some parameters in calling ltmle
             #Ynodes probably excluded from Qform if Qform=NULL and survivalFunction - is that ok?
-            sparsity.data[, nodes$Y[length(nodes$Y)]] <- tempY <- 1/cum.g.for.sparsity.adj[, length(nodes$AC), 1] * Qstar[, 1] * (1 - Qstar[, 1])
-            sparsityAdj <- ltmle(sparsity.data, Anodes=inputs$nodes$A, Cnodes=inputs$nodes$C, Lnodes=inputs$nodes$L, Ynodes=inputs$nodes$Y, survivalOutcome=FALSE, Qform=inputs$Qform, gform=drop3(prob.A.is.1[, , 1, drop=FALSE]), abar=drop3(inputs$regimes[, , 1, drop=FALSE]), gbounds=inputs$gbounds, deterministic.g.function=inputs$deterministic.g.function, stratify=inputs$stratify, SL.library=NULL, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.options=NULL, Yrange=c(0, max(tempY)))$estimates["tmle"]
+            
+            #for now, only pass alive people (otherwise gets complicated - could be dead with regime=NA but surivalOutcome=F) and uncensored (if censored, Qstar may be NaN?) - should revisit this
+            alive <- !deterministic.list.newdata$is.deterministic & uncensored
+            sparsity.data[alive, nodes$Y[length(nodes$Y)]] <- tempY <- 1/cum.g.for.sparsity.adj[alive, length(nodes$AC), 1] * Qstar[alive, 1] * (1 - Qstar[alive, 1])
+            sparsityAdj <- ltmle(sparsity.data[alive,], Anodes=inputs$nodes$A, Cnodes=inputs$nodes$C, Lnodes=inputs$nodes$L, Ynodes=inputs$nodes$Y, survivalOutcome=FALSE, Qform=inputs$Qform, gform=drop3(prob.A.is.1[alive, , 1, drop=FALSE]), abar=drop3(inputs$regimes[alive, , 1, drop=FALSE]), gbounds=inputs$gbounds, deterministic.g.function=inputs$deterministic.g.function, stratify=inputs$stratify, SL.library=NULL, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.options=NULL, Yrange=c(0, max(tempY)))$estimates["tmle"]
           }
         } else {
           sparsityAdj <- numeric(num.betas)
@@ -714,11 +715,12 @@ summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tm
     v2 <- apply(IC, 2, var)
     #v <- pmax(v1, v2)
     v <- v1 #if USE.COV, v1 should always be >= v2
-    if (any((v2 - v1) > 1e-4)) {
-      cat("new v: ", v1, "  old v: ", v2, "\n")
+    if (!any(is.na(v1))) { #fixme - otherwise can get errors when C or IC.var has NA
+      if (any((v2 - v1) > 1e-4)) {
+        cat("new v: ", v1, "  old v: ", v2, "\n")
+      }
     }
-    
-    
+
   } else if (estimator == "iptw") {
     if (! "beta.iptw" %in% names(object)) stop("estimator 'iptw' is not available because ltmleMSM was called with pooledMSM=TRUE")
     estimate <- object$beta.iptw
@@ -1217,6 +1219,7 @@ RhsVars <- function(f) {
 
 # Error checking for inputs
 CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, summary.baseline.covariates, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function) {
+  stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
   #each set of nodes should be sorted - otherwise causes confusion with gform, Qform, abar
@@ -1520,14 +1523,16 @@ GetLibrary <- function(SL.library, estimate.type) {
 # The non-pooled version of the ltmleMSM 
 NonpooledMSM <- function(inputs) {  
   tmle.index <- ifelse(inputs$gcomp, "gcomp", "tmle")
+  n <- nrow(inputs$data)
   num.regimes <- dim(inputs$regimes)[3]
   num.final.Ynodes <- length(inputs$final.Ynodes)
   
   num.ACnodes <- sum(inputs$nodes$AC < max(inputs$final.Ynodes))
-  tmle <- iptw <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
+  tmle <- iptw <- var.est <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
   IC <- IC.iptw <- array(dim=c(num.regimes, num.final.Ynodes, nrow(inputs$data)))
-  cum.g <- array(dim=c(nrow(inputs$data), num.ACnodes, num.regimes))
+  cum.g <- array(dim=c(n, num.ACnodes, num.regimes))
   weights <- GetMsmWeights(inputs)
+  
   for (j in 1:num.final.Ynodes) {
     final.Ynode <- inputs$final.Ynodes[j]
     inputs.subset <- SubsetInputs(inputs, final.Ynode)
@@ -1563,6 +1568,15 @@ NonpooledMSM <- function(inputs) {
         iptw[i, j] <- min(1, result$estimates["iptw"])
         IC[i, j, ] <- result$IC[[tmle.index]]
         IC.iptw[i, j, ] <- result$IC[["iptw"]]
+        if (!inputs$iptw.only) {
+          if (inputs.subset$sparsityVarAdj) {
+            var.est[i, j] <- pmin(result$IC.var, 0.25*n)  #max(var(tmle))=max(v/n)=0.25 => max(v)=0.25n
+          } else {
+            #var.est[i, j] <- var(result$IC[[tmle.index]]) #temp! fixme
+          }
+        }
+        
+        
       }
       if (j == num.final.Ynodes) {
         if (weights[i, j] == 0) {
@@ -1578,14 +1592,15 @@ NonpooledMSM <- function(inputs) {
   if (inputs$iptw.only) {
     m <- list()
   } else {
-    m <- FitMSM(tmle, inputs$summary.measures, inputs$working.msm, IC, weights)
+    m <- FitMSM(tmle, inputs$summary.measures, inputs$working.msm, IC, weights, var.est)
   }
-  m.iptw <- FitMSM(iptw, inputs$summary.measures, inputs$working.msm, IC.iptw, weights)
-  return(list(IC=m$beta.IC, msm=m$msm, beta=m$beta, cum.g=cum.g, beta.iptw=m.iptw$beta, IC.iptw=m.iptw$beta.IC, IC.var=if (inputs$iptw.only) NULL else var(m$beta.IC), C=if (inputs$iptw.only) NULL else C=diag(ncol(m$beta.IC))))
+  
+  m.iptw <- FitMSM(iptw, inputs$summary.measures, inputs$working.msm, IC.iptw, weights, var.est=NULL)
+  return(list(IC=m$beta.IC, msm=m$msm, beta=m$beta, cum.g=cum.g, beta.iptw=m.iptw$beta, IC.iptw=m.iptw$beta.IC, IC.var=m$IC.var, C=m$C))
 }
 
 # Called by NonpooledMSM to fit the MSM
-FitMSM <- function(tmle, summary.measures, working.msm, IC, weights) {
+FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
   #summary.measures: num.regimes x num.measures x num.final.Ynodes
   #IC is num.regimes x num.final.Ynodes x n
   #tmle, weights:  num.regimes x num.final.Ynodes
@@ -1625,6 +1640,8 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights) {
       }
     }
   }
+  stopifnot(num.final.Ynodes == 1 || all(is.na(var.est))) #not set up yet for multiple ynodes
+  W.mat <- matrix(0, num.regimes, num.coef)
   beta.IC <- matrix(0, n, num.coef)
   for (k in 1:num.coef) {
     for (j in 1:num.final.Ynodes) {
@@ -1633,16 +1650,37 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights) {
           index <- sub2ind(row=i, col=j, num.rows=num.regimes)
           h <- matrix(model.mat[index, ], ncol=1) * weights[i, j]   #index needs to pick up regime i, time j
           if (abs(det(C)) < 1e-17) {
-            W <- rep(NA, num.coef)
+            #W <- rep(NA, num.coef) 
+            W <- rep(Inf, num.coef)
+            if (!is.null(var.est)) cat("det(C) near 0 in nonpooled-FitMSM, var.est set to Inf \n") #may want to take this out (fixme)
           } else {
             W <- solve(C, h)  #finds inv(C) * h
           }
+          W.mat[i, k] <- W[k]
           beta.IC[, k] <- beta.IC[, k] + W[k] * IC[i, j, ]
         }
       }
     }
   }
-  return(list(beta=coef(m), msm=m, beta.IC=beta.IC))
+  if (is.null(var.est)) {
+    IC.var <- C <- NULL
+  } else {
+    if (all(is.na(var.est))) {
+      IC.var <- NA
+    } else {
+      stopifnot(num.final.Ynodes == 1) #not set up yet for multiple ynodes
+      dim(IC) <- c(num.regimes, n) #drop finalYnodes
+      IC <- t(IC) #n x num.regimes (to match pooledMSM version)
+      IC.var.untrans <- var(IC) #num.regimes x num.regimes
+      diag(IC.var.untrans) <- pmax(var.est, diag(IC.var.untrans)) #replace diagonal elements
+      if (any(eigen(IC.var.untrans)$values < 0)) stop("something is wrong - not pos def")
+      
+      IC.var <- t(W.mat) %*% IC.var.untrans %*% W.mat
+    }
+    C <- diag(num.coef)
+  }
+  
+  return(list(beta=coef(m), msm=m, beta.IC=beta.IC, IC.var=IC.var, C=C))
 }
 
 GetMsmWeights <- function(inputs) {
