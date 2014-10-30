@@ -49,10 +49,15 @@ repmat <- function(X,m,n){
 
 drop3 <- function(x) {
   #if x is an array with 3 dimensions and third dimension has one level, return a matrix with it dropped; otherwise error
-  stopifnot(length(dim(x))==3)
-  stopifnot(dim(x)[3]==1)
+  return(dropn(x, 3))
+}
+
+dropn <- function(x, n) {
+  #if x is an array with n dimensions and nth dimension has one level, return a matrix with it dropped; otherwise error
+  stopifnot(length(dim(x))==n)
+  stopifnot(dim(x)[n]==1)
   dn <- dimnames(x)
-  dim(x) <- dim(x)[1:2]
-  dimnames(x) <- dn[1:2]
+  dim(x) <- dim(x)[1:(n-1)]
+  dimnames(x) <- dn[1:(n-1)]
   return(x)
 }

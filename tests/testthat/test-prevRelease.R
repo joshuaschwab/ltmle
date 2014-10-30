@@ -15,7 +15,7 @@ test_that("tests from 'create tests to compare versions.R'", {
     args <- c(btests[[j]]$args, additional.args)
     args$regimes <- args$regimens #regimens were previously referred to as regimes
     args$regimens <- NULL
-    set.seed(1) #keep superlearner synced
+    set.seed(1) #keep superlearner (and rnorm in FixScoreEquation) synced 
     result <- do.call(btests[[j]]$fun, args)
     
     current <- btests[[j]]$compareFun(result)
