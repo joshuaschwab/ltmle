@@ -65,6 +65,7 @@ LtmleFromInputs <- function(inputs) {
   r$IC.var <- msm.result$IC.var
   r$temp <- msm.result$temp #fixme - remove this
   r$sparsityAdj <- msm.result$sparsityAdj
+  r$Qstar <- msm.result$Qstar[, 1, 1] #1 regime, 1 final.Ynode
   
   r$formulas <- msm.result$formulas
   r$binaryOutcome <- msm.result$binaryOutcome
@@ -116,7 +117,6 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
     if (!all(do.call(c, lapply(regimes, is.function)))) stop("If 'regimes' is a list, then all elements should be functions.")
     regimes <- aperm(simplify2array(lapply(regimes, function(rule) apply(data, 1, rule)), higher=TRUE), c(2, 1, 3)) 
   }
-  
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   Qform <- CreateLYNodes(data, nodes, check.Qform=TRUE, Qform=Qform)$Qform
   data <- ConvertCensoringNodes(data, Cnodes, has.deterministic.functions=!is.null(deterministic.g.function) && is.null(deterministic.Q.function))
@@ -142,6 +142,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   #error checking (also get value for survivalOutcome if NULL)
   check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function)
   survivalOutcome <- check.results$survivalOutcome
+  
   data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome)
   untransformed.data <- data
   transform.list <- TransformOutcomes(data, nodes, Yrange)
@@ -260,7 +261,7 @@ MainCalcs <- function(inputs) {
   } else {
     iptw <- NULL
   }
-  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g, fit=fixed.tmle$fit, C=C, IC.var=IC.var, beta.iptw=iptw$beta, IC.iptw=iptw$IC, sparsityAdj=fixed.tmle$sparsityAdj, temp=temp)) #note: only returns cum.g and fit for the last final.Ynode
+  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g, fit=fixed.tmle$fit, C=C, IC.var=IC.var, beta.iptw=iptw$beta, IC.iptw=iptw$IC, sparsityAdj=fixed.tmle$sparsityAdj, temp=temp, Qstar=Qstar)) #note: only returns cum.g and fit for the last final.Ynode
 }
 
 
@@ -438,47 +439,82 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
   nodes <- inputs$nodes  
   num.regimes <- dim(inputs$regimes)[3]
   num.betas <- ncol(combined.summary.measures)
+  n <- nrow(inputs$data)
   
   variance.estimate <- numeric(num.betas)
   if (!inputs$variance.options$sparsityVarAdj ) return(NA)
-  temp.weights <- weights[1, ] #hack!  #stop("need to update for weights now n x num.regimes") #fixme!
-  temp.summary.measures <- t(combined.summary.measures[1, , ]) #hack!
-  stopifnot(is.equal(dim(temp.summary.measures), c(num.regimes, num.betas)) || is.vector(combined.summary.measures[1, , ]))
-  if (is.vector(combined.summary.measures[1, , ])) dim(temp.summary.measures) <- c(num.regimes, num.betas)
+ 
   if (!inputs$binaryOutcome) stop("sparsityVarAdj currently not compatible with non binary outcomes")
+  if (!is.null(inputs$deterministic.Q.function)) stop("sparsityVarAdj currently not compatible with deterministic.Q.function")
   if (inputs$gcomp) stop("sparsityVarAdj currently not compatible with gcomp")
   sparsity.data <- inputs$data
-  #for now, only pass alive people (otherwise gets complicated - could be dead with regime=NA but surivalOutcome=F) and uncensored (if censored, Qstar may be NaN?) - should revisit this
-  alive <- !deterministic.list.newdata$is.deterministic & uncensored
   if (inputs$stratify) stop("sparsityVarAdj currently not compatible with stratify=TRUE")
-  EZd <- matrix(0, nrow=num.regimes, ncol=num.betas)
+  alive <- !deterministic.list.newdata$is.deterministic
   for (iii in regimes.with.positive.weight) {
-    tempQ <- Qstar[alive, iii]
+    tempQ <- Qstar[, iii]
     if (j == last.LYnode.index) {
-      Z <- 1 / cum.g.for.sparsity.adj[alive, ACnode.index, iii] * tempQ * (1 - tempQ) #replace Q(1-Q) with: regress (Qstar-Qstar.kplus1)^2 on A, L, set A
+      Z <- 1 / cum.g.for.sparsity.adj[, ACnode.index, iii] * tempQ * (1 - tempQ) #replace Q(1-Q) with: regress (Qstar-Qstar.kplus1)^2 on A, L, set A
     } else {
-      Q.data <- inputs$data
-      resid.sq <- (Qstar.kplus1[alive, iii] - Qstar[alive, iii])^2 #should this be alive only?
-      max.resid.sq <- max(resid.sq)
+      Q.data <- inputs$data[alive, 1:cur.node, drop=F]
+      resid.sq <- (Qstar.kplus1[alive, iii] - Qstar[alive, iii])^2 
+      max.resid.sq <- max(resid.sq, na.rm=T)
       resid.sq <- resid.sq / max.resid.sq
-      Q.data[alive, cur.node] <- resid.sq
+      Q.data[, cur.node] <- resid.sq
       names(Q.data)[cur.node]  <- "Q.kplus1" #ugly - to match with Qform
-      m <- glm(formula = inputs$Qform[j], family = "quasibinomial", data = data.frame(Q.data, alive), subset = alive) #should this be alive only?
-      Q.newdata <- SetA(data = Q.data, abar = GetABar(regimes = inputs$regimes, iii), nodes = nodes, cur.node = cur.node)
-      Q.resid.sq.pred <- predict(m, newdata = Q.newdata[alive, ], type = "response")
-      Z <- Q.resid.sq.pred * max.resid.sq / cum.g.for.sparsity.adj[alive, ACnode.index, iii]
+      m <- glm(formula = inputs$Qform[j], family = "quasibinomial", data = Q.data)
+      Q.newdata <- SetA(data = Q.data, abar = GetABar(regimes = inputs$regimes, iii)[alive, , drop=F], nodes = nodes, cur.node = cur.node)
+      Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response")
+      Z <- rep(0, n)
+      Z[alive] <- Q.resid.sq.pred * max.resid.sq / cum.g.for.sparsity.adj[alive, ACnode.index, iii]
     }
-    sparsity.data[alive, cur.node] <- Z
-    sparsity.data[!alive, cur.node] <- NA #only pass alive subjects to ltmle so this shouldn't matter - just to catch errors if dead/censored subjects are used
-    if (max(Z) > 0) {
+    
+    if (!all(is.na(Z)) && max(Z, na.rm=T) > 0) { #I don't think all Z could be NA, but may want to double check
+      sparsity.data[, cur.node] <- Z / max(Z, na.rm=T)
+      if (inputs$survivalOutcome) {
+        det.q.function <- function(data, current.node, nodes, called.from.estimate.g) {
+          if (!any(nodes$Y < current.node)) return(NULL)
+          prev.Y <- data[, nodes$Y[nodes$Y < cur.node], drop=F]
+          prev.Y[is.na(prev.Y)] <- 0
+          is.deterministic <- apply(prev.Y == 1, 1, any)
+          return(list(is.deterministic=is.deterministic, Q.value=0))   
+        }
+      } else {
+        det.q.function <- NULL
+      }
       temp.nodes.Y <- sort(union(nodes$Y[nodes$Y <= cur.node], cur.node)) #if the current node is an L node, make current node a Y node (last node has to be a Y node)
-      var.tmle <- ltmle(sparsity.data[alive, 1:cur.node], Anodes=nodes$A[nodes$A <= cur.node], Cnodes=nodes$C[nodes$C <= cur.node], Lnodes=nodes$L[nodes$L < cur.node], Ynodes=temp.nodes.Y, survivalOutcome=FALSE, Qform=NULL, gform=drop3(prob.A.is.1[alive, 1:ACnode.index, iii, drop=FALSE]), abar=drop3(inputs$regimes[alive, nodes$A <= cur.node, iii, drop=FALSE]), gbounds=inputs$gbounds, deterministic.g.function=inputs$deterministic.g.function, stratify=inputs$stratify, SL.library=NULL, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.options=NULL, Yrange=c(0, max(Z))) #minor note: does it matter whether or not we pass det.g.fun if passing numeric gform?
-      EZd.without.h1 <- var.tmle$estimates["tmle"] #scalar
+      var.tmle <- ltmle(sparsity.data[, 1:cur.node], Anodes=nodes$A[nodes$A <= cur.node], Cnodes=nodes$C[nodes$C <= cur.node], Lnodes=nodes$L[nodes$L < cur.node], Ynodes=temp.nodes.Y, survivalOutcome=FALSE, Qform=NULL, gform=drop3(prob.A.is.1[, 1:ACnode.index, iii, drop=FALSE]), abar=drop3(inputs$regimes[, nodes$A <= cur.node, iii, drop=FALSE]), gbounds=inputs$gbounds, deterministic.g.function=inputs$deterministic.g.function, stratify=inputs$stratify, SL.library=NULL, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=det.q.function, variance.options=NULL) #minor note: does it matter whether or not we pass det.g.fun if passing numeric gform?
+      EZd.without.h1 <- var.tmle$estimates["tmle"] * max(Z, na.rm=T) #scalar
     } else {
       EZd.without.h1 <- 0
     }       
-    h1 <- temp.summary.measures[iii, ] * temp.weights[iii]  #num.betas x 1
-    variance.estimate <- variance.estimate + (h1 %*% t(h1)) * EZd.without.h1  #num.betas x num.betas                
+    if (HACK.WEIGHTS) {
+      #temp.weights <- weights[1, ] #hack!  #stop("need to update for weights now n x num.regimes") #fixme!
+      temp.weights <- colMeans(weights)
+      temp.summary.measures <- t(apply(combined.summary.measures, c(2, 3), mean))
+      #temp.summary.measures <- t(combined.summary.measures[1, , ]) #hack!
+      #stopifnot(is.equal(dim(temp.summary.measures), c(num.regimes, num.betas)) || is.vector(combined.summary.measures[1, , ]))
+      #if (is.vector(combined.summary.measures[1, , ])) dim(temp.summary.measures) <- c(num.regimes, num.betas)
+      stopifnot(is.equal(dim(temp.summary.measures), c(num.regimes, num.betas)))
+                
+      h1 <- temp.summary.measures[iii, ] * temp.weights[iii]  #num.betas x 1
+      variance.estimate <- variance.estimate + (h1 %*% t(h1)) * EZd.without.h1  #num.betas x num.betas
+    } else {
+      var.tmle.Qstar <- var.tmle$Qstar 
+      baseline.columns.names <- attr(combined.summary.measures, "baseline.columns.names")
+      baseline.msm <- "Qstar ~ 1"
+      if (length(baseline.columns.names) > 0) {
+        baseline.msm <- paste(baseline.msm, "+", paste(baseline.columns.names, collapse=" + "))
+      }            
+      m <- glm(baseline.msm, family = "quasibinomial", data=data.frame(Qstar=var.tmle.Qstar, inputs$data[, baseline.columns.names, drop=FALSE])) 
+      pred.Qstar <- predict(m, type = "response") * max(Z, na.rm=T)
+      variance.estimate.sum <- matrix(0, num.betas, num.betas)
+      for (i in 1:n) {
+        h1 <- combined.summary.measures[i, , iii] * weights[i, iii]
+        variance.estimate.sum <- variance.estimate.sum + (h1 %*% t(h1)) * pred.Qstar[i]
+      }
+      variance.estimate <- variance.estimate + variance.estimate.sum / n
+    }
+                    
   }
   return(variance.estimate)
 }
@@ -1488,6 +1524,7 @@ TransformOutcomes <- function(data, nodes, Yrange) {
 
 # Set all nodes (except Y) to NA after death or censoring; Set Y nodes to 1 after death
 CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, showMessage=TRUE) {
+  orig.data <- data #fixme - take this out
   #make sure binaries have already been converted before calling this function
   is.nan.df <- function (x) {
     y <- if (length(x)) {
@@ -1528,7 +1565,7 @@ CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, sh
     } 
   }
   if (changed && showMessage) {
-    message("Note: for internal purposes, all nodes after a censoring event are set to NA and \n all nodes (except Ynodes) are set to NA after Y=1 if survivalFunction is TRUE.\n Your data did not conform and has been adjusted. This may be relevant if you are \n writing your own deterministic function(s) or debugging ltmle.")
+    message("Note: for internal purposes, all nodes after a censoring event are set to NA and \n all nodes (except Ynodes) are set to NA after Y=1 if survivalFunction is TRUE (or if specified by deterministic.Q.function).\n Your data did not conform and has been adjusted. This may be relevant if you are \n writing your own deterministic function(s) or debugging ltmle.")
   }
   return(data)
 }
@@ -1865,7 +1902,7 @@ ConvertToMainTerms <- function(data, msm, summary.measures, nodes) {
   rhs.vars <- RhsVars(msm)
   if (length(intersect(baseline.columns.names, summary.column.names)) > 0) stop("Baseline covariate columns of data and columns of summary.measures may not have the same name")
   if (!all(rhs.vars %in% c(baseline.columns.names, summary.column.names))) stop("All right hand side variables in working.msm must be either column names of summary.measures or column names of baseline covariates")
-  
+  baseline.columns.names <- intersect(baseline.columns.names, rhs.vars)
   baseline.data <- data[, baseline.columns.names, drop=FALSE]
   num.regimes <- dim(summary.measures)[1]
   num.summary.measures <- dim(summary.measures)[2]
@@ -1884,6 +1921,7 @@ ConvertToMainTerms <- function(data, msm, summary.measures, nodes) {
   }
   colnames(main.terms.summary.measures) <- paste("S", 1:ncol(main.terms.summary.measures), sep="") #temp names
   main.terms.msm <- paste("Y ~ -1 +", paste(colnames(main.terms.summary.measures), collapse=" + ")) #formula using temp names 
+  attr(summary.measures, "baseline.columns.names") <- baseline.columns.names #this is ugly
   return(list(msm=main.terms.msm, summary.measures=main.terms.summary.measures, beta.names=beta.names))
 }
 
