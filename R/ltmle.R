@@ -436,6 +436,8 @@ FixedTimeTMLE <- function(inputs, weights, combined.summary.measures) {
 }
 
 EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.positive.weight, last.LYnode.index, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, weights, j, ACnode.index, cum.g.for.sparsity.adj, prob.A.is.1) {
+  if (USE.TEMP) return(EstimateVariance.temp(inputs, combined.summary.measures, regimes.with.positive.weight, last.LYnode.index, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, weights, j, ACnode.index, cum.g.for.sparsity.adj, prob.A.is.1))
+  
   nodes <- inputs$nodes  
   num.regimes <- dim(inputs$regimes)[3]
   num.betas <- ncol(combined.summary.measures)
@@ -488,12 +490,8 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
       EZd.without.h1 <- 0
     }       
     if (HACK.WEIGHTS) {
-      #temp.weights <- weights[1, ] #hack!  #stop("need to update for weights now n x num.regimes") #fixme!
       temp.weights <- colMeans(weights)
       temp.summary.measures <- t(apply(combined.summary.measures, c(2, 3), mean))
-      #temp.summary.measures <- t(combined.summary.measures[1, , ]) #hack!
-      #stopifnot(is.equal(dim(temp.summary.measures), c(num.regimes, num.betas)) || is.vector(combined.summary.measures[1, , ]))
-      #if (is.vector(combined.summary.measures[1, , ])) dim(temp.summary.measures) <- c(num.regimes, num.betas)
       stopifnot(is.equal(dim(temp.summary.measures), c(num.regimes, num.betas)))
                 
       h1 <- temp.summary.measures[iii, ] * temp.weights[iii]  #num.betas x 1
@@ -515,6 +513,38 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
       variance.estimate <- variance.estimate + variance.estimate.sum / n
     }
                     
+  }
+  return(variance.estimate)
+}
+
+EstimateVariance.temp <- function(inputs, combined.summary.measures, regimes.with.positive.weight, last.LYnode.index, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, weights, j, ACnode.index, cum.g.for.sparsity.adj, prob.A.is.1) {
+  nodes <- inputs$nodes  
+  num.regimes <- dim(inputs$regimes)[3]
+  num.betas <- ncol(combined.summary.measures)
+  n <- nrow(inputs$data)
+  
+  variance.estimate <- numeric(num.betas)
+  if (!inputs$variance.options$sparsityVarAdj ) return(NA)
+  
+  sparsity.data <- inputs$data
+  alive <- !deterministic.list.newdata$is.deterministic
+  stopifnot(j == last.LYnode.index)
+  stopifnot(all(weights==1) && all(combined.summary.measures==1))
+  stopifnot(num.betas==1)
+  for (iii in regimes.with.positive.weight) {
+    h1.d2.sum <- rep(0, n)
+    for (d2 in regimes.with.positive.weight) {
+      equal.regimes.index <- apply(drop3(inputs$regimes[, 1:ACnode.index, iii, drop=F]) == drop3(inputs$regimes[, 1:ACnode.index, iii, drop=F]), 1, all) #index of each observation where regime iii matches regime d2
+      h1.d2.sum[equal.regimes.index] <- h1.d2.sum[equal.regimes.index] + 1 #this should be h1(d2)
+    }
+    tempQ <- Qstar[, iii]
+    Z <- h1.d2.sum * tempQ * (1 - tempQ) / cum.g.for.sparsity.adj[, ACnode.index, iii]   #replace Q(1-Q) with: regress (Qstar-Qstar.kplus1)^2 on A, L, set A
+    
+    sparsity.data[, cur.node] <- Z / max(Z, na.rm=T)
+    temp.nodes.Y <- sort(union(nodes$Y[nodes$Y <= cur.node], cur.node)) #if the current node is an L node, make current node a Y node (last node has to be a Y node)
+    var.tmle <- ltmle(sparsity.data[, 1:cur.node], Anodes=nodes$A[nodes$A <= cur.node], Cnodes=nodes$C[nodes$C <= cur.node], Lnodes=nodes$L[nodes$L < cur.node], Ynodes=temp.nodes.Y, survivalOutcome=FALSE, Qform=NULL, gform=drop3(prob.A.is.1[, 1:ACnode.index, iii, drop=FALSE]), abar=drop3(inputs$regimes[, nodes$A <= cur.node, iii, drop=FALSE]), gbounds=inputs$gbounds, deterministic.g.function=inputs$deterministic.g.function, stratify=inputs$stratify, SL.library=NULL, estimate.time=FALSE, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, variance.options=NULL) #minor note: does it matter whether or not we pass det.g.fun if passing numeric gform?
+    EZd.without.h1 <- var.tmle$estimates["tmle"] * max(Z, na.rm=T) #scalar
+    variance.estimate <- variance.estimate + EZd.without.h1  
   }
   return(variance.estimate)
 }
