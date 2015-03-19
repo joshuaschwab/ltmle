@@ -1,5 +1,31 @@
 #General utilities
 
+# scale to 0.01, 0.99 and take logit
+LogitScale <- function(x) {
+  qlogis(Scale(x, 0.01, 0.99))
+}
+
+Scale <- function(x, min.y, max.y) {
+  r <- range(x, na.rm = TRUE)
+  if (diff(r) > 0) {
+    return((x - r[1])/diff(r) * (max.y - min.y) + min.y)
+  } else {
+    return(rep(mean(c(min.y, max.y)), length(x)))
+  }
+}
+
+# If x is a matrix, keep it; if x is a vector, make it a 1 column matrix
+AsMatrix <- function(x) {
+  if (is.matrix(x)) {
+    return(x)
+  } else if (is.vector(x)) {
+    dim(x) <- c(length(x), 1)
+    return(x)
+  } else {
+    stop("AsMatrix input should be a matrix or vector")
+  }
+}
+
 is.equal <- function(...) {
   isTRUE(all.equal(...))
 }
@@ -45,6 +71,12 @@ repmat <- function(X,m,n){
   nx <- dim(X)[2]
   if ((m == 0) || (n == 0)) return(matrix(numeric(0), nrow=mx*m, ncol=nx*n)) #avoids warnings when m or n is 0
   return(matrix(t(matrix(X,mx,nx*n)),mx*m,nx*n,byrow=T))
+}
+
+# from Ken Williams on StackOverflow
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
 }
 
 drop3 <- function(x) {
