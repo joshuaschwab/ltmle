@@ -1,3 +1,13 @@
+variance estimate
+regression weights
+baseline covariates
+moved 1/g to weight
+msm.weight options
+standard dynamic IPTW
+
+
+* The default for mhte.iptw has been changed from FALSE to TRUE because it often has better performance.
+
 ltmle 0.9.3
 ===========
 

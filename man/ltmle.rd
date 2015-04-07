@@ -11,13 +11,13 @@ Longitudinal Targeted Maximum Likelihood Estimation
 ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, 
  gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, 
  deterministic.g.function=NULL, stratify=FALSE, SL.library=NULL, 
- estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, 
+ estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, 
  deterministic.Q.function=NULL)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
  gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
  SL.library=NULL, regimes, working.msm, summary.measures, 
- summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, 
- weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
+ final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, 
+ weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, 
  iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE)
 }
 \arguments{
@@ -28,10 +28,10 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{Ynodes}{column names or indicies in \code{data} of outcome nodes}
   \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1. Required to be \code{TRUE} or \code{FALSE} if outcomes are binary and there are multiple Ynodes.}
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
-  \item{gform}{character vector of regression formulas for \eqn{g}. See 'Details'.}
+  \item{gform}{character vector of regression formulas for \eqn{g} or a matrix/array of prob(A=1). See 'Details'.}
   \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
   \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes}
-  \item{gbounds}{lower and upper bounds on estimated probabilities for g-factors. Vector of length 2, order unimportant.}
+  \item{gbounds}{lower and upper bounds on estimated cumulative probabilities for g-factors. Vector of length 2, order unimportant.}
   \item{Yrange}{NULL or a numerical vector where the min and max of \code{Yrange} specify the range of all Y nodes. See 'Details'.}
   \item{deterministic.g.function}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{stratify}{if \code{TRUE} stratify on following \code{abar} when estimating Q and g. If \code{FALSE}, pool over \code{abar}.}
@@ -41,12 +41,11 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{regimes}{binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions}
   \item{working.msm}{character formula for the working marginal structural model}
   \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of working.msm}
-  \item{summary.baseline.covariates}{NOT FULLY IMPLEMENTED YET - leave as NULL (default)}
   \item{final.Ynodes}{vector subset of Ynodes - used in MSM to pool over a set of outcome nodes}
   \item{pooledMSM}{if \code{TRUE}, the TMLE targeted step will pool across regimes}
   \item{weight.msm}{if \code{TRUE}, the working.msm will be weighted by the empirical probability of each regime [in the future more flexible weighting may be possible]} 
-  \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights)}
-  \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM(pooledMSM=FALSE)}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster. This parameter is not used in \code{ltmleMSM(pooledMSM=FALSE)} since IPTW is not run.}
+  \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights). If \code{FALSE}, there is no normalization.}
+  \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster.}
   \item{deterministic.Q.function}{optional information on Q given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{memoize}{If \code{TRUE}, glm regressions will be memoized. It is recommended to leave this as \code{TRUE} (the default), especially if there are multiple \code{final.Ynodes}, because the code is not written as efficiently as it should be and will end up repeating the same glm call. Will be fixed in a future release.}
 }
@@ -75,9 +74,11 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   
   ** If there is a "block" of L and Y nodes not separated by A or C nodes, only one regression is required at the first L/Y node in a block. You can pass regression formulas for the other L/Y nodes, but they will be ignored (with a message). See example 5.
   
-  \code{gform} should be \code{NULL}, in which case all parent nodes of each L and Y node will be used as regressors, or a character vector that can be coerced to class "\code{\link{formula}}". The length of \code{gform} must be equal to \code{length(Anodes) + length(Cnodes)} and the order of the formulas must be the same as the order the A and C nodes appear in \code{data}. The left hand side of each formula should be the name of the Anode or Cnode. If \code{SL.library} is \code{NULL}, \code{glm} will be called using the elements of \code{gform}. If \code{SL.library} is specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all variables appearing on the right hand side of a formula will be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional form of the formula is unimportant if \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
+  \code{gform} should be \code{NULL}, in which case all parent nodes of each L and Y node will be used as regressors, or a character vector that can be coerced to class "\code{\link{formula}}", or a matrix/array of Prob(A=1). If \code{gform} is a character vector, the length of \code{gform} must be equal to \code{length(Anodes) + length(Cnodes)} and the order of the formulas must be the same as the order the A and C nodes appear in \code{data}. The left hand side of each formula should be the name of the Anode or Cnode. If \code{SL.library} is \code{NULL}, \code{glm} will be called using the elements of \code{gform}. If \code{SL.library} is specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all variables appearing on the right hand side of a formula will be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional form of the formula is unimportant if \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called. 
   
-  \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}.
+  In \code{ltmle}, \code{gform} can also be a n x numACnodes matrix where entry (i, j) is the probability that the ith observation of the jth A/C node is 1 (if an Anode) or uncensored (if a Cnode), conditional on following abar up to that node. In \code{ltmleMSM}, \code{gform} can similarly be a n x numACnodes x numRegimes array, where entry (i, j, k) is the probability that the ith observation of the jth A/C node is 1 (if an Anode) or uncensored (if a Cnode), conditional on following regime k up to that node. If \code{gform} is a matrix/array, \code{deterministic.g.function} will not be used and should be \code{NULL}.
+  
+  \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}. 
 
   \code{rule} can be used to specify a dynamic treatment rule. \code{rule} is a function applied to each row of \code{data} which returns the a numeric vector of the same length as \code{Anodes}.
 
@@ -113,6 +114,7 @@ An object of class "\code{ltmle}" is a list containing the following components:
   \item \code{gcomp} - vector of influence curve values for Targeted Maximum Likelihood Estimate without updating [NULL if \code{gcomp} is \code{FALSE}]
   }
 \item{cum.g}{matrix, n x numACnodes - cumulative g, after bounding}
+\item{cum.g.unbounded}{matrix, n x numACnodes - cumulative g, before bounding}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
@@ -132,6 +134,7 @@ An object of class "\code{ltmleMSM}" is a list containing the following componen
 \item{IC.iptw}{matrix, n x numBetas - influence curve values for IPTW (\code{NULL} if \code{pooledMSM} is \code{TRUE})}
 \item{msm}{object of class glm - the result of fitting the working.msm}
 \item{cum.g}{array, n x numACnodes x numRegimes - cumulative g, after bounding}
+\item{cum.g.unbounded}{array, n x numACnodes x numRegimes - cumulative g, before bounding}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}

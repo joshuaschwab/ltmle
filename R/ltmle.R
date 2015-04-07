@@ -1,18 +1,16 @@
 # Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
 
-#fixme-IC.variance doesn't do anything
-
 # General code flow:
-#  ltmle -> CreateInputs -> LtmleFromInputs -> ltmleMSM.private(pooledMSM=T) -> ...
-#  ltmleMSM(pooledMSM=T) -> CreateInputs -> ltmleMSM.private(pooledMSM=T) -> ...
-#  ltmleMSM(pooledMSM=F) -> CreateInputs -> NonpooledMSM -> LtmleFromInputs -> ltmleMSM.private(pooledMSM=T) -> ...
+#  ltmle -> CreateInputs -> LtmleFromInputs -> LtmleMSMFromInputs(pooledMSM=T) -> ...
+#  ltmleMSM(pooledMSM=T) -> CreateInputs -> LtmleMSMFromInputs(pooledMSM=T) -> ...
+#  ltmleMSM(pooledMSM=F) -> CreateInputs -> NonpooledMSM -> LtmleFromInputs -> LtmleMSMFromInputs(pooledMSM=T) -> ...
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
 ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, 
                   abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, 
-                  SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
-                  iptw.only=FALSE, deterministic.Q.function=NULL, variance.options=NULL, IC.variance=FALSE) {
+                  SL.library=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, 
+                  iptw.only=FALSE, deterministic.Q.function=NULL, IC.variance.only=FALSE, sampling.weights=NULL) {
   if (!is.null(rule)) {
     if (!(missing(abar) || is.null(abar))) stop("'abar' should not be specified when using a 'rule' function")
     abar <- t(apply(data, 1, rule))
@@ -22,9 +20,11 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   } else if (is.null(abar)) {
     abar <- matrix(nrow=nrow(data), ncol=0)
   }
+
   msm.inputs <- GetMSMInputsForLtmle(abar, Ynodes, gform)
-  inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=NULL, pooledMSM=TRUE, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=FALSE, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, variance.options=variance.options) 
+  inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, pooledMSM=msm.inputs$pooledMSM, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, IC.variance.only=IC.variance.only, sampling.weights=sampling.weights, called.from.ltmle=msm.inputs$called.from.ltmle) 
   result <- LtmleFromInputs(inputs)
+  
   result$call <- match.call()
   return(result)
 }
@@ -37,13 +37,14 @@ GetMSMInputsForLtmle <- function(abar, Ynodes, gform) {
     stopifnot(is.matrix(gform))
     dim(gform) <- c(nrow(gform), ncol(gform), 1)
   }
-  msm.inputs <- list(regimes=regimes, working.msm="Y ~ 1", summary.measures=array(dim=c(1, 0, 1)), gform=gform, final.Ynodes=max(Ynodes), pooledMSM=TRUE, msm.weights=matrix(1, nrow=1, ncol=1), normalizeIC=FALSE)
+  working.msm <- "Y ~ 1"
+  msm.inputs <- list(regimes=regimes, working.msm=working.msm, summary.measures=array(dim=c(1, 0, 1)), gform=gform, final.Ynodes=max(Ynodes), pooledMSM=TRUE, msm.weights=matrix(1, nrow=1, ncol=1), called.from.ltmle=TRUE)
   return(msm.inputs)
 }
 
 # run ltmle from the ltmleInputs object - this is used by both ltmle and ltmleMSM(pooledMSM=F)
 LtmleFromInputs <- function(inputs) {
-  msm.result <- ltmleMSM.private(inputs)
+  msm.result <- LtmleMSMFromInputs(inputs)
   iptw.list <- CalcIPTW(data=inputs$untransformed.data, inputs$nodes, abar=drop3(inputs$regimes[, , 1, drop=F]), drop3(msm.result$cum.g[, , 1, drop=F]), inputs$mhte.iptw) #get cum.g for regime 1 (there's only 1 regime)
   r <- list()
   if (inputs$iptw.only) {
@@ -57,16 +58,23 @@ LtmleFromInputs <- function(inputs) {
   r$estimates <- c(tmle=tmle, iptw=iptw.list$iptw.estimate, naive=iptw.list$naive.estimate)
   r$IC <- list(tmle=tmle.IC, iptw=iptw.list$iptw.IC)
   
+  m.beta <- tmle
+  r$IC$tmle <- msm.result$IC * m.beta * (1 - m.beta)
+  if (!is.null(msm.result$variance.estimate)) {
+    r$variance.estimate <- msm.result$variance.estimate * (m.beta * (1 - m.beta))^2 #fixme-is this right? #need to work out IPTW
+  }
+  
   if (inputs$gcomp) {
     names(r$estimates)[1] <- names(r$IC)[1] <- "gcomp"
   }
+  
   r$cum.g <- msm.result$cum.g[, , 1] #only one regime
+  r$cum.g.unbounded <- msm.result$cum.g.unbounded[, , 1] #only one regime
   r$gcomp <- inputs$gcomp
   r$fit <- msm.result$fit
   r$fit$g <- r$fit$g[[1]]  #only one regime
-  r$IC.var <- msm.result$IC.var
-  r$temp <- msm.result$temp #fixme - remove this
-  r$g.ratio <- msm.result$g.ratio[, 1, 1] #fixme - remove this
+  r$fit$Q <- r$fit$Q[[1]]  #only one regime 
+  
   r$sparsityAdj <- msm.result$sparsityAdj
   r$Qstar <- msm.result$Qstar[, 1, 1] #1 regime, 1 final.Ynode
   
@@ -79,30 +87,28 @@ LtmleFromInputs <- function(inputs) {
     #back transform estimate and IC
     r$estimates[1] <- r$estimates[1]*diff(Yrange) + min(Yrange)  #estimates[1] is either tmle or gcomp
     r$IC[[1]] <- r$IC[[1]]*diff(Yrange)
-    r$IC.var <- r$IC.var * (diff(Yrange))^2
+    r$variance.estimate <- r$variance.estimate * (diff(Yrange))^2 #fixme - is this right?
   }
-  
   class(r) <- "ltmle"
   return(r)
 }
 
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, msm.weights=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, variance.options=NULL, IC.variance=FALSE) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, msm.weights=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, IC.variance.only=FALSE, sampling.weights=NULL) {
   if (memoize && require(memoise)) {
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
   
-  #normalizeIC parameter should always be TRUE except when being called by ltmle
-  inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, estimate.time, gcomp, normalizeIC=TRUE, mhte.iptw, iptw.only, deterministic.Q.function, variance.options)
-  result <- ltmleMSM.private(inputs)
+  inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, estimate.time, gcomp, mhte.iptw, iptw.only, deterministic.Q.function, IC.variance.only, sampling.weights, called.from.ltmle=FALSE)
+  result <- LtmleMSMFromInputs(inputs)
   result$call <- match.call()
   class(result) <- "ltmleMSM"
   return(result) 
 }
 
 # run ltmleMSM from ltmleInputs object
-ltmleMSM.private <- function(inputs) {  
+LtmleMSMFromInputs <- function(inputs) {  
   if (inputs$estimate.time) EstimateTime(inputs)
   result <- MainCalcs(inputs)
   result$gcomp <- inputs$gcomp
@@ -114,11 +120,20 @@ ltmleMSM.private <- function(inputs) {
 }
 
 # create the ltmleInputs object used by many other functions - fills in defaults and does error checking
-CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, estimate.time, gcomp, normalizeIC, mhte.iptw, iptw.only, deterministic.Q.function, variance.options) {
+CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, estimate.time, gcomp, mhte.iptw, iptw.only, deterministic.Q.function, IC.variance.only, sampling.weights, called.from.ltmle) {
   
   if (is.list(regimes)) {
     if (!all(do.call(c, lapply(regimes, is.function)))) stop("If 'regimes' is a list, then all elements should be functions.")
     regimes <- aperm(simplify2array(lapply(regimes, function(rule) apply(data, 1, rule)), higher=TRUE), c(2, 1, 3)) 
+  }
+  if (!(is.null(regimes) || dim(regimes) != 3)) {
+    stop("regimes must be an array with 3 dimensions (unless Anodes is NULL, in which case regimes can be NULL)")
+  }
+  if (is.null(regimes) || dim(regimes)[3]==0) {
+    if (length(Anodes) != 0) {
+      stop("regimes must not be NULL (or have dim(regimes)[3]==0) unless Anodes is also NULL")
+    }
+    regimes <- array(dim=c(nrow(data), 0, 1))
   }
   nodes <- CreateNodes(data, Anodes, Cnodes, Lnodes, Ynodes)
   Qform <- CreateLYNodes(data, nodes, check.Qform=TRUE, Qform=Qform)$Qform
@@ -134,6 +149,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   SL.library.Q <- GetLibrary(SL.library, "Q")
   SL.library.g <- GetLibrary(SL.library, "g")
   
+  
   if (is.null(summary.measures)) {
     summary.measures <- matrix(nrow=dim(regimes)[3], ncol=0)
   }
@@ -141,12 +157,13 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
     num.final.Ynodes <- length(final.Ynodes)
     summary.measures <- array(repmat(summary.measures, m=1, n=num.final.Ynodes), dim=c(nrow(summary.measures), ncol(summary.measures), num.final.Ynodes), dimnames=list(rownames(summary.measures), colnames(summary.measures), NULL))
   }
+  if (is.null(sampling.weights)) sampling.weights <- rep(1, nrow(data))
   
   #error checking (also get value for survivalOutcome if NULL)
-  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function)
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function, sampling.weights) 
   survivalOutcome <- check.results$survivalOutcome
   
-  if (!isTRUE(variance.options$skip.clean.data)) { #fixme - make this a separate option?
+  if (!isTRUE(attr(data, "skip.clean.data", exact=TRUE))) { 
     data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome)
   }
   untransformed.data <- data
@@ -155,13 +172,10 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   transformOutcome <- transform.list$transformOutcome
   binaryOutcome <- check.results$binaryOutcome
   
-  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome)
-  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome)  
+  if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome, showMessage=TRUE)
+  if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome, showMessage=TRUE)
   
-  if (is.null(variance.options)) variance.options <- list(sparsityVarAdj=FALSE, gbounds.for.sparsity.adj=NA)
-  
-  
-  inputs <- list(data=data, untransformed.data=untransformed.data, nodes=nodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, gbounds=gbounds, Yrange=Yrange, deterministic.g.function=deterministic.g.function, SL.library.Q=SL.library.Q, SL.library.g=SL.library.g, regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, final.Ynodes=final.Ynodes, pooledMSM=pooledMSM, stratify=stratify, msm.weights=msm.weights, estimate.time=estimate.time, gcomp=gcomp, normalizeIC=normalizeIC, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, variance.options=variance.options)
+  inputs <- list(data=data, untransformed.data=untransformed.data, nodes=nodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, gbounds=gbounds, Yrange=Yrange, deterministic.g.function=deterministic.g.function, SL.library.Q=SL.library.Q, SL.library.g=SL.library.g, regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, final.Ynodes=final.Ynodes, pooledMSM=pooledMSM, stratify=stratify, msm.weights=msm.weights, estimate.time=estimate.time, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, IC.variance.only=IC.variance.only, sampling.weights=sampling.weights, called.from.ltmle=called.from.ltmle)
   class(inputs) <- "ltmleInputs"
   return(inputs)
 }
@@ -208,79 +222,65 @@ MainCalcs <- function(inputs) {
   n <- nrow(inputs$data)
   num.regimes <- dim(inputs$regimes)[3]
   Qstar <- g.ratio <- array(dim=c(n, num.regimes, num.final.Ynodes))
-  weights <- GetMsmWeights(inputs) #n x num.regimes x num.final.Ynodes
-  #new.var <- matrix(0, num.betas, num.betas)
+  msm.weights <- GetMsmWeights(inputs) #n x num.regimes x num.final.Ynodes
   new.var.y <- array(dim=c(num.betas, num.betas, num.final.Ynodes))
   IC <- matrix(0, n, num.betas)
   #store IC for each final Ynode, compare var(IC) to sum(var(IC.ynode))
   IC.y <- array(dim=c(n, num.betas, num.final.Ynodes))
   for (j in 1:num.final.Ynodes) {
     #It would be better to reuse g instead of calculating the same thing every time final.Ynode varies (note: g does need to be recalculated for each abar/regime) - memoizing gets around this to some degree but it could be written better
-    fixed.tmle <- FixedTimeTMLE(SubsetInputs(inputs, final.Ynode=inputs$final.Ynodes[j]), drop3(weights[, , j, drop=FALSE]), dropn(combined.summary.measures[, , , j, drop=FALSE], n=4), baseline.column.names)
+    fixed.tmle <- FixedTimeTMLE(SubsetInputs(inputs, final.Ynode=inputs$final.Ynodes[j]), drop3(msm.weights[, , j, drop=FALSE]), dropn(combined.summary.measures[, , , j, drop=FALSE], n=4), baseline.column.names)
     IC <- IC + fixed.tmle$IC
     IC.y[, , j] <- fixed.tmle$IC
-    Qstar[, , j] <- fixed.tmle$Qstar #[n x num.regimes]
-    #new.var <- new.var + fixed.tmle$sparsityAdj 
+    Qstar[, , j] <- fixed.tmle$Qstar # n x num.regimes
     new.var.y[, , j] <- fixed.tmle$sparsityAdj 
-    num.AC.nodes <- dim(fixed.tmle$cum.g)[2]
-    #g.ratio[, , j] <- fixed.tmle$cum.g.unbounded[, num.AC.nodes, ] / fixed.tmle$cum.g[, num.AC.nodes, ] #g is n x num.ACnodes x num.regimes #fixme - check this
-    g.ratio[, , j] <- fixed.tmle$phi.qstar
+    g.ratio[, , j] <- fixed.tmle$g.ratio
+#     if (!inputs$IC.variance.only) { #fixme -remove this
+#       num.AC.nodes <- dim(fixed.tmle$cum.g)[2]
+#       g.ratio[, , j] <- AsMatrix(fixed.tmle$cum.g.unbounded[, num.AC.nodes, ] / fixed.tmle$cum.g[, num.AC.nodes, ]) #g is n x num.ACnodes x num.regimes 
+#     }
   }
-  #stopifnot(num.final.Ynodes==1 && num.regimes==1); g.ratio[,1,1] <-approx(W.set, true.phi, inputs$data$L.1)$y; print("g.ratio hacked to use true phi!") #fixme! hack!
-  temp <- fixed.tmle$temp
-  if (inputs$normalizeIC) {
-    iptw <- StandardDynamicIPTW(inputs$data, inputs$nodes, inputs$working.msm, inputs$regimes, combined.summary.measures, inputs$final.Ynodes, fixed.tmle$cum.g, weights)
+  if (!inputs$called.from.ltmle) {
+    iptw <- StandardDynamicIPTW(inputs$data, inputs$nodes, inputs$working.msm, inputs$regimes, combined.summary.measures, inputs$final.Ynodes, fixed.tmle$cum.g, msm.weights)
     names(iptw$beta) <- main.terms$beta.names
   } else {
     iptw <- NULL
   }
   if (inputs$iptw.only) return(list(cum.g=fixed.tmle$cum.g, beta.iptw=iptw$beta, IC.iptw=iptw$IC))
   
-  fitted.msm <- FitPooledMSM(inputs$working.msm, Qstar, combined.summary.measures, weights) 
+  fitted.msm <- FitPooledMSM(inputs$working.msm, Qstar, combined.summary.measures, msm.weights * inputs$sampling.weights) #fixme! is this right? 
   
-  finalize.list <- FinalizeIC(IC, combined.summary.measures, Qstar, fitted.msm$m.beta, weights, inputs$normalizeIC, g.ratio)
+  finalize.list <- FinalizeIC(IC, combined.summary.measures, Qstar, fitted.msm$m.beta, msm.weights, g.ratio, inputs$sampling.weights, ignore.bad.IC = inputs$gcomp)
   
   IC <- finalize.list$IC #n x num.betas
   C <- finalize.list$C
   C.old <- finalize.list$C.old
-  IC.var <- var(IC) #num.betas x num.betas
-  if (inputs$variance.options$sparsityVarAdj) {    
+  if (!inputs$IC.variance.only) {    
     new.var <- matrix(NA, num.betas, num.betas)
     for (i in 1:num.betas) {
       for (j in 1:num.betas) {
         if (num.final.Ynodes > 1) {
           cov.IC <- cov(IC.y[, i, ], IC.y[, j, ])
           diag(cov.IC) <- new.var.y[i, j, ]
-          #diag(cov.IC) <- pmax(diag(cov.IC), new.var.y[i, j, ])
           new.var[i, j] <- sum(cov.IC)
         } else {
           new.var[i, j] <- new.var.y[i, j, 1]
-          #new.var[i, j] <- pmax(IC.var[i, j], new.var.y[i, j, 1])
         }
       }
     }
-    #cat("IC.var: (covariance matrix before normalizing)\n")
-    #print(new.var)
-    IC.var <- new.var
-    #     if (any(eigen(IC.var)$values < -1e-6)) { #fixme
-    #       if (exists("SaveAll")) {
-    #         SaveAll("VarianceUnderSparsity/logs/not-pos-def")
-    #         warning("something is wrong - not pos def")
-    #       } else {
-    #         stop("something is wrong - not pos def")
-    #       }
-    #     }
+    variance.estimate <- diag(solve(C) %*% new.var %*% t(solve(C)))
+  } else {
+    variance.estimate <- NULL
   }
-  #IC <- t(solve(C, t(IC))) #IC %*% solve(C) 
   IC <- t(solve(C.old, t(IC))) #IC %*% solve(C) 
   beta <- coef(fitted.msm$m)
   names(beta) <- main.terms$beta.names
-  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g, fit=fixed.tmle$fit, C=C, IC.var=IC.var, beta.iptw=iptw$beta, IC.iptw=iptw$IC, sparsityAdj=fixed.tmle$sparsityAdj, temp=temp, Qstar=Qstar, g.ratio=g.ratio)) #note: only returns cum.g and fit for the last final.Ynode
+  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g, cum.g.unbounded=fixed.tmle$cum.g.unbounded, fit=fixed.tmle$fit, variance.estimate=variance.estimate, beta.iptw=iptw$beta, IC.iptw=iptw$IC, sparsityAdj=fixed.tmle$sparsityAdj, Qstar=Qstar, g.ratio=g.ratio)) #note: only returns cum.g and fit for the last final.Ynode
 }
 
 
 StandardDynamicIPTW <- function(data, nodes, working.msm, regimes, combined.summary.measures, final.Ynodes, cum.g, msm.weights) {
-  
+#fixme-add sampling.weights  
   GetXY <- function() {
     abar <- drop3(regimes[, , i, drop=F])
     abar <- abar[, nodes$A < final.Ynode, drop=FALSE]
@@ -303,7 +303,7 @@ StandardDynamicIPTW <- function(data, nodes, working.msm, regimes, combined.summ
   n <- nrow(data)
   num.regimes <- dim(regimes)[3]
   num.final.Ynodes <- length(final.Ynodes)
-  Y.vec <- X.mat <- weight.vec <- id <- NULL
+  Y.vec <- X.mat <- weight.vec <- NULL
   for (j in 1:num.final.Ynodes) {
     final.Ynode <- final.Ynodes[j]
     for (i in 1:num.regimes) {
@@ -336,21 +336,18 @@ StandardDynamicIPTW <- function(data, nodes, working.msm, regimes, combined.summ
       IC[XY.list$index, ] <- IC[XY.list$index, ] + XY.list$weight * XY.list$X * (XY.list$Y - m.beta[XY.list$index, i, j]) #recycles weight, Y, m.beta
     }
   }
-  
-  C <- NormalizeIC(IC, combined.summary.measures, m.beta, ignore.bad.ic = F, msm.weights, g.ratio=array(1, dim=c(n, num.regimes, num.final.Ynodes))) #fixme - do we want to calculate g.ratio?
+
+  C <- NormalizeIC(IC, combined.summary.measures, m.beta, ignore.bad.IC = F, msm.weights, g.ratio=array(1, dim=c(n, num.regimes, num.final.Ynodes)), sampling.weights=rep(1, n)) #fixme - need sampling weights
   if (any(is.na(C))) {
     normalized.IC <- matrix(NA, nrow=n, ncol=length(beta))
   } else {
     normalized.IC <- t(solve(C, t(IC)))
   }
-  
-  #std.dev.IC <- sqrt(apply(normalized.IC, 2, var) / n)
-  #CI <- GetCI(beta, std.dev.IC)
   return(list(beta=beta, IC=normalized.IC))
 }
 
 # ltmleMSM for a single final.Ynode
-FixedTimeTMLE <- function(inputs, weights, combined.summary.measures, baseline.column.names) {
+FixedTimeTMLE <- function(inputs, msm.weights, combined.summary.measures, baseline.column.names) {
   inputs$summary.measures <- NULL #just to make sure it isn't used - should only use combined.summary.measures 
   #combined.summary.measures: n x num.measures x num.regimes   (num.measures=num.summary.measures + num.baseline.covariates)
   
@@ -366,7 +363,7 @@ FixedTimeTMLE <- function(inputs, weights, combined.summary.measures, baseline.c
   cum.g.meanL <- cum.g.meanL.unbounded <- array(0, dim=c(n, length(nodes$AC), num.regimes, length(nodes$LY)-1))
   fit.g <- vector("list", num.regimes)
   for (i in 1:num.regimes) {
-    if (all(weights[, i] == 0)) {
+    if (all(msm.weights[, i] == 0)) {
       g.list <- list(fit=list("no g fit because regime weight is 0"))
     } else {
       # estimate each g factor, and cumulative probabilities
@@ -381,21 +378,19 @@ FixedTimeTMLE <- function(inputs, weights, combined.summary.measures, baseline.c
   }
   if (inputs$iptw.only) return(list(cum.g=cum.g, IC=NA, Qstar=NA, sparsityAdj=NA))
   
-  sparsityAdj <- matrix(0, num.betas, num.betas)  
+  sparsityAdj <- matrix(0, num.betas, num.betas)  #fixme - rename this?
   
-  last.Ynode <- max(nodes$Y) #fixme - this is left over from some more complicated code that didn't work - replace with last.LYnode.index <- length(nodes$LY)?
-  last.LYnode <- max(nodes$LY[nodes$LY <= last.Ynode])
-  last.LYnode.index <- which(nodes$LY == last.LYnode) #the last Y node may not be in LYnodes because of blocks
-  stopifnot(length(last.LYnode.index) == 1)
-  #if (inputs$variance.options$sparsityVarAdj) cat("last Y node=", names(data)[last.Ynode], " last Y node index=", last.Ynode.index, "\n")
   logitQ <- matrix(nrow=n, ncol=num.regimes)
-  regimes.with.positive.weight <- which(apply(weights > 0, 2, any))
+  regimes.with.positive.weight <- which(apply(msm.weights > 0, 2, any))
   if (length(regimes.with.positive.weight) == 0) stop("All regimes have weight 0 (one possible reason is that msm.weights=NULL and no data rows match any of the regimes and are uncensored)")
-  fit.Q <- fit.Qstar <- vector("list", length(nodes$LY))
-  names(fit.Q) <- names(fit.Qstar) <- names(data)[nodes$LY]
-  Qstar.kplus1 <- matrix(data[, last.Ynode], nrow=n, ncol=num.regimes)
-  for (j in last.LYnode.index:1){
-    cur.node <- nodes$LY[j]
+  fit.Qstar <- vector("list", length(nodes$LY))
+  names(fit.Qstar) <- names(data)[nodes$LY]
+  fit.Q <- vector("list", length(regimes.with.positive.weight))
+  for (i in regimes.with.positive.weight) fit.Q[[i]] <- fit.Qstar
+  Qstar.kplus1 <- matrix(data[, max(nodes$Y)], nrow=n, ncol=num.regimes)
+  
+  for (LYnode.index in length(nodes$LY):1) {
+    cur.node <- nodes$LY[LYnode.index]
     deterministic.list.origdata <- IsDeterministic(data, cur.node, inputs$deterministic.Q.function, nodes, called.from.estimate.g=FALSE, inputs$survivalOutcome)
     uncensored <- IsUncensored(data, nodes$C, cur.node)
     intervention.match <- subs <- matrix(nrow=n, ncol=num.regimes)
@@ -410,16 +405,16 @@ FixedTimeTMLE <- function(inputs, weights, combined.summary.measures, baseline.c
         subs[, i] <- uncensored & !deterministic.list.origdata$is.deterministic
       }
       if (any(subs[, i])) {
-        Q.est <- Estimate(inputs$Qform[j], data=data.frame(data, Q.kplus1=Qstar.kplus1[, i]), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=inputs$SL.library.Q, type="link", nodes=nodes)
+        Q.est <- Estimate(inputs$Qform[LYnode.index], data=data.frame(data, Q.kplus1=Qstar.kplus1[, i]), family="quasibinomial", newdata=newdata, subs=subs[, i], SL.library=inputs$SL.library.Q, type="link", nodes=nodes, sampling.weights=inputs$sampling.weights)
         logitQ[, i] <- Q.est$predicted.values
-        #if (inputs$variance.options$sparsityVarAdj) {cat("summary(Q):\n"); print(summary(plogis(Q.est$predicted.values))); print(Q.est$fit)}
       } else {
         if (! all(deterministic.list.newdata$is.deterministic)) {
-          msg <- paste0("ltmle failed trying to estimate ", inputs$Qform[j], " because there are no observations that are\nuncensored", ifelse(stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.Q.function\n")
+          msg <- paste0("ltmle failed trying to estimate ", inputs$Qform[LYnode.index], " because there are no observations that are\nuncensored", ifelse(stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.Q.function\n")
           stop(msg)
         }
         Q.est <- list(fit="no estimation of Q at this node because all rows are set deterministically")
       }
+      fit.Q[[i]][[LYnode.index]] <- Q.est$fit 
     }
     if (all(deterministic.list.newdata$is.deterministic)) {
       #no updating needed if all rows are set deterministically
@@ -431,51 +426,44 @@ FixedTimeTMLE <- function(inputs, weights, combined.summary.measures, baseline.c
       Qstar.est <- list(fit="no updating at this node because all rows are set deterministically")
     } else {
       ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
-      update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, weights, inputs$gcomp)
+      update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, msm.weights, inputs$gcomp, inputs$sampling.weights)
       Qstar <- update.list$Qstar
       Qstar[deterministic.list.newdata$is.deterministic, ] <- deterministic.list.newdata$Q
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
       curIC.relative.error <- abs(colSums(curIC)) / apply(abs(combined.summary.measures), 2, mean)
       if (any(curIC.relative.error > 0.001) && !inputs$gcomp) {
-        cat("\nscore eq not solved - colSums(curIC)= ----------------\n")
-        print(colSums(curIC))
         fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, deterministic.list.newdata, update.list$off, update.list$X, regimes.with.positive.weight)
         Qstar <- fix.score.list$Qstar
         curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
         update.list$fit <- fix.score.list$fit      
       }
-      est.var.list <- EstimateVariance(inputs, combined.summary.measures, regimes.with.positive.weight, last.LYnode.index, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, weights, j, ACnode.index, cum.g, prob.A.is.1, baseline.column.names, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded)
-      sparsityAdj <- sparsityAdj + est.var.list$variance.estimate
-      if (j == last.LYnode.index) phi.qstar <- est.var.list$phi.qstar
+      est.var <- EstimateVariance(inputs, combined.summary.measures, regimes.with.positive.weight, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, msm.weights, LYnode.index, ACnode.index, cum.g, prob.A.is.1, baseline.column.names, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded, inputs$sampling.weights, is.last.LYnode=(LYnode.index==length(nodes$LY)))
+      sparsityAdj <- sparsityAdj + est.var
     }
     IC <- IC + curIC 
     Qstar.kplus1 <- Qstar
-    fit.Q[[j]] <- Q.est$fit #fixme! looks like we're passing back only the fit for the last regime - could be different if stratify?
-    fit.Qstar[[j]] <- update.list$fit
+    fit.Qstar[[LYnode.index]] <- update.list$fit
   }
+  g.ratio <- CalcGUnboundedToBoundedRatio(inputs, cum.g, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded)
   #tmle <- colMeans(Qstar)
-  
-  if (!exists("temp")) temp <- "ltmle: temp not defined"
-  return(list(IC=IC, Qstar=Qstar, cum.g=cum.g, cum.g.unbounded=cum.g.unbounded, sparsityAdj=sparsityAdj, fit=list(g=fit.g, Q=fit.Q, Qstar=fit.Qstar), temp=temp, phi.qstar=phi.qstar)) 
+  return(list(IC=IC, Qstar=Qstar, cum.g=cum.g, cum.g.unbounded=cum.g.unbounded, g.ratio=g.ratio, sparsityAdj=sparsityAdj, fit=list(g=fit.g, Q=fit.Q, Qstar=fit.Qstar))) 
 }
 
-
-EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.positive.weight, last.LYnode.index, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, weights, j, ACnode.index, cum.g, prob.A.is.1, baseline.column.names, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded) {
-  if (!inputs$variance.options$sparsityVarAdj ) return(list(variance.estimate=NA, phi.qstar=1))
-  if (!inputs$binaryOutcome) stop("sparsityVarAdj currently not compatible with non binary outcomes")
-  if (!is.null(inputs$deterministic.Q.function)) stop("sparsityVarAdj currently not compatible with deterministic.Q.function")
-  if (inputs$gcomp) stop("sparsityVarAdj currently not compatible with gcomp")
-  if (inputs$stratify) stop("sparsityVarAdj currently not compatible with stratify=TRUE")
-  
-  TmleOfVariance <- function(Z, Z.meanL, det.q.function, do.scale) {
-    #length(Z.meanL) == 0 --> point treatment case, return mean(Z)
-    #I don't think all Z could be NA, but may want to double check (max(Z) can be zero when summary.measure is 0)
-    if (length(Z.meanL) == 0 || all(is.na(Z)) || (max(Z, na.rm=T) == 0)) {
-      Qstar <- if (do.scale) Scale(Z, 0, 1) else Z
-      return(list(EZd1 = mean(Z), Qstar = Qstar))
+EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.positive.weight, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, msm.weights, LYnode.index, ACnode.index, cum.g, prob.A.is.1, baseline.column.names, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded, sampling.weights, is.last.LYnode) {
+  if (inputs$IC.variance.only) return(NA)
+  if (!inputs$binaryOutcome) stop("IC.variance.only=FALSE not currently compatible with non binary outcomes")
+  if (!is.null(inputs$deterministic.Q.function)) stop("IC.variance.only=FALSE not currently compatible with deterministic.Q.function")
+  if (inputs$gcomp) stop("IC.variance.only=FALSE not currently compatible with gcomp")
+  if (inputs$stratify) stop("IC.variance.only=FALSE not currently compatible with stratify=TRUE")
+  TmleOfVariance <- function(Z, Z.meanL) {
+    if (all(is.na(Z))) stop("all Z are NA in EstimateVariance")
+    #length(Z.meanL) == 0 --> point treatment case, return mean(Z); all Z can be zero when summary.measure is 0
+    if (length(Z.meanL) == 0 || all(Z==0 | is.na(Z))) {
+      Qstar <- Scale(Z, 0, 1)
+      return(list(EZd1 = mean(Z, na.rm=T), Qstar = Qstar))
     }
     sparsity.data <- inputs$data[, 1:cur.node]
-    sparsity.data[, cur.node] <- if (do.scale) Scale(Z, 0, 1) else Z
+    sparsity.data[, cur.node] <- Scale(Z, 0, 1)
     temp.nodes <- lapply(nodes, function (x) x[x <= cur.node])
     if (cur.node %in% temp.nodes$L) {
       #if the current node is an L node, make current node a Y node (last node has to be a Y node)
@@ -483,7 +471,7 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
       temp.nodes$Y <- c(temp.nodes$Y, cur.node)
     }
     stratify <- FALSE
-    Qform <- paste(GetDefaultForm(sparsity.data[, 1:cur.node], nodes=temp.nodes, is.Qform=TRUE, stratify=stratify, survivalOutcome=FALSE), paste0("+ sparityAdj_Z.meanL_", 1:length(temp.nodes$LY)))
+    Qform <- paste(GetDefaultForm(sparsity.data[, 1:cur.node], nodes=temp.nodes, is.Qform=TRUE, stratify=stratify, survivalOutcome=FALSE, showMessage=FALSE), paste0("+ sparityAdj_Z.meanL_", 1:length(temp.nodes$LY)))
     Qform[length(Qform)] <- "IDENTITY"
     
     Z.meanL <- apply(AsMatrix(Z.meanL), 2, LogitScale)
@@ -492,15 +480,16 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
     temp.nodes <- lapply(temp.nodes, function (x) x + ncol(Z.meanL))
     
     names(Qform) <- names(sparsity.data)[temp.nodes$LY]
-    var.tmle <- ltmle(sparsity.data, Anodes=temp.nodes$A, Cnodes=temp.nodes$C, Lnodes=temp.nodes$L, Ynodes=temp.nodes$Y, survivalOutcome=FALSE, Qform=Qform, gform=drop3(prob.A.is.1[, 1:ACnode.index, d1, drop=FALSE]), abar=drop3(inputs$regimes[, nodes$A <= cur.node, d1, drop=FALSE]), gbounds=inputs$gbounds, stratify=stratify, estimate.time=FALSE, deterministic.Q.function=det.q.function, variance.options=list(skip.clean.data=T, sparsityVarAdj=F, gbounds.for.sparsity.adj=NA)) #minor note: do we want skip.clean.data?
+    attr(sparsity.data, "skip.clean.data") <- TRUE
+    var.tmle <- ltmle(sparsity.data, Anodes=temp.nodes$A, Cnodes=temp.nodes$C, Lnodes=temp.nodes$L, Ynodes=temp.nodes$Y, survivalOutcome=FALSE, Qform=Qform, gform=drop3(prob.A.is.1[, 1:ACnode.index, d1, drop=FALSE]), abar=drop3(inputs$regimes[, nodes$A <= cur.node, d1, drop=FALSE]), gbounds=inputs$gbounds, stratify=stratify, estimate.time=FALSE, deterministic.Q.function=det.q.function, IC.variance.only=TRUE, sampling.weights=sampling.weights) 
   
     EZd1 <- var.tmle$estimates["tmle"] * diff(range(Z, na.rm=T)) + min(Z, na.rm=T)
     return(list(EZd1 = EZd1, Qstar=var.tmle$Qstar))
   }
   
   EqualRegimesIndex <- function(dd1, dd2) {
-    #index of each observation where regime d1 matches regime d2 
-    return(apply(drop3(inputs$regimes[, 1:ACnode.index, dd1, drop=F]) == drop3(inputs$regimes[, 1:ACnode.index, dd2, drop=F]), 1, all)) 
+    #index of each observation where regime d1 matches regime d2 up to cur.node
+    return(apply(drop3(inputs$regimes[, inputs$nodes$A <= cur.node, dd1, drop=F]) == drop3(inputs$regimes[, inputs$nodes$A <= cur.node, dd2, drop=F]), 1, all)) 
   }
   
   IsStaticTreatment <- function() {
@@ -520,29 +509,30 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
   
   #used in ltmle call below
   if (inputs$survivalOutcome) {
-    det.q.function.z <- function(data, current.node, nodes, called.from.estimate.g) {
+    det.q.function <- function(data, current.node, nodes, called.from.estimate.g) {
       if (!any(nodes$Y < current.node)) return(NULL)
-      prev.Y <- data[, nodes$Y[nodes$Y < cur.node], drop=F]
+      prev.Y <- data[, nodes$Y[nodes$Y < current.node], drop=F]
       prev.Y[is.na(prev.Y)] <- 0
       is.deterministic <- apply(prev.Y == 1, 1, any)
-      return(list(is.deterministic=is.deterministic, Q.value=0))   
+      Q.value <- data[is.deterministic, max(nodes$Y)] #this is 0 before scaling but may be nonzero after scaling
+      return(list(is.deterministic=is.deterministic, Q.value=Q.value))   
     }
   } else {
-    det.q.function.z <- NULL
+    det.q.function <- NULL
   }
   static.treatment <- IsStaticTreatment()
   variance.estimate <- matrix(0, num.betas, num.betas)
   alive <- !deterministic.list.newdata$is.deterministic
   Sigma <- array(dim=c(n, num.regimes, num.regimes))
-  #ask mark - Sigma is not symmetric due to SetA on d1?
+  #fixme - ask mark - Sigma is not symmetric due to SetA on d1?
   for (d1 in regimes.with.positive.weight) {
-    if (static.treatment && inputs$variance.options$static) {
+    if (static.treatment) {
       d2.regimes <- d1 #only need diagonal elements
     } else {
       d2.regimes <- regimes.with.positive.weight #need all elements
     }
     for (d2 in d2.regimes) { 
-      if (j == last.LYnode.index) {
+      if (is.last.LYnode) {
         Sigma[, d1, d2] <- Qstar[, d1] * (1 - Qstar[, d1]) 
       } else {
         Q.data <- inputs$data[alive, 1:cur.node, drop=F]
@@ -551,32 +541,30 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
         if (diff(resid.sq.range) > 0) {
           Q.data[, cur.node] <- (resid.sq - resid.sq.range[1]) / diff(resid.sq.range)
           names(Q.data)[cur.node]  <- "Q.kplus1" #ugly - to match with Qform
-          m <- glm(formula = inputs$Qform[j], family = "quasibinomial", data = Q.data, control=glm.control(trace=FALSE, maxit=1000)) 
+          m <- glm(formula = inputs$Qform[LYnode.index], family = "quasibinomial", data = Q.data, control=glm.control(trace=FALSE, maxit=1000)) 
           Q.newdata <- SetA(data = Q.data, abar = GetABar(regimes = inputs$regimes, d1)[alive, , drop=F], nodes = nodes, cur.node = cur.node)
           Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response")
           Sigma[alive, d1, d2] <- Q.resid.sq.pred * diff(resid.sq.range) + resid.sq.range[1]
         } else {
           resid.sq.value <- min(resid.sq, na.rm = T) #all values are the same, just get one non-NA
           Sigma[alive, d1, d2] <- resid.sq.value
-        }  
+        }
+        Sigma[!alive, d1, d2] <- 0
       }
     }
   }
   
-  #inputs$variance.options$static <- T; cat("inputs$variance.options$static=",inputs$variance.options$static,"\n")
-  if (static.treatment && inputs$variance.options$static) {
-    
+
+  if (static.treatment) {
     for (d1 in regimes.with.positive.weight) {   
       #Z.without.h1h1 <- Sigma[, d1, d1] / cum.g[, ACnode.index, d1] #without h1*h1'
       #Z.without.h1h1.meanL <- 1 / cum.g.meanL[, ACnode.index, d1, ]
-      Z.without.sum.meas <- Sigma[, d1, d1] / cum.g[, ACnode.index, d1] * cum.g.unbounded[, ACnode.index, d1] / cum.g[, ACnode.index, d1] * weights[, d1]^2 
-      Z.without.sum.meas.meanL <- 1 / cum.g.meanL[, ACnode.index, d1, ] * cum.g.meanL.unbounded[, ACnode.index, d1, ] / cum.g.meanL[, ACnode.index, d1, ] * weights[, d1]^2 
-      var.tmle <- TmleOfVariance(Z.without.sum.meas, Z.without.sum.meas.meanL, det.q.function.z, do.scale=T)
-      #h1.temp <- drop3(combined.summary.measures[, , d1, drop=F]) * weights[, d1] #n x num.betas (recycles weights)
-      h1.temp <- drop3(combined.summary.measures[, , d1, drop=F]) #n x num.betas (recycles weights)
-      no.V <- all(combined.summary.measures[1, , d1] == combined.summary.measures[, , d1]) #transpose h1.temp to get recycling right
-      if (no.V && inputs$variance.options$obs.ind.h1) {
-        #h1 <- combined.summary.measures[1, , d1] * weights[1, d1]  #num.betas x 1
+      Z.without.sum.meas <- Sigma[, d1, d1] / cum.g[, ACnode.index, d1] * cum.g.unbounded[, ACnode.index, d1] / cum.g[, ACnode.index, d1] * msm.weights[, d1]^2 * sampling.weights^2
+      Z.without.sum.meas.meanL <- 1 / cum.g.meanL[, ACnode.index, d1, ] * cum.g.meanL.unbounded[, ACnode.index, d1, ] / cum.g.meanL[, ACnode.index, d1, ] * msm.weights[, d1]^2 * sampling.weights^2
+      var.tmle <- TmleOfVariance(Z.without.sum.meas, Z.without.sum.meas.meanL)
+      no.V <- all(combined.summary.measures[1, , d1] == combined.summary.measures[, , d1]) 
+      if (no.V) {
+        #h1 <- combined.summary.measures[1, , d1] * msm.weights[1, d1]  #num.betas x 1
         #variance.estimate <- variance.estimate + (h1 %*% t(h1)) * var.tmle$EZd1
         variance.estimate <- variance.estimate + (combined.summary.measures[1, , d1] %*% t(combined.summary.measures[1, , d1])) * var.tmle$EZd1
       } else {
@@ -589,7 +577,7 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
         pred.Qstar <- predict(m, type = "response") * diff(range(Z.without.sum.meas, na.rm=T)) + min(Z.without.sum.meas, na.rm=T)  #n x 1
         variance.estimate.sum <- matrix(0, num.betas, num.betas)
         for (i in 1:n) {
-          #h1 <- combined.summary.measures[i, , d1] * weights[i, d1]
+          #h1 <- combined.summary.measures[i, , d1] * msm.weights[i, d1]
           #variance.estimate.sum <- variance.estimate.sum + (h1 %*% t(h1)) * pred.Qstar[i]
           variance.estimate.sum <- variance.estimate.sum + (combined.summary.measures[i, , d1] %*% t(combined.summary.measures[i, , d1])) * pred.Qstar[i]
         }
@@ -603,17 +591,16 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
         Z.base.meanL <- matrix(0, n, dim(cum.g.meanL)[4])
         for (d2 in regimes.with.positive.weight) {
           equal.regimes.index <- EqualRegimesIndex(d1, d2) #index of each observation where regime d1 matches regime d2 
-          h1 <- combined.summary.measures[, beta.index2, d1] * weights[, d1]
-          Z.base[equal.regimes.index] <- Z.base[equal.regimes.index] + h1[equal.regimes.index] * Sigma[equal.regimes.index, d1, d2] / cum.g[equal.regimes.index, ACnode.index, d1] #this is equivalent to using cum.g.unbounded in the denominator and multiplying by phi=cum.g.unbounded/cum.g.bounded
-          Z.base.meanL[equal.regimes.index, ] <- Z.base.meanL[equal.regimes.index, ] + h1[equal.regimes.index] * 1 / cum.g.meanL[equal.regimes.index, ACnode.index, d1, ] #recycles
+          h1 <- combined.summary.measures[, beta.index2, d1] * msm.weights[, d1]
+          Z.base[equal.regimes.index] <- Z.base[equal.regimes.index] + h1[equal.regimes.index] * Sigma[equal.regimes.index, d1, d2] / cum.g[equal.regimes.index, ACnode.index, d1] * sampling.weights[equal.regimes.index] #this is equivalent to using cum.g.unbounded in the denominator and multiplying by phi=cum.g.unbounded/cum.g.bounded  #fixme - check sampling.weights here with mark (also in Z.base.meanL)
+          Z.base.meanL[equal.regimes.index, ] <- Z.base.meanL[equal.regimes.index, ] + h1[equal.regimes.index] * 1 / cum.g.meanL[equal.regimes.index, ACnode.index, d1, ] * sampling.weights[equal.regimes.index] #recycles
         }        
         for (beta.index1 in 1:num.betas) {  
-          if (beta.index1 >= beta.index2 || !inputs$variance.options$sym2) {
-            #Z <- combined.summary.measures[, beta.index1, d1] * weights[, d1] * Z.base
-            Z <- combined.summary.measures[, beta.index1, d1] * weights[, d1] * cum.g.unbounded[, ACnode.index, d1] / cum.g[, ACnode.index, d1] * Z.base 
-            #Z.meanL <- combined.summary.measures[, beta.index1, d1] * weights[, d1] * cum.g.unbounded[, ACnode.index, d1] / cum.g[, ACnode.index, d1] * Z.base.meanL #recycles 
-            Z.meanL <- combined.summary.measures[, beta.index1, d1] * weights[, d1] * cum.g.meanL.unbounded[, ACnode.index, d1, ] / cum.g.meanL[, ACnode.index, d1, ] * Z.base.meanL
-            var.tmle <- TmleOfVariance(Z, Z.meanL, det.q.function.z, do.scale=T)
+          if (beta.index1 >= beta.index2) {
+            #Z <- combined.summary.measures[, beta.index1, d1] * msm.weights[, d1] * Z.base
+            Z <- combined.summary.measures[, beta.index1, d1] * msm.weights[, d1] * cum.g.unbounded[, ACnode.index, d1] / cum.g[, ACnode.index, d1] * sampling.weights * Z.base 
+            Z.meanL <- combined.summary.measures[, beta.index1, d1] * msm.weights[, d1] * cum.g.meanL.unbounded[, ACnode.index, d1, ] / cum.g.meanL[, ACnode.index, d1, ] * sampling.weights * Z.base.meanL
+            var.tmle <- TmleOfVariance(Z, Z.meanL)
             variance.estimate[beta.index1, beta.index2] <- variance.estimate[beta.index1, beta.index2] + var.tmle$EZd1
           } else {
             variance.estimate[beta.index1, beta.index2] <- variance.estimate[beta.index2, beta.index1] #use symmetry
@@ -622,25 +609,30 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
       } 
     }
   }
-  if (max(abs(variance.estimate - t(variance.estimate))) > 1e-5) stop("not symmetric")
-  
-  if (j == last.LYnode.index) {
-    phi.qstar <- matrix(NA, n, num.regimes)
-    for (d1 in regimes.with.positive.weight) {  
-      phi <- cum.g.unbounded[, ACnode.index, d1] / cum.g[, ACnode.index, d1]
-      phi.meanL <- cum.g.meanL.unbounded[, ACnode.index, d1, ] / cum.g.meanL[, ACnode.index, d1, ]
-      if (est.phi) {
-        phi.qstar[, d1] <- TmleOfVariance(phi, phi.meanL, det.q.function=NULL, do.scale=F)$Qstar #fixme - what do we do det.q.function here? also - should rename TmleOfVariance
-      } else {
-        phi.qstar[, d1] <- phi
-      }
-      
-    }
-  } else {
-    phi.qstar <- NULL
+  if (max(abs(variance.estimate - t(variance.estimate))) > 1e-5) stop("not symmetric")  
+  return(variance.estimate)
+}
+
+CalcGUnboundedToBoundedRatio <- function(inputs, cum.g, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded) {
+  n <- dim(cum.g)[1]
+  num.AC.nodes <- dim(cum.g)[2]
+  num.regimes <- dim(cum.g)[3]
+  if (inputs$IC.variance.only) return(matrix(1, n, num.regimes))
+  if (! any(is.na(cum.g))) return(AsMatrix(cum.g.unbounded[, num.AC.nodes, ] / cum.g[, num.AC.nodes, ]))
+  #cum.g is NA after censoring - for censored observations use cum.g.meanL  
+  #If censored at node j, set all nodes > j to meanl. 
+  #[,,k] is prob.A.is.1 with all L and Y nodes after and including LYnodes[k] set to mean of L (na.rm=T)
+  g.ratio <- matrix(NA, n, num.regimes)
+  for (i in 1:num.regimes) {
+    g.ratio.temp <- cbind(cum.g.meanL.unbounded[, num.AC.nodes, i, ] / cum.g.meanL[, num.AC.nodes, i, ], cum.g.unbounded[, num.AC.nodes, i] / cum.g[, num.AC.nodes, i])
+    index <- max.col(!is.na(g.ratio.temp), "last")
+    g.ratio[, i] <- g.ratio.temp[sub2ind(1:n, col = index, num.rows = n)]
+#     index <- max.col(!is.na(AsMatrix(cum.g.meanL[, num.AC.nodes, i, ])), "last") #the largest index of the 4th dimension of cum.g.meanL which is not NA (sets as few LYnodes as possible to meanL)
+#     na.cum.g <- is.na(cum.g[, num.AC.nodes, i])
+#     g.ratio[na.cum.g, i] <- cum.g.meanL.unbounded[na.cum.g, num.AC.nodes, i, index] / cum.g.meanL[na.cum.g, num.AC.nodes, i, index]
+#     g.ratio[!na.cum.g, i] <- cum.g.unbounded[!na.cum.g, num.AC.nodes, i] / cum.g[!na.cum.g, num.AC.nodes, i]
   }
-  
-  return(list(variance.estimate=variance.estimate, phi.qstar=phi.qstar))
+  return(g.ratio)
 }
 
 # remove any information in ltmleInputs after final.Ynode
@@ -663,43 +655,34 @@ SubsetInputs <- function(inputs, final.Ynode) {
 }
 
 # Fit the MSM
-FitPooledMSM <- function(working.msm, Qstar, combined.summary.measures, weights) {
+FitPooledMSM <- function(working.msm, Qstar, combined.summary.measures, msm.weights) {
   #Qstar: n x num.regimes x num.final.ynodes
   #combined.summary.measures: n x num.measures x num.regimes x num.final.ynodes   (num.measures=num.summary.measures + num.baseline.covariates)
-  #weights: n x num.regimes x num.final.ynodes
-  #if (! is.null(baseline.covariates)) stop("need to update for baseline.covariates")
-  
+  #msm.weights: n x num.regimes x num.final.ynodes
+
   n <- dim(Qstar)[1]
   num.regimes <- dim(Qstar)[2]
   num.final.ynodes <- dim(Qstar)[3]
   num.summary.measures <- dim(combined.summary.measures)[2]
   
-  X <- apply(combined.summary.measures, 2, rbind) #could be wrong
-  #   X <- matrix(nrow=n * num.regimes * num.final.ynodes, ncol=num.summary.measures)
-  #   colnames(X) <- colnames(summary.measures)
-  #   cnt <- 1
-  #   for (j in 1:num.final.ynodes) {
-  #     for (i in 1:num.regimes) {
-  #       X[cnt:(cnt+n-1), ] <- matrix(summary.measures[, i, , j], nrow=n, ncol=num.summary.measures, byrow=T)
-  #       cnt <- cnt + n
-  #     }
-  #   }
+  X <- apply(combined.summary.measures, 2, rbind) 
   Y <- as.vector(Qstar)
-  weight.vec <- as.vector(weights)
+  weight.vec <- as.vector(msm.weights)
   
   m <- glm(as.formula(working.msm), data=data.frame(Y, X), family="quasibinomial", weights=weight.vec, na.action=na.exclude, control=glm.control(maxit=1000)) 
   m.beta <- predict(m, type="response")
   dim(m.beta) <- dim(Qstar)
+  #fixme - check with mark - we don't need sampling.weights here?
   return(list(m=m, m.beta=m.beta))
 }
 
 #final step in calculating TMLE influence curve
-FinalizeIC <- function(IC, combined.summary.measures, Qstar, m.beta, weights, normalizeIC, g.ratio) {
+FinalizeIC <- function(IC, combined.summary.measures, Qstar, m.beta, msm.weights, g.ratio, sampling.weights, ignore.bad.IC) {
   #mBeta, Qstar: n x num.regimes x num.final.ynodes
   #combined.summary.measures: n x num.measures x num.regimes x num.final.ynodes   (num.measures=num.summary.measures + num.baseline.covariates)
   
   #summary.measures: num.regimes x num.summary.measures x num.final.ynodes
-  #weights: n x num.regimes x num.final.ynodes
+  #msm.weights: n x num.regimes x num.final.ynodes
   
   num.betas <- ncol(IC)
   n <- nrow(Qstar)
@@ -712,11 +695,12 @@ FinalizeIC <- function(IC, combined.summary.measures, Qstar, m.beta, weights, no
   finalIC <- matrix(0, nrow=n, ncol=num.betas)
   for (j in 1:num.final.ynodes) {
     for (i in 1:num.regimes) {
-      if (any(weights[, i, j] > 0)) {
+      if (any(msm.weights[, i, j] > 0)) {
         m1 <- matrix(Qstar[, i, j] - m.beta[, i, j], ncol=1)   #n x 1
         for (k in 1:num.betas) {
           m2 <- combined.summary.measures[, k, i, j] # n x 1
-          finalIC[, k] <- finalIC[, k] + weights[, i, j] * (m1 * m2) #could be wrong? fixme
+          #finalIC[, k] <- finalIC[, k] + msm.weights[, i, j] * (m1 * m2) #could be wrong? fixme
+          finalIC[, k] <- finalIC[, k] + msm.weights[, i, j] * sampling.weights * (m1 * m2) #could be wrong? fixme! (3/19/15)
         }
       }
     }  
@@ -726,18 +710,15 @@ FinalizeIC <- function(IC, combined.summary.measures, Qstar, m.beta, weights, no
     warning(paste(msg, collapse="\n"))
   }
   IC <- IC + finalIC
-  if (normalizeIC) {
-    C <- NormalizeIC(IC, combined.summary.measures, m.beta, ignore.bad.ic=FALSE, weights, g.ratio)
-    g.ratio.1 <- array(1, dim=c(n, num.regimes, num.final.ynodes))
-    C.old <- NormalizeIC(IC, combined.summary.measures, m.beta, ignore.bad.ic=FALSE, weights, g.ratio.1) #C without using g.ratio (setting g.ratio to 1)
-  } else {
-    C <- C.old <- diag(nrow=num.betas) #identity matrix
-  }
+  C <- NormalizeIC(IC, combined.summary.measures, m.beta, ignore.bad.IC=ignore.bad.IC, msm.weights, g.ratio, sampling.weights)
+  g.ratio.1 <- array(1, dim=c(n, num.regimes, num.final.ynodes))
+  C.old <- NormalizeIC(IC, combined.summary.measures, m.beta, ignore.bad.IC=ignore.bad.IC, msm.weights, g.ratio.1, sampling.weights) #C without using g.ratio (setting g.ratio to 1)
+  
   return(list(IC=IC, C=C, C.old=C.old)) 
 }
 
 # Normalize the influence curve matrix
-NormalizeIC <- function(IC, combined.summary.measures, m.beta, ignore.bad.ic=FALSE, weights, g.ratio) {    
+NormalizeIC <- function(IC, combined.summary.measures, m.beta, ignore.bad.IC, msm.weights, g.ratio, sampling.weights) {    
   #combined.summary.measures: n x num.measures x num.regimes x num.final.ynodes   (num.measures=num.summary.measures + num.baseline.covariates)
   #g.ratio = g.unbounded / g.bounded : n x num.regimes x num.final.ynodes
   
@@ -748,14 +729,14 @@ NormalizeIC <- function(IC, combined.summary.measures, m.beta, ignore.bad.ic=FAL
   C <- array(0, dim=c(num.betas, num.betas, n))
   for (j in 1:num.final.ynodes) {
     for (i in 1:num.regimes) {
-      if (any(weights[, i, j] > 0)) {
+      if (any(msm.weights[, i, j] > 0)) {
         tempC <- array(0, dim=c(num.betas, num.betas, n))
         for (k in 1:n) {
           m.beta.temp <- m.beta[k, i, j]  
-          #h <- matrix(combined.summary.measures[k, , i, j], ncol=1) * weights[k, i, j]
-          h <- matrix(combined.summary.measures[k, , i, j], ncol=1) * weights[k, i, j] * g.ratio[k, i, j]
-          #h <- matrix(combined.summary.measures[k, , i, j], ncol=1) * weights[k, i, j] * (g.ratio.weight*g.ratio[k, i, j]+(1-g.ratio.weight))
-          tempC[, , k] <- h %*% t(h) * m.beta.temp * (1 - m.beta.temp) / weights[k, i, j]
+          #h <- matrix(combined.summary.measures[k, , i, j], ncol=1) * msm.weights[k, i, j]
+          h <- matrix(combined.summary.measures[k, , i, j], ncol=1) * msm.weights[k, i, j] * g.ratio[k, i, j]
+
+          tempC[, , k] <- h %*% t(h) * m.beta.temp * (1 - m.beta.temp) * sampling.weights[k] / msm.weights[k, i, j]
         }
         if (any(is.na(tempC))) stop("NA in tempC")
         C <- C + tempC
@@ -764,12 +745,11 @@ NormalizeIC <- function(IC, combined.summary.measures, m.beta, ignore.bad.ic=FAL
   }
   C <- apply(C, c(1, 2), mean)
   if (abs(det(C)) < 1e-18 ) {
-    normalized.IC <- matrix(nrow=nrow(IC), ncol=num.betas)
     C <- matrix(NA, nrow=num.betas, ncol=num.betas)
     warning("det(C) = 0, normalized IC <- NA")
   } else {
     normalized.IC <- t(solve(C, t(IC))) #IC %*% solve(C) 
-    if (!ignore.bad.ic && any(abs(colSums(normalized.IC)) > 0.001 )) {
+    if (!ignore.bad.IC && any(abs(colSums(normalized.IC)) > 0.001 )) {
       msg <- capture.output({
         cat("normalized IC problem", colSums(normalized.IC), "\n")
         cat("inv(C) = \n")
@@ -778,7 +758,6 @@ NormalizeIC <- function(IC, combined.summary.measures, m.beta, ignore.bad.ic=FAL
       warning(paste(msg, collapse="\n"))
     }
   }
-  #note: not currently returning normalized.IC
   return(C)
 }
 
@@ -789,7 +768,7 @@ GetABar <- function(regimes, i) {
 }
 
 # Targeting step - update the initial fit of Q using clever covariates
-UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g, working.msm, uncensored, intervention.match, weights, gcomp) { 
+UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g, working.msm, uncensored, intervention.match, msm.weights, gcomp, sampling.weights) { 
   #logitQ, Qstar.kplus1: n x num.regimes
   #cum.g: n x num.regimes (already indexed for this node)
   #subs: n x num.regimes
@@ -797,11 +776,11 @@ UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g
   #intervention.match: n x num.regimes
   #summary.measures: num.regimes x num.summary.measures
   #baseline.covariates: names/indicies: num.baseline.covariates x 1
-  #weights: n x num.regimes
+  #msm.weights: n x num.regimes
   #stacked.summary.measures: (n*num.regimes) x num.measures
   #combined.summary.measures: n x num.measures x num.regimes   (num.measures=num.summary.measures + num.baseline.covariates)
   #h.g.ratio: n x num.regimes x num.measures
-  
+  #sampling.weights: n x 1
   n <- nrow(logitQ)
   num.regimes <- ncol(logitQ)
   off <- as.vector(logitQ)
@@ -810,7 +789,7 @@ UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g
   stacked.summary.measures <- apply(combined.summary.measures, 2, rbind)
   
   #move indicator/g to weight
-  weight.vec <- uncensored * as.vector(intervention.match) / as.vector(cum.g) * as.vector(weights) #recycles uncensored #fixme - multiply by weight?
+  weight.vec <- uncensored * sampling.weights * as.vector(intervention.match) / as.vector(cum.g) * as.vector(msm.weights) #recycles uncensored and sampling.weights
   f <- as.formula(paste(working.msm, "+ offset(off)"))
   data.temp <- data.frame(Y, stacked.summary.measures, off)
   newdata <- data.temp  
@@ -829,19 +808,19 @@ UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, subs, cum.g
     }
     
   }
-  indicator <- matrix(uncensored, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) * matrix(intervention.match, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) #I(A=rule and uncensored)
-  h.g.ratio <- stacked.summary.measures / matrix(cum.g, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) * indicator # I() * h / g
+  indicator <- matrix(uncensored * sampling.weights, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) * matrix(intervention.match, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) #I(A=rule and uncensored) * sampling.weights
+  h.g.ratio <- stacked.summary.measures / matrix(cum.g, nrow=nrow(stacked.summary.measures), ncol=ncol(stacked.summary.measures)) * indicator # I() * h * sampling.weights / g
   dim(h.g.ratio) <- c(n, num.regimes, ncol(h.g.ratio))
   for (i in 1:num.regimes) {
-    h.g.ratio[, i, ] <- h.g.ratio[, i, ] * weights[, i] #recycles weights
-    weight.zero.index <- weights[, i] == 0
+    h.g.ratio[, i, ] <- h.g.ratio[, i, ] * msm.weights[, i] #recycles msm.weights
+    weight.zero.index <- msm.weights[, i] == 0
     h.g.ratio[weight.zero.index, i, ] <- 0  #cum.g is 0 so X is NA so h.g.ratio is NA when weight is 0
   }
   if (ncol(stacked.summary.measures) != dim(h.g.ratio)[3]) stop("only works if working.msm has only main terms")
   return(list(Qstar=Qstar, h.g.ratio=h.g.ratio, X=stacked.summary.measures, off=off, fit=m)) 
 }
 
-# Sometimes GLM doesn't converge and the updating step of TMLE doesn't solve the score equation (sum of TMLE influence curve not equal to zero). This function attempts to solve the score equation directly using various optimizers.
+# Sometimes GLM doesn't converge and the updating step of TMLE doesn't solve the score equation (sum of TMLE influence curve not equal to zero). This function attempts to solve the score equation directly using various optimizers. [Note: this was needed more often before we made changes to the updating algorithm.]
 FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.match, deterministic.list, off, X, regimes.with.positive.weight) {
   CalcScore <- function(e) {
     Qstar <- QstarFromE(e)
@@ -860,20 +839,24 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
     if (minimizer == "DEoptim") {
       num.tries <- 1
     } else {
-      #num.tries <- 3
       num.tries <- 30 #increase this to solve more problems at the cost of longer run time
     }
     init.e <- numeric(num.betas) #first try an initial estimate of epsilon=0
     for (i in 1:num.tries) {
-      cat(minimizer, " ", i)
       if (minimizer == "nlminb") {
         m <- nlminb(start=init.e, objective=CalcScore, control=list(abs.tol=max.objective, eval.max=500, iter.max=500, x.tol=1e-14, rel.tol=1e-14))
         e <- m$par
         obj.val <- m$objective
       } else if (minimizer == "optim") {
-        m <- optim(par=init.e, fn=CalcScore, control=list(abstol=max.objective, reltol=1e-14, maxit=2000))
-        e <- m$par
-        obj.val <- m$value
+        if (num.betas == 1) {
+          m <- optimize(f = CalcScore, interval=c(-1, 1) * 10^i)
+          e <- m$minimum
+          obj.val <- m$objective
+        } else {
+          m <- optim(par=init.e, fn=CalcScore, control=list(abstol=max.objective, reltol=1e-14, maxit=2000))
+          e <- m$par
+          obj.val <- m$value
+        }
       } else if (minimizer == "nlm") {
         m <- nlm(f=CalcScore, p=init.e)
         e <- m$estimate
@@ -888,11 +871,8 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
       }
       if (obj.val < max.objective) {
         m$ltmle.msg <- paste("updating step using glm failed to solve score equation; solved using", minimizer)
-        #cat("===================================================== solved\n")
-        #print(m)
         return(list(e=e, solved=TRUE, m=m))
       }
-      #print(m)
       init.e <- rnorm(num.betas) #if the first try didn't work, try a random initial estimate of epsilon
     }
     return(list(e=numeric(num.betas), solved=FALSE, m="score equation not solved!")) #return Q (not updated)
@@ -901,15 +881,13 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
   num.betas <- ncol(X)
   
   for (offset.lbound in c(1e-8,0.0001, 0.001, 0.01)) {
-    #stop("???")
-    #cat("\n", "                                       offset.lbound=", offset.lbound, "\n")
     off <- Bound(off, qlogis(c(offset.lbound, 1-offset.lbound)))
     l <- FindMin("nlminb")
     if (! l$solved) l <- FindMin("optim")
     if (! l$solved) l <- FindMin("nlm")
     if (l$solved) break
   }
-  #if (! l$solved && require(DEoptim)) l <- FindMin("DEoptim")   #comment out this line to turn off DEoptim (it's slow)
+  if (! l$solved && require(DEoptim)) l <- FindMin("DEoptim")   #comment out this line to turn off DEoptim (it's slow)
   if (! l$solved) {
     print("------ all minimizers failed, returning non-updated Q ------")
     warning("------ all minimizers failed, returning non-updated Q ------")
@@ -920,22 +898,32 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
 
 # Estimate how long it will take to run ltmleMSM
 EstimateTime <- function(inputs) {
-  sample.index <- sample(nrow(inputs$data), size=50)
+  sample.size <- 50
+  sample.index <- sample(nrow(inputs$data), size=sample.size)
   
   small.inputs <- inputs
   small.inputs$data <- inputs$data[sample.index, ]
   small.inputs$regimes <- inputs$regimes[sample.index, , , drop=F]
+  small.inputs$sampling.weights <- inputs$sampling.weights[sample.index]
   if (is.numeric(inputs$gform)) small.inputs$gform <- inputs$gform[sample.index, , , drop=F]
-  
+  if (length(dim(inputs$msm.weights)) == 3) small.inputs$msm.weights <- inputs$msm.weights[sample.index, , , drop=F]
   start.time <- Sys.time()
-  try.result <- try(  MainCalcs(small.inputs), silent=TRUE)
+  #try.result <- MainCalcs(small.inputs)
+  try.result <- suppressWarnings(try(MainCalcs(small.inputs), silent=TRUE))
   if (inherits(try.result, "try-error")) {
     message("Timing estimate unavailable")
   } else {
     elapsed.time <- Sys.time() - start.time 
-    est.time <- round(sqrt(as.double(elapsed.time, units="mins") * nrow(inputs$data) / 50), digits=0)
-    if (est.time == 0) est.time <- "< 1"
-    message("Estimate of time to completion: ", est.time, " minute", ifelse(est.time==1 || is.character(est.time), "", "s"))
+    est.time1 <- round(sqrt(as.double(elapsed.time, units="mins") * nrow(inputs$data) / sample.size), digits=0)
+    est.time2 <- round(as.double(elapsed.time, units="mins") * nrow(inputs$data) / sample.size, digits=0)
+    if (est.time2 == 0) {
+      est.time.str <- "< 1 minute"
+    } else if (est.time2 == 1) {
+      est.time.str <- "1 minute"
+    } else {
+      est.time.str <- paste(est.time1, "to", est.time2, "minutes")
+    }
+    message("Estimate of time to completion: ", est.time.str)
   }
   invisible(NULL)
 }
@@ -945,102 +933,76 @@ EstimateTime <- function(inputs) {
 #' @S3method summary ltmle
 summary.ltmle <- function(object, control.object=NULL, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...) {
   GetStdDev <- function(obj) {
-    n <- length(obj$IC[[estimator]])
-    v <- ifelse(estimator=="tmle" && !is.null(obj$IC.var), obj$IC.var, var(obj$IC[[estimator]])) #fixme - maybe !is.null not needed? - helpful for backward compatibility/test-prev-versions
+    if (estimator == "naive") return(NA)
+    IC.variance <- var(obj$IC[[estimator]])
+    if (estimator=="tmle" && !is.null(obj$variance.estimate)) {
+      v <- max(IC.variance, obj$variance.estimate) 
+    } else {
+      v <- IC.variance
+    }
     std.dev <- sqrt(v / n)
-    return(std.dev)
+    return(list(std.dev=std.dev, variance.estimate.ratio=v/IC.variance))
   } 
-  GetStdDevIC <- function(IC) {
-    #fixme - this is ugly - figure out something better after deciding about new variance estimation in effect measures
-    n <- length(IC)
-    return(sqrt(var(IC) / n))
-  }
   
   #object is treatment, control.object is control
   if (! is.null(control.object) && class(control.object) != "ltmle") stop("the control.object argument to summary.ltmle must be of class ltmle")
   if (! estimator %in% c("tmle", "iptw", "gcomp", "naive")) stop("estimator should be one of: tmle, iptw, gcomp, naive")
   if (estimator == "tmle" && object$gcomp) stop("estimator 'tmle' is not available because ltmleMSM was called with gcomp=TRUE")
   if (estimator == "gcomp" && !object$gcomp) stop("estimator 'gcomp' is not available because ltmleMSM was called with gcomp=FALSE")
-  std.dev <- GetStdDev(object)
+  n <- length(object$IC[[estimator]])
+  
+  std.dev.list <- GetStdDev(object)
+  std.dev <- std.dev.list$std.dev
   treatment.summary <- GetSummary(object$estimates[estimator], std.dev, loggedIC=FALSE) 
   if (! is.null(control.object)) {
     #fixme: stop("need to update for new variance estimates") - effect measures don't use new variance estimation!
-    control.summary <- GetSummary(control.object$estimates[estimator], GetStdDev(control.object), loggedIC=FALSE)
+    if (length(object$IC[[estimator]]) != length(control.object$IC[[estimator]])) stop("object and control object must have the same number of observations")
+    if (estimator == "naive") stop("estimator='naive' is not available with control.object")
+    control.summary <- GetSummary(control.object$estimates[estimator], GetStdDev(control.object)$std.dev, loggedIC=FALSE)
     effect.measures <- GetEffectMeasures(est0=control.object$estimates[estimator], IC0=control.object$IC[[estimator]], est1=object$estimates[estimator], IC1=object$IC[[estimator]], binaryOutcome=object$binaryOutcome && control.object$binaryOutcome)
-    effect.measures.summary <- lapply(effect.measures, function (x) GetSummary(x$est, GetStdDevIC(x$IC), x$loggedIC))
+    effect.measures.summary <- lapply(effect.measures, function (x) GetSummary(x$est, sqrt(var(x$IC)/n), x$loggedIC))
   } else {
     control.summary <- effect.measures.summary <- NULL
   }
-  ans <- list(treatment=treatment.summary, control=control.summary, effect.measures=effect.measures.summary, treatment.call=object$call, control.call=control.object$call, estimator=estimator)
+  ans <- list(treatment=treatment.summary, control=control.summary, effect.measures=effect.measures.summary, treatment.call=object$call, control.call=control.object$call, estimator=estimator,  variance.estimate.ratio=std.dev.list$variance.estimate.ratio)
   class(ans) <- "summary.ltmle"
   return(ans)
 }
 
 # Get summary measures for MSM parameters (standard errors, p-values, confidence intervals)
 #' @S3method summary ltmleMSM
-summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), limit.factor=NULL, ...) {
+summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...) {
   if (! estimator %in% c("tmle", "iptw", "gcomp")) stop("estimator should be one of: tmle, iptw, gcomp")
   if (estimator == "tmle") {
     if (object$gcomp) stop("estimator 'tmle' is not available because ltmleMSM was called with gcomp=TRUE")
     estimate <- object$beta
     IC <- object$IC
-    IC.var <- object$IC.var
-    
-    v2 <- apply(IC, 2, var)
-    if (is.null(IC.var)) { #fixme - maybe !is.null not needed? - helpful for backward compatibility/test-prev-versions
-      v <- v2 
-    } else {
-      v1 <- diag(solve(object$C) %*% IC.var %*% t(solve(object$C)))
-      v <- pmax(v1, v2)
-      #v <- v1 #fixme!
-      if (F && !any(is.na(v1))) { #fixme - otherwise can get errors when C or IC.var has NA
-        if (any((v2 - v1) > 1e-4)) {
-          cat("new v: ", v1, "  old v: ", v2, "\n")
-        }
-      }
-    }
-    
-    if (!is.null(limit.factor)) { #fixme - this is temporary
-      stopifnot(limit.factor >= 1)  
-      v <- pmin(v, limit.factor * v2) 
-    }
-    
   } else if (estimator == "iptw") {
     estimate <- object$beta.iptw
     IC <- object$IC.iptw
-    v <- apply(IC, 2, var)
-    
-    if (any(is.na(v))) v <- rep(0, length(v)) #fixme!
   } else if (estimator == "gcomp") {
     if (!object$gcomp) stop("estimator 'gcomp' is not available because ltmleMSM was called with gcomp=FALSE")
     estimate <- object$beta
     IC <- object$IC
-    v <- apply(IC, 2, var)
   }
-  
-  n <- nrow(IC)
+  IC.variance <- apply(IC, 2, var)
+  if (is.null(object$variance.estimate)) { 
+    v <- IC.variance 
+  } else {
+    v <- pmax(object$variance.estimate, IC.variance)
+  }
+  variance.estimate.ratio <- v / IC.variance
   if (!any(is.na(v)) && any(v < -1e-8)) {
-    if (exists("SaveAll")) {
-      SaveAll("VarianceUnderSparsity/logs/negative-variance")
-      warning("negative variance estimate") #fixme?
-    } else {
-      stop("something is wrong - negative variance estimate")
-    }
+    stop("something is wrong - negative variance estimate")
   }
   v <- pmax(v, 0) #in case there's some very small negative
+  n <- nrow(IC)
   std.dev <- sqrt(v/n)
   pval <- 2 * pnorm(-abs(estimate / std.dev))
-  CI <- GetCI(estimate, std.dev)
-  if (F && estimator == "tmle" && !isTRUE(object$is.old)) { #fixme
-    cat("----  v = ", v, "1/C^2 = ", 1/object$C^2, " std.dev = ", std.dev, "CI = ", CI, "\n")
-    inCI <- CI[1] < 0 && CI[2] > 0
-    temp.df <<- rbind(temp.df, c(v, 1/object$C^2, std.dev, estimate, CI, inCI))
-    names(temp.df) <- c("v", "1/C^2", "std.dev", "beta", "CI", "inCI")
-  }
-  
+  CI <- GetCI(estimate, std.dev)  
   cmat <- cbind(estimate, std.dev, CI, pval)
   dimnames(cmat) <- list(names(estimate), c("Estimate", "Std. Error", "CI 2.5%", "CI 97.5%", "p-value"))
-  ans <- list(cmat=cmat, estimator=estimator, transformOutcome=object$transformOutcome) 
+  ans <- list(cmat=cmat, estimator=estimator, transformOutcome=object$transformOutcome, variance.estimate.ratio=variance.estimate.ratio) 
   class(ans) <- "summary.ltmleMSM"
   return(ans)
 }
@@ -1057,6 +1019,7 @@ print.summary.ltmleMSM <- function(x, digits = max(3, getOption("digits") - 3), 
     cat("NOTE: The MSM is modeling the transformed outcome ( Y -", min(Yrange),
         ")/(", max(Yrange),"-", min(Yrange),")")
   }
+  CheckVarianceEstimateRatio(x)
   invisible(x)
 }
 
@@ -1088,7 +1051,15 @@ print.summary.ltmle <- function(x, ...) {
       PrintSummary(x$effect.measure$OR)
     }
   }
+  CheckVarianceEstimateRatio(x)
   invisible(x)
+}
+
+CheckVarianceEstimateRatio <- function(summary.obj) {
+  if (summary.obj$variance.estimate.ratio > 100) {
+    warning.msg <- paste0("TMLE based variance estimate / IC based variance estimate = ", floor(summary.obj$variance.estimate.ratio), ".\nWhen this ratio is greater than 100, both variance estimates are less likely to be accurate.")
+    warning(warning.msg)
+  }
 }
 
 # Print method for ltmleMSM
@@ -1137,7 +1108,6 @@ PrintSummary <- function(x) {
 
 #Calculate estimate, standard deviation, p-value, confidence interval
 GetSummary <- function(estimate, std.dev, loggedIC) { 
-  if (is.null(std.dev) || (std.dev < 0)) stop("std.dev is null or not positive")
   if (loggedIC) {
     pvalue <- 2 * pnorm(-abs(log(estimate) / std.dev))
     CI <- exp(GetCI(log(estimate), std.dev))
@@ -1198,7 +1168,8 @@ CalcIPTW <- function(data, nodes, abar, cum.g, mhte.iptw) {
   g <- cum.g[index, ncol(cum.g)]
   
   iptw.IC <- rep(0, n)
-  #TO DO: verify that these are both correct for Y outside 0,1
+  #fixme: verify that these are both correct for Y outside 0,1
+  #fixme: regression weights?
   if (mhte.iptw) {
     iptw.estimate <- sum( Y / g ) / sum(1 / g) 
     iptw.IC[index] <- ((Y - iptw.estimate) / g) / (1/n * sum (1 / g))
@@ -1221,19 +1192,18 @@ EstimateG <- function(inputs, regime.index) {
   names(fit) <- names(inputs$data)[inputs$nodes$AC]
   for (i in 1:length(inputs$nodes$AC)) {
     cur.node <- inputs$nodes$AC[i]
+    uncensored <- IsUncensored(inputs$data, inputs$nodes$C, cur.node)
     newdata <- SetA(inputs$data, abar, inputs$nodes, cur.node)
     deterministic.origdata <- IsDeterministic(inputs$data, cur.node, inputs$deterministic.Q.function, inputs$nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function
     deterministic.newdata <- IsDeterministic(newdata, cur.node, inputs$deterministic.Q.function, inputs$nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function - using data modified so A = abar
     if (is.numeric(inputs$gform)) {
-      if (inputs$variance.options$sparsityVarAdj) stop("sparsityVarAdj not currently compatible with numeric gform")
+      if (!inputs$IC.variance.only) stop("IC.variance.only=FALSE not currently compatible with numeric gform")
       prob.A.is.1[, i] <- inputs$gform[, i, regime.index]  #if gform is numeric, it's a matrix of prob.A.is.1
       g.est <- list(fit="gform passed as numeric, so no estimation took place")
     } else {
-      deterministic.g.list.origdata <- IsDeterministicG(inputs$data, cur.node, inputs$deterministic.g.function, inputs$nodes) #deterministic due to acnode map - using original data
-      deterministic.g.list.newdata <- IsDeterministicG(newdata, cur.node, inputs$deterministic.g.function, inputs$nodes) #deterministic due to acnode map - using data modified so A = abar
+      deterministic.g.list.origdata <- IsDeterministicG(inputs$data, cur.node, inputs$deterministic.g.function, inputs$nodes, using.newdata=F) #deterministic due to acnode map - using original data
+      deterministic.g.list.newdata <- IsDeterministicG(newdata, cur.node, inputs$deterministic.g.function, inputs$nodes, using.newdata=T) #deterministic due to acnode map - using data modified so A = abar
       deterministic.g.origdata <- deterministic.g.list.origdata$is.deterministic
-      uncensored <- IsUncensored(inputs$data, inputs$nodes$C, cur.node)
-      
       if (inputs$stratify) {
         intervention.match <- InterventionMatch(inputs$data, abar, inputs$nodes$A, inputs$nodes$AC[i]) 
         subs <- uncensored & intervention.match & !deterministic.origdata & !deterministic.g.origdata
@@ -1248,12 +1218,12 @@ EstimateG <- function(inputs, regime.index) {
       } else {
         # not all rows are set deterministically
         if (any(subs)) {
-          g.est <- Estimate(inputs$gform[i], data=inputs$data, subs=subs, family="binomial", newdata=newdata, SL.library=inputs$SL.library.g, type="response", nodes=inputs$nodes)
+          g.est <- Estimate(inputs$gform[i], data=inputs$data, subs=subs, family="quasibinomial", newdata=newdata, SL.library=inputs$SL.library.g, type="response", nodes=inputs$nodes, sampling.weights=inputs$sampling.weights)
           prob.A.is.1[, i] <- g.est$predicted.values
-          if (inputs$variance.options$sparsityVarAdj) {
-            if (!is.null(inputs$SL.library.g)) stop("sparsityVarAdj not currently compatible with SuperLearner for g") #need to figure out how to predict with newdata without rerunning estimation
-            
-            prob.A.is.1.meanL[, i, ] <- PredictProbAMeanL(newdata, inputs$nodes, subs, g.est$fit)
+          if (!inputs$IC.variance.only) {           
+            #n x numACnodes x (numLYnodes - 1)
+            #[,,k] is prob.A.is.1 with all L and Y nodes after and including LYnodes[k] set to mean of L (na.rm=T)
+            prob.A.is.1.meanL[, i, ] <- PredictProbAMeanL(newdata, inputs$nodes, subs, g.est$fit, SL.XY=g.est$SL.XY)
           }
         } else {
           msg <- paste0("ltmle failed trying to estimate ", inputs$gform[i], " because there are no observations that are\nuncensored", ifelse(inputs$stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.g.function or deterministic.Q.function\n")
@@ -1271,18 +1241,19 @@ EstimateG <- function(inputs, regime.index) {
     }
     gmat[, i] <- CalcGVec(prob.A.is.1[, i], cur.abar, deterministic.newdata)
     gmat.meanL[, i, ] <- apply(AsMatrix(prob.A.is.1.meanL[, i, ]), 2, CalcGVec, cur.abar, deterministic.newdata)
+    if (any(is.na(gmat[uncensored, i]))) stop("Error - NA in g. g should only be NA after censoring. If you passed numeric gform, make sure there are no NA values except after censoring. Otherwise something has gone wrong.")
     fit[[i]] <- g.est$fit
   }
   cum.g.unbounded <- CalcCumG(gmat, c(0, 1))
   cum.g <- CalcCumG(gmat, inputs$gbounds)
   for (i in sseq(1, dim(gmat.meanL)[3])) {
-    cum.g.meanL[, , i] <- CalcCumG(gmat.meanL[, , i], inputs$gbounds)
-    cum.g.meanL.unbounded[, , i] <- CalcCumG(gmat.meanL[, , i], c(0,1)) #fixme - better to just pass unbounded and unbounded cum.g, bound later
+    cum.g.meanL[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), inputs$gbounds)
+    cum.g.meanL.unbounded[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), c(0,1)) 
   }
   return(list(cum.g=cum.g, cum.g.unbounded=cum.g.unbounded, cum.g.meanL=cum.g.meanL, fit=fit, prob.A.is.1=prob.A.is.1, cum.g.meanL.unbounded=cum.g.meanL.unbounded))
 }
 
-PredictProbAMeanL <- function(data, nodes, subs, fit) {
+PredictProbAMeanL <- function(data, nodes, subs, fit, SL.XY) {
   #somewhat inefficient - for W A.1 L.2 A.2 L.3 A.3 Y, does P(A.1=1) setting L.3 to mean and then L.2 and L.3 to mean, but none of these can be used in P(A.1=1) because they're after A.1
   
   #A is already set to abar in data
@@ -1294,20 +1265,25 @@ PredictProbAMeanL <- function(data, nodes, subs, fit) {
   for (i in length(all.LY.nodes):1) { 
     regression.node <- all.LY.nodes[i]
     L <- data[subs, regression.node]
-    if (is.numeric(L) && length(unique(L) > 2)) {
-      meanL <- mean(L)
+    if (is.numeric(L) && !IsBinary(L)) {
+      meanL <- mean(L, na.rm = TRUE)
     } else {
-      meanL <- Mode(L) #for factors and binaries
+      meanL <- Mode(L, na.rm = TRUE) #for factors and binaries
     }
     newdata[, regression.node] <- meanL
     if (regression.node %in% nodes$LY[1:length(nodes$LY)-1]) {
-      
       LYindex <- LYindex - 1
-      g.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
+      if ("SuperLearner" %in% class(fit)) {
+        g.meanL[, LYindex] <- predict(fit, newdata = cbind(newdata, added.constant=1), X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
+      } else {
+        g.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
+      }
+      
     }
   }
   return(g.meanL)
 }
+
 
 
 CalcGVec <- function(prob.A.is.1, cur.abar, deterministic.newdata) {
@@ -1339,10 +1315,9 @@ NodeToIndex <- function(data, node) {
 }
 
 # Run GLM or SuperLearner
-Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes) {
+Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes, sampling.weights) {
   stopifnot(type %in% c("link", "response"))
   if (form == "IDENTITY") {
-    #fixme - this is kind of ugly
     predicted.values <- data[, "Q.kplus1"]
     if (type == "link") {
       stopifnot(family %in% c("binomial", "quasibinomial"))
@@ -1357,42 +1332,17 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes)
   if (is.null(SL.library) || length(RhsVars(f)) == 0) { #in a formula like "Y ~ 1", call glm
     #estimate using GLM
     if (sum(subs) > 1) {
-      if (exists("use.speed.glm") && use.speed.glm) {
-        #only works for main terms!
-        #stop("use.speed.glm disabled")
-        print("speed.glm")
-        rhs <- RhsVars(form)
-        Y <- data[, LhsVars(form)]
-        X <- cbind(1, as.matrix(data[, rhs]))
-        stopifnot(family %in% c("binomial", "quasibinomial"))
-        newX <- cbind(1, as.matrix(newdata[, rhs]))
-        try.obj <- try({
-          SuppressGivenWarnings({
-            m <- speedglm.wfit(Y, X, family=binomial())
-          }, GetWarningsToSuppress())
-          predicted.values <- newX %*% coef(m)
-          if (type == "response") predicted.values <- plogis(predicted.values)
-        })
-        if (class(try.obj) == "try-error" || all(is.na(predicted.values))) {
-          print("error in speedglm, using glm")
-          print(try.obj)
-          SuppressGivenWarnings({
-            m <- glm(form, data=data[subs, all.vars(f), drop=F], family=family, control=glm.control(trace=FALSE, maxit=1000)) 
-            predicted.values <- predict(m, newdata=newdata, type=type)
-          }, GetWarningsToSuppress())
-        }
-        m <- NULL #save some memory?
-      } else {
-        SuppressGivenWarnings({
-          m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(form, data=data[subs, all.vars(f), drop=F], family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
-          predicted.values <- predict(m, newdata=newdata, type=type)
-        }, GetWarningsToSuppress())
-      }
+      sampling.weights <- sampling.weights[subs]
+      SuppressGivenWarnings({
+        m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(f, data=data[subs, all.vars(f), drop=F], family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
+        predicted.values <- predict(m, newdata=newdata, type=type)
+      }, GetWarningsToSuppress())
     } else {
       #glm breaks when sum(subs) == 1
       predicted.values <- rep(data[subs, LhsVars(f)], nrow(newdata))
       m <- "fit not returned because there was only 1 observation to fit"
     }
+    SL.XY <- NULL
   } else {
     #estimate using SuperLearner
     if (family == "quasibinomial") family <- "binomial"
@@ -1400,10 +1350,17 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes)
     rhs <- setdiff(RhsVars(f), rownames(alias(f, data=data[subs,])$Complete))  #remove aliased columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped
     new.subs <- apply(newdata[, rhs, drop=FALSE], 1, function (x) !any(is.na(x)))  #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
     Y <- data[subs, LhsVars(f)]
+    X <- data[subs, rhs, drop=FALSE]
+    newX <- newdata[new.subs, rhs, drop=FALSE]
+    if (ncol(X) == 1) {
+      #SuperLearner crashes if there are screening algorithms and only one column - add a constant
+      X <- cbind(X, added.constant=1)
+      newX <- cbind(newX, added.constant=1)
+    }
     try.result <- try({
-      SuppressGivenWarnings(m <- SuperLearner(Y=Y, X=data[subs, rhs, drop=FALSE], SL.library=SL.library, verbose=FALSE, family=family, newX=newdata[new.subs, rhs, drop=FALSE]), "non-integer #successes in a binomial glm!") 
+      SuppressGivenWarnings(m <- SuperLearner(Y=Y, X=X, SL.library=SL.library, verbose=FALSE, family=family, newX=newX, obsWeights=sampling.weights), "non-integer #successes in a binomial glm!") 
     })
-    
+    SL.XY <- list(X=X, Y=Y)
     GetSLStopMsg <- function(Y) ifelse(all(Y %in% c(0, 1, NA)), "", "\n Note that many SuperLeaner libraries crash when called with continuous dependent variables, as in the case of initial Q regressions with continuous Y or subsequent Q regressions even if Y is binary.")
     if (inherits(try.result, "try-error")) {
       stop(paste("\n\nError occured during call to SuperLearner:\n", form, GetSLStopMsg(Y), "\n The error reported is:\n", try.result))
@@ -1423,12 +1380,12 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes)
       predicted.values <- qlogis(Bound(predicted.values, bounds=c(0.0001, 0.9999)))
     }
   }
-  return(list(predicted.values=predicted.values, fit=m))
+  return(list(predicted.values=predicted.values, fit=m, SL.XY=SL.XY))
 }
 
 # This is here for memoizing
 glm.ltmle <- function(f, data, family, control) {
-  return(glm(f, data=data, family=family, control=control))
+  return(glm(f, data=data[, all.vars(f), drop=F], family=family, control=control, weights=sampling.weights))
 }
 
 # Calculate bounded cumulative G
@@ -1504,7 +1461,7 @@ IsDeterministic <- function(data, cur.node, deterministic.Q.function, nodes, cal
 
 # Determine which patients have an Anode value which is deterministic 
 # For example, deterministic.g.function may be used to specify that once a patient starts treatment, they stay on treatment and this should be taken into consideration during estimation of G
-IsDeterministicG <- function(data, cur.node, deterministic.g.function, nodes) {
+IsDeterministicG <- function(data, cur.node, deterministic.g.function, nodes, using.newdata) {
   default <- list(is.deterministic=rep(FALSE, nrow(data)), prob1=NULL)
   if (is.null(deterministic.g.function)) return(default)
   #put this in a try-catch?
@@ -1514,7 +1471,15 @@ IsDeterministicG <- function(data, cur.node, deterministic.g.function, nodes) {
   if (! length(det.list$prob1) %in% c(1, length(which(det.list$is.deterministic)))) stop("the length of the 'prob1' element of deterministic.g.function's return argument should be either 1 or length(which(det.list$is.deterministic))")
   
   inconsistent.rows <- (det.list$prob1 %in% c(0,1)) & (det.list$prob1 != data[det.list$is.deterministic, cur.node]) & !is.na(data[det.list$is.deterministic, cur.node])
-  if (any(inconsistent.rows)) stop(paste("At node:",names(data)[cur.node], "deterministic.g.function is inconsistent with data - prob1 is either 0 or 1 but this does not match the node value.\nCheck data rows:", paste(head(rownames(data)[det.list$is.deterministic][inconsistent.rows]), collapse=" ")))
+  if (any(inconsistent.rows)) {
+    err.msg <- paste("At node:",names(data)[cur.node], "deterministic.g.function is inconsistent with data - prob1 is either 0 or 1 but this does not match the node value.\nCheck data rows:", paste(head(rownames(data)[det.list$is.deterministic][inconsistent.rows]), collapse=" "))
+    if (using.newdata) {
+      err.msg <- paste(err.msg, "\n This error occured while calling deterministic.g.function on data where Anodes are set to abar.")
+      cat("deterministic.g.function is inconsistent with data.\nAfter setting Anodes to abar, the data looks like this:\n")
+      print(head(data[det.list$is.deterministic[inconsistent.rows], ]))
+    }
+    stop(err.msg)
+  }
   return(det.list)
 }
 
@@ -1579,7 +1544,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function, sampling.weights) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
@@ -1594,6 +1559,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     if (min(nodes$L) < min(nodes$AC)) stop("Lnodes are not allowed before A/C nodes. If you want to include baseline nodes, include them in data but not in Lnodes")
     if (max(nodes$L) > max(nodes$Y)) stop("Lnodes are not allowed after the final Y node")
   }
+  if (min(nodes$Y) < min(nodes$AC)) stop("Ynodes are not currently allowed before A/C nodes.")
   
   all.nodes <- c(nodes$A, nodes$C, nodes$L, nodes$Y)
   if (length(all.nodes) > length(unique(all.nodes))) stop("A node cannot be listed in more than one of Anodes, Cnodes, Lnodes, Ynodes")
@@ -1628,6 +1594,8 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
       if (nrow(gform) != nrow(data)) stop("if gform is numeric, it should have the same number of rows as data")
       if (ncol(gform) != length(nodes$AC)) stop("if gform is numeric, it should have the same number of columns as length(c(Anodes, Cnodes))")
       if (dim(gform)[3] != num.regimes) stop("if gform is numeric, dim[3] should be num.regimes")
+      if (!is.null(deterministic.g.function)) stop("if gform is numeric, deterministic.g.function must be NULL")
+      if (max(gform, na.rm=T) > 1 || min(gform, na.rm=T) < 0) stop("if gform is numeric, all values should be probabilities")
     }
   }
   
@@ -1703,6 +1671,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if ((length(dim(summary.measures)) != 3) || ! is.equal(dim(summary.measures)[c(1, 3)], c(num.regimes, length(final.Ynodes)))) stop("summary.measures should be an array with dimensions num.regimes x num.summary.measures x num.final.Ynodes")
   if (class(working.msm) != "character") stop("class(working.msm) must be 'character'")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
+  if (!is.vector(sampling.weights) || length(sampling.weights) != nrow(data) || any(is.na(sampling.weights)) || any(sampling.weights < 0) || min(sampling.weights) == 0) stop("sampling.weights must be a vector of length nrow(data) with no NAs, no negative values, and at least one positive value")
   return(list(survivalOutcome=survivalOutcome, binaryOutcome=binaryOutcome))
 }
 
@@ -1738,7 +1707,7 @@ TransformOutcomes <- function(data, nodes, Yrange) {
 
 # Set all nodes (except Y) to NA after death or censoring; Set Y nodes to 1 after death
 CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, showMessage=TRUE) {
-  orig.data <- data #fixme - take this out
+  print("cleaning")
   #make sure binaries have already been converted before calling this function
   is.nan.df <- function (x) {
     y <- if (length(x)) {
@@ -1785,7 +1754,7 @@ CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, sh
 }
 
 # Get the default Q or g formula - each formula consists of all parent nodes except censoring and event nodes [also except A nodes if stratifying]
-GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome) {
+GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome, showMessage) {
   if (is.Qform) {
     lhs <- rep("Q.kplus1", length(nodes$LY))
     node.set <- nodes$LY
@@ -1817,16 +1786,17 @@ GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome) {
     names(form)[i] <- names(data)[cur.node]
   }
   
-  #Prints formulas with automatic wrapping thanks to print.formula
-  message(ifelse(is.Qform, "Qform", "gform"),
-          " not specified, using defaults:")
-  lapply(seq_along(form), function(i, names) {
-    message("formula for ", names[i], ":")
-    #Using print on a formula because it nicely wraps
-    message(capture.output(print(as.formula(form[i]), showEnv=FALSE)))
-  }, names=names(form))
-  message("")
-  
+  if (showMessage) {
+    #Prints formulas with automatic wrapping thanks to print.formula
+    message(ifelse(is.Qform, "Qform", "gform"),
+            " not specified, using defaults:")
+    lapply(seq_along(form), function(i, names) {
+      message("formula for ", names[i], ":")
+      #Using print on a formula because it nicely wraps
+      message(capture.output(print(as.formula(form[i]), showEnv=FALSE)))
+    }, names=names(form))
+    message("")
+  }
   return(form)
 }
 
@@ -1887,7 +1857,7 @@ GetLibrary <- function(SL.library, estimate.type) {
 # The non-pooled version of the ltmleMSM 
 NonpooledMSM <- function(inputs) {  
   if (! all(RhsVars(inputs$working.msm) %in% colnames(inputs$summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures. Baseline covariates in the MSM are not supported with pooledMSM=FALSE")
-  
+  #fixme - we don't need sampling.weights here, do we? (or in variance calc?)
   tmle.index <- ifelse(inputs$gcomp, "gcomp", "tmle")
   n <- nrow(inputs$data)
   num.regimes <- dim(inputs$regimes)[3]
@@ -1897,7 +1867,7 @@ NonpooledMSM <- function(inputs) {
   tmle <- iptw <- var.est <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
   IC <- IC.iptw <- array(dim=c(num.regimes, num.final.Ynodes, nrow(inputs$data)))
   cum.g <- array(dim=c(n, num.ACnodes, num.regimes))
-  weights <- GetMsmWeights(inputs)
+  msm.weights <- GetMsmWeights(inputs)
   
   for (j in 1:num.final.Ynodes) {
     final.Ynode <- inputs$final.Ynodes[j]
@@ -1907,9 +1877,7 @@ NonpooledMSM <- function(inputs) {
     inputs.subset$estimate.time <- FALSE
     
     #It would be better to reuse g instead of calculating the same thing every time final.Ynode varies (note: g does need to be recalculated for each abar/regime) - memoizing gets around this to some degree but it could be written better
-    #tic(22)
     for (i in 1:num.regimes) {
-      #tic(33)
       if (is.numeric(inputs$gform)) {
         gform.temp <- drop3(inputs$gform[, , i, drop=FALSE])
       } else {
@@ -1926,10 +1894,10 @@ NonpooledMSM <- function(inputs) {
       inputs.subset$final.Ynodes <- msm.inputs$final.Ynodes
       inputs.subset$pooledMSM <- msm.inputs$pooledMSM
       inputs.subset$msm.weights <- msm.inputs$msm.weights
-      inputs.subset$normalizeIC <- msm.inputs$normalizeIC
       inputs.subset$gform <- msm.inputs$gform
+      inputs.subset$called.from.ltmle <- msm.inputs$called.from.ltmle
       
-      if (weights[i, j] > 0) {
+      if (msm.weights[i, j] > 0) {
         result <- LtmleFromInputs(inputs.subset)
         gc(F)
         tmle[i, j] <- result$estimates[tmle.index]
@@ -1937,20 +1905,16 @@ NonpooledMSM <- function(inputs) {
         IC[i, j, ] <- result$IC[[tmle.index]]
         IC.iptw[i, j, ] <- result$IC[["iptw"]]
         if (!inputs$iptw.only) {
-          if (inputs.subset$variance.options$sparsityVarAdj) {
-            #cat(as.double(result$IC.var > 0.25*n))
-            #if (result$IC.var > 0.25*n) cat("np:",result$IC.var," ")
-            #var.est[i, j] <- pmin(result$IC.var, 0.25*n)  #max(var(tmle))=max(v/n)=0.25 => max(v)=0.25n
-            var.est[i, j] <- result$IC.var
+          if (!inputs.subset$IC.variance.only) {
+            #fixme - what to do with nonpooled?
+            var.est[i, j] <- max(result$variance.estimate, result$IC[[tmle.index]])
           } else {
             var.est[i, j] <- var(result$IC[[tmle.index]]) 
           }
-        }
-        
-        
+        }     
       }
       if (j == num.final.Ynodes) {
-        if (weights[i, j] == 0) {
+        if (msm.weights[i, j] == 0) {
           #we didn't calculate cum.g because weight was 0 but we need to return it
           inputs.subset.iptw.only <- inputs.subset
           inputs.subset.iptw.only$iptw.only <- TRUE
@@ -1958,29 +1922,25 @@ NonpooledMSM <- function(inputs) {
         }
         cum.g[, , i] <- result$cum.g      
       }
-      #cat("i=",i," ")
-      #toc(33)
     }
-    #cat("\n=== ",j, "\n")
-    #toc(22)
   }
   
   
   if (inputs$iptw.only) {
     m <- list()
   } else {
-    m <- FitMSM(tmle, inputs$summary.measures, inputs$working.msm, IC, weights, var.est)
+    m <- FitMSM(tmle, inputs$summary.measures, inputs$working.msm, IC, msm.weights, var.est)
   }
   
-  m.iptw <- FitMSM(iptw, inputs$summary.measures, inputs$working.msm, IC.iptw, weights, var.est=NULL)
+  m.iptw <- FitMSM(iptw, inputs$summary.measures, inputs$working.msm, IC.iptw, msm.weights, var.est=NULL)
   return(list(IC=m$beta.IC, msm=m$msm, beta=m$beta, cum.g=cum.g, beta.iptw=m.iptw$beta, IC.iptw=m.iptw$beta.IC, IC.var=m$IC.var, C=m$C, tmle=tmle, IC.tmle=IC, var.est=var.est))
 }
 
 # Called by NonpooledMSM to fit the MSM
-FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
+FitMSM <- function(tmle, summary.measures, working.msm, IC, msm.weights, var.est) {
   #summary.measures: num.regimes x num.measures x num.final.Ynodes
   #IC is num.regimes x num.final.Ynodes x n
-  #tmle, weights:  num.regimes x num.final.Ynodes
+  #tmle, msm.weights:  num.regimes x num.final.Ynodes
   
   num.regimes <- nrow(tmle)
   num.final.Ynodes <- ncol(tmle)
@@ -1988,7 +1948,7 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
   
   n <- dim(IC)[3]
   Y <- as.vector(tmle)  
-  weight.vec <- as.vector(weights)
+  weight.vec <- as.vector(msm.weights)
   X <- apply(summary.measures, 2, rbind)
   if (length(X) > 0) {
     if (!is.matrix(X)) X <- matrix(X, ncol=ncol(summary.measures), dimnames=list(NULL, colnames(summary.measures))) #needed if only one regime
@@ -2007,13 +1967,13 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
   for (j in 1:num.final.Ynodes) {
     for (i in 1:num.regimes) {
       if (is.na(tmle[i, j])) {
-        stopifnot(weights[i, j] == 0)
+        stopifnot(msm.weights[i, j] == 0)
       } else {
         index <- sub2ind(row=i, col=j, num.rows=num.regimes)
-        if (weights[i, j] > 0) { #if weight is 0, amount that would be added is zero (but divides by zero and causes NaN)
-          h <- matrix(model.mat[index, ], ncol=1) * weights[i, j]  #index needs to pick up regime i, time j
+        if (msm.weights[i, j] > 0) { #if weight is 0, amount that would be added is zero (but divides by zero and causes NaN)
+          h <- matrix(model.mat[index, ], ncol=1) * msm.weights[i, j]  #index needs to pick up regime i, time j
           m.beta <- predict(m, type="response")[index] 
-          C <- C + h %*% t(h) * m.beta * (1 - m.beta) / weights[i, j]
+          C <- C + h %*% t(h) * m.beta * (1 - m.beta) / msm.weights[i, j]
           if (any(is.na(C))) {stop("NA in C")}
         }
       }
@@ -2026,7 +1986,7 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
       for (i in 1:num.regimes) {
         if (!is.na(tmle[i, j])) {
           index <- sub2ind(row=i, col=j, num.rows=num.regimes)
-          h <- matrix(model.mat[index, ], ncol=1) * weights[i, j]   #index needs to pick up regime i, time j
+          h <- matrix(model.mat[index, ], ncol=1) * msm.weights[i, j]   #index needs to pick up regime i, time j
           if (abs(det(C)) < 1e-15 || rcond(C) < 1e-15) {
             #W <- rep(NA, num.coef) 
             W <- rep(Inf, num.coef)
@@ -2049,7 +2009,7 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
     #diag(IC.var.untrans) <- pmax(as.vector(t(var.est)), diag(IC.var.untrans)) #replace diagonal elements #used in DynEpi sims - I think this is wrong!
     diag(IC.var.untrans) <- pmax(as.vector(var.est), diag(IC.var.untrans)) #replace diagonal elements 
     
-    pos.weight.index <- as.vector(weights) > 0
+    pos.weight.index <- as.vector(msm.weights) > 0
     IC.var.untrans <- IC.var.untrans[pos.weight.index, pos.weight.index]
     if (any(eigen(IC.var.untrans)$values < -1e-12)) stop("something is wrong - not pos def")
     IC.var <- diag(num.coef) #we only use the diagonal elements currently
@@ -2066,45 +2026,46 @@ FitMSM <- function(tmle, summary.measures, working.msm, IC, weights, var.est) {
 GetMsmWeights <- function(inputs) {
   n <- nrow(inputs$data)
   num.regimes <- dim(inputs$regimes)[3]
+  stopifnot(num.regimes >= 1)
   num.final.Ynodes <- length(inputs$final.Ynodes)
   if (is.null(inputs$msm.weights)) {
     #default is probability of following abar given alive, uncensored; conditioning on past treatment/no censoring, but not L, W; duplicates get weight 0
-    weights <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
+    msm.weights <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
     
     for (j in 1:num.final.Ynodes) {
       final.Ynode <- inputs$final.Ynodes[j]
       inputs.subset <- SubsetInputs(inputs, final.Ynode)
       uncensored <- IsUncensored(inputs.subset$data, inputs.subset$nodes$C, cur.node=final.Ynode)
-      if (num.regimes > 1) {
+      if (dim(inputs.subset$regimes)[2] > 0) {
         is.duplicate <- duplicated(inputs.subset$regimes, MARGIN=3)
       } else {
-        is.duplicate <- FALSE  #without this if statement there were problems when abar=NULL (ncol(regimes)=0)
+        is.duplicate <- c(FALSE, rep(TRUE, num.regimes - 1))  #in case there are C nodes but no A nodes before a Ynode
       }
       for (i in 1:num.regimes) {
         if (is.duplicate[i]) {
-          weights[i, j] <- 0
+          msm.weights[i, j] <- 0
         } else {
           intervention.match <- InterventionMatch(inputs.subset$data, abar=GetABar(inputs.subset$regimes, i), inputs.subset$nodes$A, cur.node=final.Ynode)
-          weights[i, j] <- sum(uncensored & intervention.match) / nrow(inputs.subset$data)
+          msm.weights[i, j] <- sum(uncensored & intervention.match) / nrow(inputs.subset$data)
         } 
       }
     }
   } else {
-    weights <- inputs$msm.weights
+    msm.weights <- inputs$msm.weights
   }
   if (inputs$pooledMSM) {
-    if (is.equal(dim(weights), c(num.regimes, num.final.Ynodes))) {
-      weights <- array(rep(weights, each=n), dim=c(n, num.regimes, num.final.Ynodes))
-    } else if (! is.equal(dim(weights), c(n, num.regimes, num.final.Ynodes))) {
+    if (is.equal(dim(msm.weights), c(num.regimes, num.final.Ynodes))) {
+      msm.weights <- array(rep(msm.weights, each=n), dim=c(n, num.regimes, num.final.Ynodes))
+    } else if (! is.equal(dim(msm.weights), c(n, num.regimes, num.final.Ynodes))) {
       stop("If pooledMSM=TRUE, dim(msm.weights) should be c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes)")
     }
   } else {
-    if (! is.equal(dim(weights), c(num.regimes, num.final.Ynodes))) {
+    if (! is.equal(dim(msm.weights), c(num.regimes, num.final.Ynodes))) {
       stop("If pooledMSM=FALSE, dim(msm.weights) should be c(num.regimes, num.final.Ynodes)")
     }
   }
-  if (any(is.na(weights)) || any(weights < 0)) stop("all msm.weights must be >= 0 and not NA")
-  return(weights)
+  if (any(is.na(msm.weights)) || any(msm.weights < 0)) stop("all msm.weights must be >= 0 and not NA")
+  return(msm.weights)
 }
 
 # Converts a general formula to a main terms formula and combine summary measures with baseline covariates
@@ -2187,7 +2148,7 @@ ConvertCensoringNodesToBinary <- function(data, Cnodes) {
 
 # We don't want to show all of the warnings 
 GetWarningsToSuppress <- function(update.step=FALSE) {
-  warnings.to.suppress <- c("glm.fit: fitted probabilities numerically 0 or 1 occurred", "prediction from a rank-deficient fit may be misleading", "non-integer #successes in a binomial glm!") #fixme - the non-integer message is only needed if using speedglm
+  warnings.to.suppress <- c("glm.fit: fitted probabilities numerically 0 or 1 occurred", "prediction from a rank-deficient fit may be misleading") 
   if (update.step) {
     # It's ok if the updating step doesn't converge, we'll fix it in FixScoreEquation 
     warnings.to.suppress <- c(warnings.to.suppress, "glm.fit: algorithm did not converge")

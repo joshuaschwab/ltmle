@@ -1,16 +1,29 @@
 #General utilities
 
+#source: http://stackoverflow.com/questions/23274170/how-to-efficiently-check-if-a-matrix-is-in-binary-form-e-g-all-1s-or-0s
+IsBinary <- function(mat) {
+  identical(mat, as.numeric(as.logical(mat)))
+}
+
 # scale to 0.01, 0.99 and take logit
 LogitScale <- function(x) {
   qlogis(Scale(x, 0.01, 0.99))
 }
 
 Scale <- function(x, min.y, max.y) {
+  if (all(is.na(x))) stop("all NA in Scale")
   r <- range(x, na.rm = TRUE)
   if (diff(r) > 0) {
     return((x - r[1])/diff(r) * (max.y - min.y) + min.y)
   } else {
-    return(rep(mean(c(min.y, max.y)), length(x)))
+    #only one value of x
+    if (r[1] >= min.y && r[1] <= max.y) {
+      #if the one value is in [min.y, max.y], return it
+      return(rep(r[1], length(x)))
+    } else {
+      #otherwise return mean(min.y, max.y)
+      return(rep(mean(c(min.y, max.y)), length(x)))
+    }
   }
 }
 
@@ -74,7 +87,8 @@ repmat <- function(X,m,n){
 }
 
 # from Ken Williams on StackOverflow
-Mode <- function(x) {
+Mode <- function(x, na.rm=FALSE) {
+  if (na.rm) x <- x[!is.na(x)]
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
 }
