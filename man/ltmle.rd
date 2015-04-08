@@ -16,7 +16,7 @@ ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qfor
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
  gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
  SL.library=NULL, regimes, working.msm, summary.measures, 
- final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, 
+ final.Ynodes=NULL, stratify=FALSE, 
  weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, 
  iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE)
 }
@@ -42,7 +42,6 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{working.msm}{character formula for the working marginal structural model}
   \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of working.msm}
   \item{final.Ynodes}{vector subset of Ynodes - used in MSM to pool over a set of outcome nodes}
-  \item{pooledMSM}{if \code{TRUE}, the TMLE targeted step will pool across regimes}
   \item{weight.msm}{if \code{TRUE}, the working.msm will be weighted by the empirical probability of each regime [in the future more flexible weighting may be possible]} 
   \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights). If \code{FALSE}, there is no normalization.}
   \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster.}
@@ -129,9 +128,9 @@ An object of class "\code{ltmle}" is a list containing the following components:
 The function \code{\link{summary}} (i.e. \code{\link{summary.ltmleMSM}}) can be used to obtain or print a summary of the results.
 An object of class "\code{ltmleMSM}" is a list containing the following components:
 \item{beta}{parameter estimates for working.msm using TMLE (GCOMP if \code{gcomp} input is \code{TRUE})}
-\item{beta.iptw}{parameter estimates for working.msm using IPTW (\code{NULL} if \code{pooledMSM} is \code{TRUE})}
+\item{beta.iptw}{parameter estimates for working.msm using IPTW}
 \item{IC}{matrix, n x numBetas - influence curve values for TMLE (without updating if \code{gcomp} input is \code{TRUE})}
-\item{IC.iptw}{matrix, n x numBetas - influence curve values for IPTW (\code{NULL} if \code{pooledMSM} is \code{TRUE})}
+\item{IC.iptw}{matrix, n x numBetas - influence curve values for IPTW}
 \item{msm}{object of class glm - the result of fitting the working.msm}
 \item{cum.g}{array, n x numACnodes x numRegimes - cumulative g, after bounding}
 \item{cum.g.unbounded}{array, n x numACnodes x numRegimes - cumulative g, before bounding}

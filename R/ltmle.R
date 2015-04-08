@@ -1,9 +1,8 @@
 # Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
 
 # General code flow:
-#  ltmle -> CreateInputs -> LtmleFromInputs -> LtmleMSMFromInputs(pooledMSM=T) -> ...
-#  ltmleMSM(pooledMSM=T) -> CreateInputs -> LtmleMSMFromInputs(pooledMSM=T) -> ...
-#  ltmleMSM(pooledMSM=F) -> CreateInputs -> NonpooledMSM -> LtmleFromInputs -> LtmleMSMFromInputs(pooledMSM=T) -> ...
+#  ltmle -> CreateInputs -> LtmleFromInputs -> LtmleMSMFromInputs -> ...
+#  ltmleMSM -> CreateInputs -> LtmleMSMFromInputs -> ...
 
 #longitudinal targeted maximum liklihood estimation for E[Y_a]
 #' @export
@@ -22,7 +21,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   }
 
   msm.inputs <- GetMSMInputsForLtmle(abar, Ynodes, gform)
-  inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, pooledMSM=msm.inputs$pooledMSM, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, IC.variance.only=IC.variance.only, sampling.weights=sampling.weights, called.from.ltmle=msm.inputs$called.from.ltmle) 
+  inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, IC.variance.only=IC.variance.only, sampling.weights=sampling.weights, called.from.ltmle=msm.inputs$called.from.ltmle) 
   result <- LtmleFromInputs(inputs)
   
   result$call <- match.call()
@@ -38,11 +37,11 @@ GetMSMInputsForLtmle <- function(abar, Ynodes, gform) {
     dim(gform) <- c(nrow(gform), ncol(gform), 1)
   }
   working.msm <- "Y ~ 1"
-  msm.inputs <- list(regimes=regimes, working.msm=working.msm, summary.measures=array(dim=c(1, 0, 1)), gform=gform, final.Ynodes=max(Ynodes), pooledMSM=TRUE, msm.weights=matrix(1, nrow=1, ncol=1), called.from.ltmle=TRUE)
+  msm.inputs <- list(regimes=regimes, working.msm=working.msm, summary.measures=array(dim=c(1, 0, 1)), gform=gform, final.Ynodes=max(Ynodes), msm.weights=matrix(1, nrow=1, ncol=1), called.from.ltmle=TRUE)
   return(msm.inputs)
 }
 
-# run ltmle from the ltmleInputs object - this is used by both ltmle and ltmleMSM(pooledMSM=F)
+# run ltmle from the ltmleInputs object - this is used by ltmle (and was)
 LtmleFromInputs <- function(inputs) {
   msm.result <- LtmleMSMFromInputs(inputs)
   iptw.list <- CalcIPTW(data=inputs$untransformed.data, inputs$nodes, abar=drop3(inputs$regimes[, , 1, drop=F]), drop3(msm.result$cum.g[, , 1, drop=F]), inputs$mhte.iptw) #get cum.g for regime 1 (there's only 1 regime)
@@ -95,12 +94,12 @@ LtmleFromInputs <- function(inputs) {
 
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, msm.weights=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, IC.variance.only=FALSE, sampling.weights=NULL) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, stratify=FALSE, msm.weights=NULL, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, IC.variance.only=FALSE, sampling.weights=NULL) {
   if (memoize && require(memoise)) {
     glm.ltmle.memoized <- memoize(glm.ltmle)
   }
   
-  inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, estimate.time, gcomp, mhte.iptw, iptw.only, deterministic.Q.function, IC.variance.only, sampling.weights, called.from.ltmle=FALSE)
+  inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, estimate.time, gcomp, mhte.iptw, iptw.only, deterministic.Q.function, IC.variance.only, sampling.weights, called.from.ltmle=FALSE)
   result <- LtmleMSMFromInputs(inputs)
   result$call <- match.call()
   class(result) <- "ltmleMSM"
@@ -120,7 +119,7 @@ LtmleMSMFromInputs <- function(inputs) {
 }
 
 # create the ltmleInputs object used by many other functions - fills in defaults and does error checking
-CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, estimate.time, gcomp, mhte.iptw, iptw.only, deterministic.Q.function, IC.variance.only, sampling.weights, called.from.ltmle) {
+CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, estimate.time, gcomp, mhte.iptw, iptw.only, deterministic.Q.function, IC.variance.only, sampling.weights, called.from.ltmle) {
   
   if (is.list(regimes)) {
     if (!all(do.call(c, lapply(regimes, is.function)))) stop("If 'regimes' is a list, then all elements should be functions.")
@@ -160,7 +159,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   if (is.null(sampling.weights)) sampling.weights <- rep(1, nrow(data))
   
   #error checking (also get value for survivalOutcome if NULL)
-  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function, sampling.weights) 
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, sampling.weights) 
   survivalOutcome <- check.results$survivalOutcome
   
   if (!isTRUE(attr(data, "skip.clean.data", exact=TRUE))) { 
@@ -175,7 +174,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   if (is.null(Qform)) Qform <- GetDefaultForm(data, nodes, is.Qform=TRUE, stratify, survivalOutcome, showMessage=TRUE)
   if (is.null(gform)) gform <- GetDefaultForm(data, nodes, is.Qform=FALSE, stratify, survivalOutcome, showMessage=TRUE)
   
-  inputs <- list(data=data, untransformed.data=untransformed.data, nodes=nodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, gbounds=gbounds, Yrange=Yrange, deterministic.g.function=deterministic.g.function, SL.library.Q=SL.library.Q, SL.library.g=SL.library.g, regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, final.Ynodes=final.Ynodes, pooledMSM=pooledMSM, stratify=stratify, msm.weights=msm.weights, estimate.time=estimate.time, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, IC.variance.only=IC.variance.only, sampling.weights=sampling.weights, called.from.ltmle=called.from.ltmle)
+  inputs <- list(data=data, untransformed.data=untransformed.data, nodes=nodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, gbounds=gbounds, Yrange=Yrange, deterministic.g.function=deterministic.g.function, SL.library.Q=SL.library.Q, SL.library.g=SL.library.g, regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, final.Ynodes=final.Ynodes, stratify=stratify, msm.weights=msm.weights, estimate.time=estimate.time, gcomp=gcomp, mhte.iptw=mhte.iptw, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, IC.variance.only=IC.variance.only, sampling.weights=sampling.weights, called.from.ltmle=called.from.ltmle)
   class(inputs) <- "ltmleInputs"
   return(inputs)
 }
@@ -203,9 +202,6 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
 
 # Loop over final Ynodes, run main calculations
 MainCalcs <- function(inputs) {
-  if (! inputs$pooledMSM) {
-    return(NonpooledMSM(inputs))
-  }
   #if (inputs$iptw.only) { #could use something like this to save time, but we want to pass all final ynodes to standarddynamiciptw below
   #  inputs$final.Ynodes <- inputs$final.Ynodes[length(inputs$final.Ynodes)]
   #}
@@ -1544,7 +1540,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, pooledMSM, stratify, msm.weights, deterministic.Q.function, sampling.weights) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, sampling.weights) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
@@ -1854,175 +1850,6 @@ GetLibrary <- function(SL.library, estimate.type) {
   return(SL.library[[estimate.type]])
 }
 
-# The non-pooled version of the ltmleMSM 
-NonpooledMSM <- function(inputs) {  
-  if (! all(RhsVars(inputs$working.msm) %in% colnames(inputs$summary.measures))) stop("all right hand side variables in working.msm should be found in the column names of summary.measures. Baseline covariates in the MSM are not supported with pooledMSM=FALSE")
-  #fixme - we don't need sampling.weights here, do we? (or in variance calc?)
-  tmle.index <- ifelse(inputs$gcomp, "gcomp", "tmle")
-  n <- nrow(inputs$data)
-  num.regimes <- dim(inputs$regimes)[3]
-  num.final.Ynodes <- length(inputs$final.Ynodes)
-  
-  num.ACnodes <- sum(inputs$nodes$AC < max(inputs$final.Ynodes))
-  tmle <- iptw <- var.est <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
-  IC <- IC.iptw <- array(dim=c(num.regimes, num.final.Ynodes, nrow(inputs$data)))
-  cum.g <- array(dim=c(n, num.ACnodes, num.regimes))
-  msm.weights <- GetMsmWeights(inputs)
-  
-  for (j in 1:num.final.Ynodes) {
-    final.Ynode <- inputs$final.Ynodes[j]
-    inputs.subset <- SubsetInputs(inputs, final.Ynode)
-    regimes <- inputs.subset$regimes
-    inputs.subset$transformOutcome <- FALSE #even if using transformed outcome, we still model the MSM with Y on 0-1 scale (so don't back transform when we call ltmle below)
-    inputs.subset$estimate.time <- FALSE
-    
-    #It would be better to reuse g instead of calculating the same thing every time final.Ynode varies (note: g does need to be recalculated for each abar/regime) - memoizing gets around this to some degree but it could be written better
-    for (i in 1:num.regimes) {
-      if (is.numeric(inputs$gform)) {
-        gform.temp <- drop3(inputs$gform[, , i, drop=FALSE])
-      } else {
-        gform.temp <- inputs$gform
-      }
-      msm.inputs <- GetMSMInputsForLtmle(abar=GetABar(regimes, i), inputs.subset$nodes$Y, gform=gform.temp)
-      
-      #this is messy - I'm writing it out so NULL elements are dealt with using `$<-ltmle.inputs`
-      #note that CreateInputs is not called after this
-      stopifnot(length(msm.inputs) == 8) #error checking in case this changes at some point
-      inputs.subset$regimes <- msm.inputs$regimes
-      inputs.subset$working.msm <- msm.inputs$working.msm
-      inputs.subset$summary.measures <- msm.inputs$summary.measures
-      inputs.subset$final.Ynodes <- msm.inputs$final.Ynodes
-      inputs.subset$pooledMSM <- msm.inputs$pooledMSM
-      inputs.subset$msm.weights <- msm.inputs$msm.weights
-      inputs.subset$gform <- msm.inputs$gform
-      inputs.subset$called.from.ltmle <- msm.inputs$called.from.ltmle
-      
-      if (msm.weights[i, j] > 0) {
-        result <- LtmleFromInputs(inputs.subset)
-        gc(F)
-        tmle[i, j] <- result$estimates[tmle.index]
-        iptw[i, j] <- min(1, result$estimates["iptw"])
-        IC[i, j, ] <- result$IC[[tmle.index]]
-        IC.iptw[i, j, ] <- result$IC[["iptw"]]
-        if (!inputs$iptw.only) {
-          if (!inputs.subset$IC.variance.only) {
-            #fixme - what to do with nonpooled?
-            var.est[i, j] <- max(result$variance.estimate, result$IC[[tmle.index]])
-          } else {
-            var.est[i, j] <- var(result$IC[[tmle.index]]) 
-          }
-        }     
-      }
-      if (j == num.final.Ynodes) {
-        if (msm.weights[i, j] == 0) {
-          #we didn't calculate cum.g because weight was 0 but we need to return it
-          inputs.subset.iptw.only <- inputs.subset
-          inputs.subset.iptw.only$iptw.only <- TRUE
-          result <- LtmleFromInputs(inputs.subset.iptw.only)
-        }
-        cum.g[, , i] <- result$cum.g      
-      }
-    }
-  }
-  
-  
-  if (inputs$iptw.only) {
-    m <- list()
-  } else {
-    m <- FitMSM(tmle, inputs$summary.measures, inputs$working.msm, IC, msm.weights, var.est)
-  }
-  
-  m.iptw <- FitMSM(iptw, inputs$summary.measures, inputs$working.msm, IC.iptw, msm.weights, var.est=NULL)
-  return(list(IC=m$beta.IC, msm=m$msm, beta=m$beta, cum.g=cum.g, beta.iptw=m.iptw$beta, IC.iptw=m.iptw$beta.IC, IC.var=m$IC.var, C=m$C, tmle=tmle, IC.tmle=IC, var.est=var.est))
-}
-
-# Called by NonpooledMSM to fit the MSM
-FitMSM <- function(tmle, summary.measures, working.msm, IC, msm.weights, var.est) {
-  #summary.measures: num.regimes x num.measures x num.final.Ynodes
-  #IC is num.regimes x num.final.Ynodes x n
-  #tmle, msm.weights:  num.regimes x num.final.Ynodes
-  
-  num.regimes <- nrow(tmle)
-  num.final.Ynodes <- ncol(tmle)
-  num.summary.measures <- ncol(summary.measures)
-  
-  n <- dim(IC)[3]
-  Y <- as.vector(tmle)  
-  weight.vec <- as.vector(msm.weights)
-  X <- apply(summary.measures, 2, rbind)
-  if (length(X) > 0) {
-    if (!is.matrix(X)) X <- matrix(X, ncol=ncol(summary.measures), dimnames=list(NULL, colnames(summary.measures))) #needed if only one regime
-    summary.data <- data.frame(Y, X)
-  } else {
-    summary.data <- data.frame(Y)
-  }
-  
-  m <- glm(formula=as.formula(working.msm), family="quasibinomial", data=summary.data, x=TRUE, na.action=na.exclude, weights=weight.vec, control=glm.control(maxit=1000))
-  model.mat <- model.matrix.NA(as.formula(working.msm), summary.data) #model matrix (includes intercept and interactions)
-  if (! is.equal(names(coef(m)), colnames(model.mat))) stop("re-ordering error - expecting same order of betas and model.mat columns")
-  
-  if (is.null(IC)) return(coef(m))
-  num.coef <- length(coef(m))
-  C <- matrix(0, nrow=num.coef, ncol=num.coef)
-  for (j in 1:num.final.Ynodes) {
-    for (i in 1:num.regimes) {
-      if (is.na(tmle[i, j])) {
-        stopifnot(msm.weights[i, j] == 0)
-      } else {
-        index <- sub2ind(row=i, col=j, num.rows=num.regimes)
-        if (msm.weights[i, j] > 0) { #if weight is 0, amount that would be added is zero (but divides by zero and causes NaN)
-          h <- matrix(model.mat[index, ], ncol=1) * msm.weights[i, j]  #index needs to pick up regime i, time j
-          m.beta <- predict(m, type="response")[index] 
-          C <- C + h %*% t(h) * m.beta * (1 - m.beta) / msm.weights[i, j]
-          if (any(is.na(C))) {stop("NA in C")}
-        }
-      }
-    }
-  }
-  W.array <- array(dim=c(num.regimes, num.final.Ynodes, num.coef))
-  beta.IC <- matrix(0, n, num.coef)
-  for (k in 1:num.coef) {
-    for (j in 1:num.final.Ynodes) {
-      for (i in 1:num.regimes) {
-        if (!is.na(tmle[i, j])) {
-          index <- sub2ind(row=i, col=j, num.rows=num.regimes)
-          h <- matrix(model.mat[index, ], ncol=1) * msm.weights[i, j]   #index needs to pick up regime i, time j
-          if (abs(det(C)) < 1e-15 || rcond(C) < 1e-15) {
-            #W <- rep(NA, num.coef) 
-            W <- rep(Inf, num.coef)
-            if (!is.null(var.est)) cat("det(C) or rcond(C) near 0  in nonpooled-FitMSM, var.est set to Inf \n") #may want to take this out (fixme)
-          } else {
-            W <- solve(C, h)  #finds inv(C) * h
-          }
-          W.array[i, j, k] <- W[k]
-          beta.IC[, k] <- beta.IC[, k] + W[k] * IC[i, j, ]
-        }
-      }
-    }
-  }
-  if (is.null(var.est)) {
-    IC.var <- C <- NULL
-  } else {
-    IC.temp <- IC  #num.regimes x num.final.Ynodes x n
-    dim(IC.temp) <- c(num.regimes * num.final.Ynodes, n)
-    IC.var.untrans <- var(t(IC.temp)) # (num.regimes * num.final.Ynodes) x (num.regimes * num.final.Ynodes)
-    #diag(IC.var.untrans) <- pmax(as.vector(t(var.est)), diag(IC.var.untrans)) #replace diagonal elements #used in DynEpi sims - I think this is wrong!
-    diag(IC.var.untrans) <- pmax(as.vector(var.est), diag(IC.var.untrans)) #replace diagonal elements 
-    
-    pos.weight.index <- as.vector(msm.weights) > 0
-    IC.var.untrans <- IC.var.untrans[pos.weight.index, pos.weight.index]
-    if (any(eigen(IC.var.untrans)$values < -1e-12)) stop("something is wrong - not pos def")
-    IC.var <- diag(num.coef) #we only use the diagonal elements currently
-    for (k in 1:num.coef) {
-      W.temp <- as.vector(W.array[, , k])[pos.weight.index]
-      IC.var[k, k] <- W.temp %*% IC.var.untrans %*% W.temp  #W.temp is a vector, promoted to row or column automatically
-    }
-    C <- diag(num.coef) #could get rid of C at some point
-  }
-  
-  return(list(beta=coef(m), msm=m, beta.IC=beta.IC, IC.var=IC.var, C=C))
-}
-
 GetMsmWeights <- function(inputs) {
   n <- nrow(inputs$data)
   num.regimes <- dim(inputs$regimes)[3]
@@ -2053,16 +1880,10 @@ GetMsmWeights <- function(inputs) {
   } else {
     msm.weights <- inputs$msm.weights
   }
-  if (inputs$pooledMSM) {
-    if (is.equal(dim(msm.weights), c(num.regimes, num.final.Ynodes))) {
-      msm.weights <- array(rep(msm.weights, each=n), dim=c(n, num.regimes, num.final.Ynodes))
-    } else if (! is.equal(dim(msm.weights), c(n, num.regimes, num.final.Ynodes))) {
-      stop("If pooledMSM=TRUE, dim(msm.weights) should be c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes)")
-    }
-  } else {
-    if (! is.equal(dim(msm.weights), c(num.regimes, num.final.Ynodes))) {
-      stop("If pooledMSM=FALSE, dim(msm.weights) should be c(num.regimes, num.final.Ynodes)")
-    }
+  if (is.equal(dim(msm.weights), c(num.regimes, num.final.Ynodes))) {
+    msm.weights <- array(rep(msm.weights, each=n), dim=c(n, num.regimes, num.final.Ynodes))
+  } else if (! is.equal(dim(msm.weights), c(n, num.regimes, num.final.Ynodes))) {
+    stop("dim(msm.weights) should be c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes)")
   }
   if (any(is.na(msm.weights)) || any(msm.weights < 0)) stop("all msm.weights must be >= 0 and not NA")
   return(msm.weights)

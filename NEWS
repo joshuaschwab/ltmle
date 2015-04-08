@@ -4,7 +4,7 @@ baseline covariates
 moved 1/g to weight
 msm.weight options
 standard dynamic IPTW
-
+dropped pooledMSM (always T)
 
 * The default for mhte.iptw has been changed from FALSE to TRUE because it often has better performance.
 
