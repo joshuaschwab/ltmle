@@ -11,14 +11,15 @@ Longitudinal Targeted Maximum Likelihood Estimation
 ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, 
  gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, 
  deterministic.g.function=NULL, stratify=FALSE, SL.library=NULL, 
- estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, 
- deterministic.Q.function=NULL)
+ estimate.time=TRUE, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, 
+ deterministic.Q.function=NULL, sampling.weights=NULL, IC.variance.only=FALSE)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
  gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
  SL.library=NULL, regimes, working.msm, summary.measures, 
- final.Ynodes=NULL, stratify=FALSE, 
- weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=TRUE, 
- iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE)
+ final.Ynodes=NULL, msm.weights="empirical", stratify=FALSE, 
+ estimate.time=TRUE, gcomp=FALSE,  
+ iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, sampling.weights=NULL,
+ IC.variance.only=FALSE)
 }
 \arguments{
   \item{data}{data frame following the time-ordering of the nodes. See 'Details'.}
@@ -29,8 +30,8 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1. Required to be \code{TRUE} or \code{FALSE} if outcomes are binary and there are multiple Ynodes.}
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
   \item{gform}{character vector of regression formulas for \eqn{g} or a matrix/array of prob(A=1). See 'Details'.}
-  \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
-  \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes}
+  \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment or a list of length 2. See 'Details'.}
+  \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes or a list of length 2. See 'Details'.}
   \item{gbounds}{lower and upper bounds on estimated cumulative probabilities for g-factors. Vector of length 2, order unimportant.}
   \item{Yrange}{NULL or a numerical vector where the min and max of \code{Yrange} specify the range of all Y nodes. See 'Details'.}
   \item{deterministic.g.function}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
@@ -40,19 +41,19 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{gcomp}{if \code{TRUE}, run the maximum likelihood based G-computation estimate \emph{instead} of TMLE}
   \item{regimes}{binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions}
   \item{working.msm}{character formula for the working marginal structural model}
-  \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of working.msm}
+  \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of \code{working.msm} (baseline covariates may also be used in the right hand side of \code{working.msm} and do not need to be included in \code{summary.measures})}
   \item{final.Ynodes}{vector subset of Ynodes - used in MSM to pool over a set of outcome nodes}
-  \item{weight.msm}{if \code{TRUE}, the working.msm will be weighted by the empirical probability of each regime [in the future more flexible weighting may be possible]} 
+  \item{msm.weights}{projection weights for the working MSM. If "empirical", weight by empirical proportions of rows matching each regime for each final.Ynode, with duplicate regimes given zero weight. If \code{NULL}, no weights. Or an array of user-supplied weights with dimensions c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes).}
   \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights). If \code{FALSE}, there is no normalization.}
   \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster.}
   \item{deterministic.Q.function}{optional information on Q given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{memoize}{If \code{TRUE}, glm regressions will be memoized. It is recommended to leave this as \code{TRUE} (the default), especially if there are multiple \code{final.Ynodes}, because the code is not written as efficiently as it should be and will end up repeating the same glm call. Will be fixed in a future release.}
+  \item{sampling.weights}{sampling (observation) weights. Vector of length n. If \code{NULL}, assumed to be all 1.}
+  \item{IC.variance.only}{If \code{FALSE}, compute both the robust variance estimate using TMLE and the influence curve based variance estimate (use the larger of the two). If \code{TRUE}, only compute the influence curve based variance estimate, which is faster, but may be substantially anti-conservative if there are positivity violations or rare outcomes.}
 }
 \details{
   The estimates returned by \code{ltmle} are of a treatment specific mean, \eqn{E[Y_{\bar{a}}]}, the mean of the final treatment node, where all treatment nodes, \eqn{A}, are set to \eqn{\bar{a}} (\code{abar}) and all censoring nodes \eqn{C} are set to 1 (uncensored). The estimates returned by \code{ltmleMSM} are similar but are the parameters in a working marginal structural model.
-  
-  By calling \code{ltmle} twice, using two different values of \code{abar}, additive treatment effect, risk ratio, and odds ratio can be computed using \code{\link{summary.ltmle}}. 
-  
+    
   \code{data} should be a data frame where the order of the columns corresponds to the time-ordering of the model. 
   \itemize{
       \item in censoring columns (Cnodes): factor with two levels: "censored" and "uncensored". The helper function \code{CensoringToBinary} can be used to create these factors.
@@ -80,6 +81,8 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}. 
 
   \code{rule} can be used to specify a dynamic treatment rule. \code{rule} is a function applied to each row of \code{data} which returns the a numeric vector of the same length as \code{Anodes}.
+  
+  \code{abar} and \code{rule} cannot both be specified. If one of them if a list of length 2, additive treatment effect, risk ratio, and odds ratio can be computed using \code{\link{summary.ltmleEffectMeasures}}. 
 
   \code{regimes} can be a binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions as described above for the \code{rule} parameter for the \code{ltmle} function
   
@@ -407,8 +410,11 @@ summary(result5c)
 
 # Example 6: MSM
 # Given data over 3 time points where A switches to 1 once and then stays 1. We want to know
-# how death varies as a function of time and an indicator of whether a patient's intended
-# regime was to switch before time.
+# how death varies as a function of gender, time and an indicator of whether a patient's 
+# intended regime was to switch before time.
+# Note that working.msm includes time and switch.time, which are columns of 
+# summary.measures; working.msm also includes male, which is ok because it is a baseline
+# covariate (it comes before any A/C/L/Y nodes).
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_1", "CD4_2")
@@ -418,7 +424,7 @@ result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Yn
                    survivalOutcome=TRUE,
                    regimes=sampleDataForLtmleMSM$regimes, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
 print(summary(result6))
 
 
@@ -431,7 +437,7 @@ regimesList <- list(function(row) c(1,1,1),
 result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE, regimes=regimesList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
 # This should be the same as the above result
 print(summary(result.regList))         
 

@@ -5,7 +5,8 @@ moved 1/g to weight
 msm.weight options
 standard dynamic IPTW
 dropped pooledMSM (always T)
-
+fixed bug in std.err for RR and OR (CI was correct? p-value??)
+changed usage for ATE, RR, OR (call with list, don't call twice, no summary(treatment, control)  ) 
 * The default for mhte.iptw has been changed from FALSE to TRUE because it often has better performance.
 
 ltmle 0.9.3
