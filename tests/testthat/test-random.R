@@ -3,10 +3,12 @@ context("Tests with random data")
 library(tmle)
 
 expect_equals <- function(...) expect_equal(..., tolerance=0.0001, scale=1, check.attributes=FALSE)
+expect_near <- function(...) expect_equal(..., tolerance=0.02, scale=1, check.attributes=FALSE)
 
 test_that("treatment specific mean point treatment matches Susan Gruber tmle package", {
   set.seed(NULL)
   niter <- 10
+  tmle.outputs <- ltmle.outputs <- matrix(NA, niter, 7)
   for (i in 1:niter) {
     n <- 1000
     W <- matrix(rnorm(n), ncol=1)
@@ -19,21 +21,13 @@ test_that("treatment specific mean point treatment matches Susan Gruber tmle pac
     r1 <- tmle(Y, A, W, Qform = Qform, gform = gform, family = "binomial", Qbounds=c(0,1), alpha=0.9999, gbound=lgbound)
     
     data <- data.frame(W, A, Y)
-    r2.1 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=1, gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE)
-    r2.0 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=0, gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE)
-    s <- summary(r2.1, r2.0)
-    
-    expect_equals(r1$estimates$ATE$psi, s$effect.measures$ATE$estimate)
-    expect_equals(sqrt(r1$estimates$ATE$var.psi), s$effect.measures$ATE$std.dev)
-    expect_equals(r1$estimates$ATE$pvalue, s$effect.measures$ATE$pvalue)
-    
-    expect_equals(r1$estimates$RR$psi, s$effect.measures$RR$estimate)
-    expect_equals(r1$estimates$RR$pvalue, s$effect.measures$RR$pvalue)
-    
-    expect_equals(r1$estimates$OR$psi, s$effect.measures$OR$estimate)
-    expect_equals(r1$estimates$OR$pvalue, s$effect.measures$OR$pvalue)
+    r2 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=list(1, 0), gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE, IC.variance.only=TRUE)
+    s <- summary(r2)
+    tmle.outputs[i, ] <- c(r1$estimates$ATE$psi, sqrt(r1$estimates$ATE$var.psi), r1$estimates$ATE$pvalue, r1$estimates$RR$psi, r1$estimates$RR$pvalue, r1$estimates$OR$psi, r1$estimates$OR$pvalue)
+    ltmle.outputs[i, ] <- c(s$effect.measures$ATE$estimate, s$effect.measures$ATE$std.dev, s$effect.measures$ATE$pvalue, s$effect.measures$RR$estimate, s$effect.measures$RR$pvalue, s$effect.measures$OR$estimate, s$effect.measures$OR$pvalue)
   }
-  
+  z <- (colMeans(ltmle.outputs) - colMeans(tmle.outputs)) / apply(tmle.outputs, 2, sd)
+  expect_true(all(abs(z) < 1), info = paste("z = ", paste(z, collapse=" ")))
 })
 
 test_that("simple longitudinal data matches code from Susan Gruber paper", {
@@ -67,12 +61,16 @@ test_that("simple longitudinal data matches code from Susan Gruber paper", {
     gform <- c("A0 ~ 1", "A1 ~ W1 + W2 + W3", "A2 ~ W2 + W3 + L1", "A3 ~ W2 + W3 + L1 + A2")
     lgbound <- 0.01
     
-    r1 <- SuppressGivenWarnings(ltmle.sg(data, Inodes=Anodes, Lnodes=c(6, 9), Ynodes=9, Qform=Qform, gform=gform, gbd=lgbound),
-                                "prediction from a rank-deficient fit may be misleading")
-    r2 <- ltmle(data, Anodes=Anodes, Lnodes=6, Ynodes=9, Qform=Qform, gform=gform, abar=c(1, 1, 1, 1), stratify=TRUE, gbounds=c(lgbound, 1), survivalOutcome=TRUE, estimate.time=FALSE)
+    r1 <- SuppressGivenWarnings(ltmle.sg(data, Inodes=Anodes, Lnodes=c(6, 9), Ynodes=9, Qform=Qform, gform=gform, gbd=lgbound, move.to.weight=FALSE), "prediction from a rank-deficient fit may be misleading")
+    r1.weight <- SuppressGivenWarnings(ltmle.sg(data, Inodes=Anodes, Lnodes=c(6, 9), Ynodes=9, Qform=Qform, gform=gform, gbd=lgbound, move.to.weight=TRUE), "prediction from a rank-deficient fit may be misleading")
+    r2 <- ltmle(data, Anodes=Anodes, Lnodes=6, Ynodes=9, Qform=Qform, gform=gform, abar=c(1, 1, 1, 1), stratify=TRUE, gbounds=c(lgbound, 1), survivalOutcome=TRUE, estimate.time=FALSE, IC.variance.only=TRUE)
     
-    expect_equals(r1["iptw"], r2$estimates["iptw"])
-    expect_equals(r1["tmle"], r2$estimates["tmle"])
-    expect_equals(sqrt(r1["var.tmle"]), summary(r2)$treatment$std.dev)
+    #these don't match exactly because 1/g was moved to weight and iptw was changed to mhte
+    expect_near(r1["iptw"], r2$estimates["iptw"])
+    expect_near(r1["tmle"], r2$estimates["tmle"])
+    expect_near(sqrt(r1["var.tmle"]), summary(r2)$treatment$std.dev)
+    
+    expect_equals(r1.weight["tmle"], r2$estimates["tmle"])
+    expect_equals(sqrt(r1.weight["var.tmle"]), summary(r2)$treatment$std.dev)
   }
 })

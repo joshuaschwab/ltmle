@@ -140,4 +140,5 @@ Joshua Schwab \email{joshuaschwab@yahoo.com}
   is.deterministic <- stop("replace me!")
   Q.value <- stop("replace me!")
   return(list(is.deterministic=is.deterministic, Q.value=Q.value))  
+  }
 }

@@ -1,5 +1,11 @@
 #General utilities
 
+#like seq, but returns integer(0) if from > to   (always increments by 1)
+sseq <- function(from, to) {
+  if (from > to) return(integer(0))
+  seq(from, to)
+}
+
 #source: http://stackoverflow.com/questions/23274170/how-to-efficiently-check-if-a-matrix-is-in-binary-form-e-g-all-1s-or-0s
 IsBinary <- function(mat) {
   identical(mat, as.numeric(as.logical(mat)))

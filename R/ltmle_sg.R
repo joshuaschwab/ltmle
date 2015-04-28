@@ -17,8 +17,9 @@
 #   gform:  regression formulas for each treatment and censoring event
 #   gbd:   lower bound on estimated probabilities for g-factors
 #   family: regression family for initial estimates of Q nodes
+#   move.to.weight: [not part of Gruber's original code, added to match ltmle - moves the 1/g from into the weight in the update step]
 #-----------------------------------------------------------------------------
-ltmle.sg <- function(d, Inodes, Lnodes, Ynodes, Qform, gform, gbd=0, family="quasibinomial"){
+ltmle.sg <- function(d, Inodes, Lnodes, Ynodes, Qform, gform, gbd=0, family="quasibinomial", move.to.weight){
   #-----------------------------------------------------------------------------
   # function: estQ
   # purpose: parametric estimation of  Q_k, targeted when h is supplied
@@ -28,13 +29,17 @@ ltmle.sg <- function(d, Inodes, Lnodes, Ynodes, Qform, gform, gbd=0, family="qua
     m <- glm(as.formula(Qform), data=data.frame(Q.kplus1, d)[uncensored&!deterministic,], 
              family=family)
     Q1W <- predict(m, newdata=d, type="response")
-    Q <- Q1W #temp
     if(!is.null(h)){
       off <- qlogis(Bound(Q1W, c(.0001, .9999)))
-      m <- glm(Q.kplus1 ~ -1 + h + offset(off), data=data.frame(Q.kplus1, h, off),  
-               subset=uncensored & !deterministic, family="quasibinomial")
-      
-      Q1W  <- plogis(off + coef(m)*h)
+      if (move.to.weight) {
+        m <- glm(Q.kplus1 ~ offset(off), data=data.frame(Q.kplus1, h, off),  
+                 subset=uncensored & !deterministic, family="quasibinomial", weights=h)
+        Q1W  <- plogis(off + coef(m))
+      } else {
+        m <- glm(Q.kplus1 ~ -1 + h + offset(off), data=data.frame(Q.kplus1, h, off),  
+                 subset=uncensored & !deterministic, family="quasibinomial")
+        Q1W  <- plogis(off + coef(m)*h)
+      }
     }
     Q1W[deterministic] <- 1
     return(Q1W)

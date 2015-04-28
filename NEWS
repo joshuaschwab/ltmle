@@ -1,13 +1,42 @@
-variance estimate
-regression weights
-baseline covariates
-moved 1/g to weight
-msm.weight options
-standard dynamic IPTW
-dropped pooledMSM (always T)
-fixed bug in std.err for RR and OR (CI was correct? p-value??)
-changed usage for ATE, RR, OR (call with list, don't call twice, no summary(treatment, control)  ) 
-* The default for mhte.iptw has been changed from FALSE to TRUE because it often has better performance.
+ltmle 0.9.4-1
+===========
+
+MAJOR CHANGES
+
+* Variance estimation in the presence of positivity violations and/or rare events has been significantly improved. However, the new variance estimation procedure takes significantly more time to run and is not yet compatible with some options (deterministic.Q.function, non-binary outcomes, gcomp=TRUE, stratify=TRUE, numeric gform). To obtain the influence curve based variance estimates used in prior versions, use IC.variance.only=TRUE.
+
+* Observations weights (sampling weights) are now available.
+
+* Baseline covariates can now be part of working.msm. 
+
+* A change to the implementation of the TMLE updating step reduces the variance of the estimator.
+
+* The weight.msm (TRUE or FALSE) parameter has been removed and replaced by msm.weights, which provides more flexibility in specifying MSM weights. 
+
+* The stratified IPTW for MSMs has been replaced by the standard IPTW for MSMs.
+
+* The usage for obtaining additive treatment effects, relative risk, and odds ratio has changed. 
+
+MINOR CHANGES
+
+* The pooledMSM parameter has been removed. The pooedMSM=TRUE version is always used.
+
+* The mhte.iptw parameter has been removed. The mhte.iptw=TRUE version is always used. This may give different answers to previous versions if you were using the default setting of mhte.iptw=FALSE.
+
+* The naive estimator in ltmle has been removed. One way this can still be obtained is by passing numeric gform such that prob(follow rule)=1 and using the "iptw" estimate.
+
+* The cumulative g without bounding is now returned (cum.g.unbounded) along with the bounded version (cum.g).
+
+* Improved estimate of time to completion.
+
+* Confidence intervals truncated at [0, 1] for treatment specific mean, [-1, 1] for additive treatment effect.
+
+* A bug has been fixed in the output for relative risk and odds ratio: the output that was incorrectly labelled "Estimated Std Err" now reads "Est Std Err log(OR)" or "Est Std Err log(RR)". 
+
+ltmle 0.9.3-1
+===========
+* Changed DESCRIPTION version dependency to R >= 3.0.0 because of testthat update.
+
 
 ltmle 0.9.3
 ===========

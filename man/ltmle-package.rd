@@ -7,15 +7,7 @@ Targeted Maximum Likelihood Estimation for Longitudinal Data
 \description{
 Targeted Maximum Likelihood Estimation (TMLE) of treatment/censoring specific mean outcome or marginal structural model for point-treatment and longitudinal data. Also provides Inverse Probability of Treatment/Censoring Weighted estimate (IPTW) and maximum likelihood based G-computation estimate (G-comp). Can be used to calculate additive treatment effect, risk ratio, and odds ratio.
 }
-\details{
-\tabular{ll}{
-Package: \tab ltmle\cr
-Type: \tab Package\cr
-Version: \tab 0.9.1\cr
-Date: \tab 2013-10-17\cr
-License: \tab GPL-2\cr
-}
-}
+
 \author{
 Joshua Schwab, Samuel Lendle, Maya Petersen, and Mark van der Laan, with contributions from Susan Gruber
 

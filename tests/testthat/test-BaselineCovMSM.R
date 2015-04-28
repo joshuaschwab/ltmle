@@ -66,16 +66,12 @@ test_that("ltmleMSM runs and returns beta with correct names for baseline only, 
   Lnodes <- grep("^CD4", names(sampleDataForLtmleMSM$data))[-1]
   Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
   
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * male", estimate.time=FALSE, survivalOutcome=T, pooledMSM=T) #pooled, baseline only
+  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * male", estimate.time=FALSE, survivalOutcome=T) #baseline only
   expect_equal(names(x$beta), c("(Intercept)", "age", "male", "age:male"))
   
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * switch.time", estimate.time=FALSE, survivalOutcome=T, pooledMSM=T) #pooled, baseline and summary
+  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * switch.time", estimate.time=FALSE, survivalOutcome=T) #baseline and summary
   expect_equal(names(x$beta), c("(Intercept)", "age", "switch.time", "age:switch.time"))
   
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ time + switch.time", estimate.time=FALSE, survivalOutcome=T, pooledMSM=T) #pooled, summary only
+  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ time + switch.time", estimate.time=FALSE, survivalOutcome=T) #summary only
   expect_equal(names(x$beta), c("(Intercept)", "time", "switch.time"))
-  
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ time + switch.time", estimate.time=FALSE, survivalOutcome=T, pooledMSM=F) #nonpooled works if no baseline in MSM
-  
-  expect_error(x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * switch.time", estimate.time=FALSE, survivalOutcome=T, pooledMSM=F), "all right hand side variables in working.msm should be found in the column names of summary.measures. Baseline covariates in the MSM are not supported with pooledMSM=FALSE")  
 })

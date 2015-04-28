@@ -7,14 +7,21 @@ IsSurvival <- function(data) {
   return(all(finalY %in% c(0, 1, NA)))
 }
 
+VersionHasNewVariance <- function(ver) {
+  if (ver %in% c("0.9", "0.9.3")) return(FALSE)
+  if (ver %in% c("0.9.4")) return(TRUE) #this hasn't actually been used yet
+  stop("unexpected ver")
+}
+
 test_that("tests from 'create tests to compare versions.R'", {
   data(PreviousReleaseTests)
   for (j in seq_along(btests)) {
-    additional.args <- list(survivalOutcome=IsSurvival(btests[[j]]$args$data))
+    additional.args <- list(survivalOutcome=IsSurvival(btests[[j]]$args$data), IC.variance.only=!VersionHasNewVariance(btests[[j]]$ver))
 
     args <- c(btests[[j]]$args, additional.args)
     args$regimes <- args$regimens #regimens were previously referred to as regimes
     args$regimens <- NULL
+    args$mhte.iptw <- NULL #mhte.iptw was removed
     set.seed(1) #keep superlearner (and rnorm in FixScoreEquation) synced 
     result <- do.call(btests[[j]]$fun, args)
     

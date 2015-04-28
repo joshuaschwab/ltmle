@@ -19,7 +19,8 @@ test_that("transformOutcome NOTE is printed by print.summary.ltmleMSM", {
                      regimes=sampleDataForLtmleMSM$regimes, 
                      summary.measures=sampleDataForLtmleMSM$summary.measures,
                      final.Ynodes=Ynodes, 
-                     working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                     working.msm="Y ~ time + I(pmax(time - switch.time, 0))", 
+                     estimate.time=FALSE, IC.variance.only=TRUE)
 
   expect_that(print(result), prints_text("NOTE: The MSM is modeling the transformed outcome"))
   expect_that(print(summary(result)), prints_text("NOTE: The MSM is modeling the transformed outcome"))    

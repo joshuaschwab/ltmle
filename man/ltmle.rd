@@ -11,15 +11,15 @@ Longitudinal Targeted Maximum Likelihood Estimation
 ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, 
  gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, 
  deterministic.g.function=NULL, stratify=FALSE, SL.library=NULL, 
- estimate.time=TRUE, gcomp=FALSE, mhte.iptw=TRUE, iptw.only=FALSE, 
- deterministic.Q.function=NULL, sampling.weights=NULL, IC.variance.only=FALSE)
+ estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, 
+ deterministic.Q.function=NULL, IC.variance.only=FALSE, observation.weights=NULL)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
  gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
  SL.library=NULL, regimes, working.msm, summary.measures, 
- final.Ynodes=NULL, msm.weights="empirical", stratify=FALSE, 
+ final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", 
  estimate.time=TRUE, gcomp=FALSE,  
- iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, sampling.weights=NULL,
- IC.variance.only=FALSE)
+ iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, 
+ IC.variance.only=FALSE, observation.weights=NULL)
 }
 \arguments{
   \item{data}{data frame following the time-ordering of the nodes. See 'Details'.}
@@ -44,11 +44,10 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of \code{working.msm} (baseline covariates may also be used in the right hand side of \code{working.msm} and do not need to be included in \code{summary.measures})}
   \item{final.Ynodes}{vector subset of Ynodes - used in MSM to pool over a set of outcome nodes}
   \item{msm.weights}{projection weights for the working MSM. If "empirical", weight by empirical proportions of rows matching each regime for each final.Ynode, with duplicate regimes given zero weight. If \code{NULL}, no weights. Or an array of user-supplied weights with dimensions c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes).}
-  \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights). If \code{FALSE}, there is no normalization.}
   \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster.}
   \item{deterministic.Q.function}{optional information on Q given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{memoize}{If \code{TRUE}, glm regressions will be memoized. It is recommended to leave this as \code{TRUE} (the default), especially if there are multiple \code{final.Ynodes}, because the code is not written as efficiently as it should be and will end up repeating the same glm call. Will be fixed in a future release.}
-  \item{sampling.weights}{sampling (observation) weights. Vector of length n. If \code{NULL}, assumed to be all 1.}
+  \item{observation.weights}{observation (sampling) weights. Vector of length n. If \code{NULL}, assumed to be all 1.}
   \item{IC.variance.only}{If \code{FALSE}, compute both the robust variance estimate using TMLE and the influence curve based variance estimate (use the larger of the two). If \code{TRUE}, only compute the influence curve based variance estimate, which is faster, but may be substantially anti-conservative if there are positivity violations or rare outcomes.}
 }
 \details{
@@ -98,7 +97,7 @@ Note that the default set of libraries consists of main terms models. It may be 
 The print method for \code{ltmle} objects only prints the tmle estimates. 
 }
 \value{
-\code{ltmle} returns an object of class "\code{ltmle}"
+\code{ltmle} returns an object of class "\code{ltmle}" (unless \code{abar} or \code{rule} is a list, in which case it returns an object of class \code{ltmleSummaryMeasures}, which has the same components as \code{ltmleMSM}.)
 The function \code{\link{summary}} (i.e. \code{\link{summary.ltmle}}) can be used to obtain or print a summary of the results.
 An object of class "\code{ltmle}" is a list containing the following components:
 \item{estimates}{a named vector of length 4 with elements, each an estimate of \eqn{E[Y_{bar{a}}]}:
@@ -106,7 +105,6 @@ An object of class "\code{ltmle}" is a list containing the following components:
   \item \code{tmle} - Targeted Maximum Likelihood Estimate [NULL if \code{gcomp} is \code{TRUE}]
   \item \code{iptw} - Inverse Probability of Treatment/Censoring Weighted estimate 
   \item \code{gcomp} - maximum likelihood based G-computation estimate [NULL if \code{gcomp} is \code{FALSE}]
-  \item \code{naive} - naive estimate \eqn{E[Y|a=\bar{a}]}
   }
 }
 \item{IC}{a list with the following components of Influence Curve values}
@@ -115,8 +113,8 @@ An object of class "\code{ltmle}" is a list containing the following components:
   \item \code{iptw} - vector of influence curve values for Inverse Probability of Treatment/Censoring Weighted estimate 
   \item \code{gcomp} - vector of influence curve values for Targeted Maximum Likelihood Estimate without updating [NULL if \code{gcomp} is \code{FALSE}]
   }
-\item{cum.g}{matrix, n x numACnodes - cumulative g, after bounding}
-\item{cum.g.unbounded}{matrix, n x numACnodes - cumulative g, before bounding}
+\item{cum.g}{cumulative g, after bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
+\item{cum.g.unbounded}{cumulative g, before bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
@@ -209,10 +207,10 @@ result.abar1 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y",
 
 #Get summary measures (additive treatment effect, odds ratio, relative risk) 
 #  for abar=1 vs abar=0
-result.abar0 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
- Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
- abar=0, SL.library=NULL)
-summary(result.abar1, result.abar0)
+result.compare <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
+                      Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
+                      abar=list(1, 0), SL.library=NULL)
+summary(result.compare)
 
 
 # Example 2: Longitudinal example. Includes informative censoring and treatment. 
@@ -265,11 +263,11 @@ result2 <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"),
                 deterministic.g.function=deterministic.g.function, survivalOutcome=TRUE)
 summary(result2) 
  
-# Example 3: Dynamic treatment
+# Example 3: Dynamic treatment, observation weights
 # W -> A1 -> L -> A2 -> Y
 # Treatment regime of interest is: Always treat at time 1 (A1 = 1), 
 #   treat at at time 2 (A2 = 1), iff L > 0
-# True value of E[Y_d] is approximately 0.346
+# Weight by pmax(W + 2, 0)
 
 n <- 1000
 W <- rnorm(n)
@@ -284,7 +282,7 @@ abar[, 1] <- 1
 abar[, 2] <- L > 0
 
 result3 <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", 
-  survivalOutcome=TRUE, abar=abar)
+  survivalOutcome=TRUE, abar=abar, observation.weights = pmax(W + 2, 0))
 summary(result3)
 
 # Example 3.1: The regime can also be specified as a rule function
@@ -331,7 +329,7 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4a <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE)
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE, IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result4a)
 
@@ -357,7 +355,7 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4b <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE) 
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE, IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
 summary(result4b)
 
 # Example 5: Multiple time-dependent covariates and treatments at each time point, 
@@ -378,12 +376,14 @@ data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 
 #also show some different ways of specifying the nodes:
 result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=
- grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE)
+ grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
+ survivalOutcome=FALSE, IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5)
 
 result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
- survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"))
+ survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), 
+ IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5a)
 
 #Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case 
@@ -392,7 +392,8 @@ summary(result5a)
 # regression formulas for the other L/Y nodes, but they'll be ignored.
 result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
- gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
+ gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"), 
+ IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with non-binary outcomes)
 summary(result5b)
 
 
@@ -419,12 +420,14 @@ data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
+msm.weights <- matrix(1:12, nrow=4, ncol=3) #just an example (can also use a 200x3x4 array), or NULL (for no weights), or "empirical" (the default)
 
 result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE,
                    regimes=sampleDataForLtmleMSM$regimes, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", 
+                   msm.weights=msm.weights, estimate.time=FALSE)
 print(summary(result6))
 
 
@@ -437,8 +440,27 @@ regimesList <- list(function(row) c(1,1,1),
 result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE, regimes=regimesList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", 
+                   msm.weights=msm.weights, estimate.time=FALSE)
 # This should be the same as the above result
 print(summary(result.regList))         
 
+
+# Example 7: variance estimation
+# A simple point treatment problem W, A, Y. But there is a positivity problem - 
+# for small values of W, Prob(A = 1) is very small.
+# The true parameter value, E[Y_1] is approximately 0.697
+# The true TMLE standard deviation is approximately 0.064, 
+# the true IPTW standard deviation is approximately 0.058.
+set.seed(2)
+n <- 1000
+W <- rnorm(n)
+A <- rexpit(8 * W)
+Y <- rexpit(W + A)
+r1 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE)
+r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, IC.variance.only=TRUE)
+print(summary(r1))
+print(summary(r2))
+print(summary(r1, "iptw"))
+print(summary(r2, "iptw")) #the same - IC.variance.only only affects TMLE
 }

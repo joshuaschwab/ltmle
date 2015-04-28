@@ -19,7 +19,8 @@ These functions are methods for class \code{ltmle} or \code{summary.ltmle} objec
 \method{summary}{ltmleEffectMeasures}(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
 \method{summary}{ltmleMSM}(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
 \method{print}{summary.ltmle}(x, ...)
-\method{print}{summary.ltmleMSM}(x, digits = max(3, getOption("digits") - 3), signif.stars = getOption("show.signif.stars"), ...)
+\method{print}{summary.ltmleMSM}(x, digits = max(3, getOption("digits") - 3), 
+  signif.stars = getOption("show.signif.stars"), ...)
 \method{print}{summary.ltmleEffectMeasures}(x, ...)
 }
 \arguments{
@@ -30,7 +31,7 @@ an object of class "\code{ltmle}" or "\code{ltmleMSM}" or "\code{ltmleEffectMeas
 an object of class "\code{summary.ltmle}" or "\code{summary.ltmleMSM}" or "\code{ltmleEffectMeasures}", usually a result of a call to \code{\link{summary.ltmle}} or \code{\link{summary.ltmleMSM}}.
 }
   \item{estimator}{
-character; one of "tmle", "iptw", "gcomp", or "naive" ["naive" is available for ltmle but not ltmleMSM]. The estimator for which to get effect measures. "tmle" is valid iff the original ltmle/ltmleMSM call used gcomp=FALSE. "gcomp" is valid iff the original ltmle/ltmleMSM call used gcomp=TRUE
+character; one of "tmle", "iptw", "gcomp". The estimator for which to get effect measures. "tmle" is valid iff the original ltmle/ltmleMSM call used gcomp=FALSE. "gcomp" is valid iff the original ltmle/ltmleMSM call used gcomp=TRUE
 }
   \item{digits}{  
 the number of significant digits to use when printing.
