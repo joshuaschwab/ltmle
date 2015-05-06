@@ -125,8 +125,8 @@ LtmleFromInputs <- function(inputs) {
 #longitudinal targeted maximum likelihood estimation for a marginal structural model
 #' @export 
 ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, IC.variance.only=FALSE, observation.weights=NULL) {
-  if (memoize && require(memoise)) {
-    glm.ltmle.memoized <- memoize(glm.ltmle)
+  if (memoize && requireNamespace("memoise")) {
+    glm.ltmle.memoized <- memoise::memoize(glm.ltmle)
   }
   
   inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, estimate.time, gcomp, iptw.only, deterministic.Q.function, IC.variance.only, observation.weights)
@@ -544,7 +544,7 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
   variance.estimate <- matrix(0, num.betas, num.betas)
   alive <- !deterministic.list.newdata$is.deterministic
   Sigma <- array(dim=c(n, num.regimes, num.regimes))
-  #fixme - ask mark - Sigma is not symmetric due to SetA on d1?
+  #fixme - Sigma is not exactly symmetric due to SetA on d1, but could probably save time with approximate symmetry
   for (d1 in regimes.with.positive.weight) {
     if (static.treatment) {
       d2.regimes <- d1 #only need diagonal elements
@@ -962,6 +962,7 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
 }
 
 # Get standard errors, p-values, confidence intervals for an ltmleEffectMeasures object: treatment EYd, control EYd, additive effect, relative risk, odds ratio
+#' @export 
 summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...) {
   info <- GetSummaryLtmleMSMInfo(object, estimator)
   beta <- info$estimate
@@ -1551,7 +1552,9 @@ RhsVars <- function(f) {
 CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
-  if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) library("SuperLearner")
+  if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) {
+    if (!requireNamespace("SuperLearner")) stop("SuperLearner package is required if SL.library is not NULL")
+  } 
   #each set of nodes should be sorted - otherwise causes confusion with gform, Qform, abar
   if (is.unsorted(nodes$A, strictly=TRUE)) stop("Anodes must be in increasing order")
   if (is.unsorted(nodes$C, strictly=TRUE)) stop("Cnodes must be in increasing order")

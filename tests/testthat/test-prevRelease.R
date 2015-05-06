@@ -14,6 +14,7 @@ VersionHasNewVariance <- function(ver) {
 }
 
 test_that("tests from 'create tests to compare versions.R'", {
+  skip_on_cran() #these are slow
   data(PreviousReleaseTests)
   for (j in seq_along(btests)) {
     additional.args <- list(survivalOutcome=IsSurvival(btests[[j]]$args$data), IC.variance.only=!VersionHasNewVariance(btests[[j]]$ver))

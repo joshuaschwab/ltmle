@@ -181,8 +181,7 @@ Y <- rexpit(-0.5 + 2 * W1^2 + 0.5 * W2 - 0.5 * A + 0.2 * W3 * A
 data <- data.frame(W1, W2, W3, A, Y)
 
 
-\dontrun{
-# The SuperLearner examples are a little slow.
+\donttest{
 library(SuperLearner)
 
 #SuperLearner semiparametric estimation using all parents as regressors 
@@ -205,6 +204,7 @@ result.abar1 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y",
  Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
  abar=1, SL.library=NULL)
 
+\donttest{
 #Get summary measures (additive treatment effect, odds ratio, relative risk) 
 #  for abar=1 vs abar=0
 result.compare <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
@@ -329,7 +329,9 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4a <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE, IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
+  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE,
+  IC.variance.only=TRUE)
+  #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result4a)
 
@@ -355,7 +357,9 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4b <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE, IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE,
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
 summary(result4b)
 
 # Example 5: Multiple time-dependent covariates and treatments at each time point, 
@@ -377,13 +381,15 @@ data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 #also show some different ways of specifying the nodes:
 result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=
  grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
- survivalOutcome=FALSE, IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+ survivalOutcome=FALSE, IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5)
 
 result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
  survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), 
- IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5a)
 
 #Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case 
@@ -393,18 +399,21 @@ summary(result5a)
 result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"), 
- IC.variance.only=TRUE) #IC.variance.only=FALSE is not currently compatible with non-binary outcomes)
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5b)
 
 
-\dontrun{
 #Gives the same result but prints a message saying some regression formulas will be dropped:
 result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", 
- Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
+ Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"), 
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+
 summary(result5c)
-}
+
 
 #If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula
 
@@ -420,7 +429,8 @@ data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
-msm.weights <- matrix(1:12, nrow=4, ncol=3) #just an example (can also use a 200x3x4 array), or NULL (for no weights), or "empirical" (the default)
+msm.weights <- matrix(1:12, nrow=4, ncol=3) #just an example (can also use a 200x3x4 array), 
+                                            #or NULL (for no weights), or "empirical" (the default)
 
 result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE,
@@ -458,9 +468,11 @@ W <- rnorm(n)
 A <- rexpit(8 * W)
 Y <- rexpit(W + A)
 r1 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE)
-r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, IC.variance.only=TRUE)
+r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
+ IC.variance.only=TRUE)
 print(summary(r1))
 print(summary(r2))
 print(summary(r1, "iptw"))
 print(summary(r2, "iptw")) #the same - IC.variance.only only affects TMLE
+}
 }

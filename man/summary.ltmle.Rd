@@ -37,7 +37,7 @@ character; one of "tmle", "iptw", "gcomp". The estimator for which to get effect
 the number of significant digits to use when printing.
 }
   \item{signif.stars}{
-logical. If \code{TRUE}, ‘significance stars’ are printed for each coefficient.
+logical. If \code{TRUE}, significance stars are printed for each coefficient.
 }
   \item{\dots}{
 further arguments passed to or from other methods.

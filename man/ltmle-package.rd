@@ -16,7 +16,8 @@ Maintainer: Joshua Schwab \email{joshuaschwab@yahoo.com}
 \references{
 Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based Estimation for Longitudinal Data", Forthcoming	
 	
-Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum Likelihood Estimation of Marginal Structural Working Models for Dynamic Treatments Time-Dependent Outcomes", Forthcoming
+Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum Likelihood Estimation of Marginal Structural Working Models for Dynamic Treatments Time-Dependent Outcomes", Journal of Causal Inference, 2014
+\url{http://www.ncbi.nlm.nih.gov/pubmed/25909047}
 
 van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C. Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
 \url{http://biostats.bepress.com/ucbbiostat/paper290}
