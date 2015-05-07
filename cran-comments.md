@@ -13,3 +13,8 @@ Maintainer: ‘Joshua Schwab <joshuaschwab@yahoo.com>’
   
 ## Downstream dependencies
 ltmle does not have any downstream dependencies
+
+## Resubmission
+This is a resubmission. In this version I have:
+ removed any non-ASCII characters in zzz.R
+
