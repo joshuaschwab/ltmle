@@ -955,7 +955,12 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
   }
   variance.estimate.ratio=v/IC.variance
   
-  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=c(0, 1)), v, n=length(object$IC[[estimator]]))
+  if (object$transformOutcome) {
+    CIBounds <- c(-Inf, Inf)  #could truncate at Yrange, but it's not clear that's right
+  } else {
+    CIBounds <- c(0, 1)
+  }
+  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]))
   ans <- list(treatment=treatment, call=object$call, estimator=estimator, variance.estimate.ratio=variance.estimate.ratio)
   class(ans) <- "summary.ltmle"
   return(ans)
