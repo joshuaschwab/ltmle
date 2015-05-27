@@ -6,7 +6,6 @@ expect_near <- function(...) expect_equal(..., tolerance=0.02, scale=1, check.at
 test_that("treatment specific mean point treatment matches Susan Gruber tmle package", {
   skip_on_cran() #requires tmle package
   if (requireNamespace("tmle")) { #winbuilder crashes without this
-    set.seed(NULL)
     niter <- 10
     tmle.outputs <- ltmle.outputs <- matrix(NA, niter, 7)
     for (i in 1:niter) {
@@ -34,7 +33,6 @@ test_that("treatment specific mean point treatment matches Susan Gruber tmle pac
 })
 
 test_that("simple longitudinal data matches code from Susan Gruber paper", {
-  set.seed(NULL)
   niter <- 10
   for (i in 1:niter) {
     n <- 1000

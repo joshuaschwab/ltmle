@@ -13,6 +13,7 @@ VersionHasNewVariance <- function(ver) {
   stop("unexpected ver")
 }
 
+
 test_that("tests from 'create tests to compare versions.R'", {
   skip_on_cran() #these are slow
   data(PreviousReleaseTests)
@@ -23,10 +24,13 @@ test_that("tests from 'create tests to compare versions.R'", {
     args$regimes <- args$regimens #regimens were previously referred to as regimes
     args$regimens <- NULL
     args$mhte.iptw <- NULL #mhte.iptw was removed
+    prev.seed <- .Random.seed
     set.seed(1) #keep superlearner (and rnorm in FixScoreEquation) synced 
     result <- do.call(btests[[j]]$fun, args)
-    
+    .Random.seed <<- prev.seed
     current <- btests[[j]]$compareFun(result)
+    
+    if (is.null(btests[[j]]$result$binaryOutcome)) btests[[j]]$result$binaryOutcome <- FALSE
     prev <- btests[[j]]$compareFun(btests[[j]]$result)
     expect_equals(current, prev, info=paste(btests[[j]]$info, "j = ", j, "current = ", paste(current, collapse=" "), "prev = ", paste(prev, collapse=" ")))
   }

@@ -1,3 +1,12 @@
+ltmle 0.9-6
+===========
+
+* Fixed a bug in ltmle and ltmleMSM - if SuperLearner is used with longitudinal data there can be an error: "obsWeights vector must have the same dimension as Y"
+
+* Fixed a bug in ltmle where confidence intervals were truncated at [0, 1] for non-binary outcomes
+
+* Fixed a bug in ltmle where the final Ynode is max(Ynodes) - this is wrong if Ynodes are passed as strings (takes alphabetically last)
+
 ltmle 0.9-5
 ===========
 

@@ -9,11 +9,11 @@ test_that("constant W in baseline equivalent to constant summary measure", {
       W <- k 
       A1 <- rbinom(n, 1, 0.5)
       A2 <- rbinom(n, 1, 0.5)
-      Y1 <- rbinom(n, 1, 0.5)
+      Y1 <- rbinom(n, 1, 0.1)
       A3 <- rbinom(n, 1, 0.5)
-      Y2 <- rexpit(W + A1 + A2 + A3)
+      Y2 <- rexpit(-5 + W + A1 + A2 + A3 + rnorm(n))
       if (survivalOutcome) {
-        Y2 <- Y2 | Y1
+        Y2 <- as.numeric(Y2 | Y1)
         A3[Y1==1] <- NA
       }
       
@@ -30,7 +30,7 @@ test_that("constant W in baseline equivalent to constant summary measure", {
       
       summ <- function(x) summary(x)$cmat[, 1:2] #estimate and std error
       
-      expect_equivalent(summ(x1), summ(x2))
+      expect_equal(summ(x1), summ(x2), tolerance=0.0001, scale=1, check.attributes=FALSE)
     }
   }
 })
@@ -66,12 +66,12 @@ test_that("ltmleMSM runs and returns beta with correct names for baseline only, 
   Lnodes <- grep("^CD4", names(sampleDataForLtmleMSM$data))[-1]
   Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
   
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * male", estimate.time=FALSE, survivalOutcome=T) #baseline only
+  suppressWarnings(x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * male", estimate.time=FALSE, survivalOutcome=T)) #baseline only
   expect_equal(names(x$beta), c("(Intercept)", "age", "male", "age:male"))
   
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * switch.time", estimate.time=FALSE, survivalOutcome=T) #baseline and summary
+  suppressWarnings(x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ age * switch.time", estimate.time=FALSE, survivalOutcome=T)) #baseline and summary
   expect_equal(names(x$beta), c("(Intercept)", "age", "switch.time", "age:switch.time"))
   
-  x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ time + switch.time", estimate.time=FALSE, survivalOutcome=T) #summary only
+  suppressWarnings(x <- ltmleMSM(data=sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, regimes=sampleDataForLtmleMSM$regimes, summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, working.msm="Y ~ time + switch.time", estimate.time=FALSE, survivalOutcome=T)) #summary only
   expect_equal(names(x$beta), c("(Intercept)", "time", "switch.time"))
 })

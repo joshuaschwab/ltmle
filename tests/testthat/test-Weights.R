@@ -52,7 +52,7 @@ test_that("MSM weights influence result", {
 test_that("integer observation weights act like making copies", {
   # point estimates should be the same, but std errors are different
   
-  #note: this seems to work ~99 times out of 100 but once in a while fails
+  skip_on_cran() #this seems to work ~99 times out of 100 but once in a while fails
   sampling.weight <- 4
   index <- rep(which(W > 1), each = sampling.weight - 1)
   data2 <- rbind(data, data[index, ])
@@ -65,4 +65,3 @@ test_that("integer observation weights act like making copies", {
   expect_equal(r.copies$beta, r.weights$beta, tolerance=1e-5)
   expect_true(summary(r.copies)$cmat[1, "Std. Error"] / summary(r.weights)$cmat[1, "Std. Error"] < 0.95)
 })
-

@@ -32,9 +32,11 @@ TestCleanData <- function(seed, set.a) {
 }
 
 test_that("Anodes changing after death/censoring does not change result", {
+  prev.seed <- .Random.seed
   seed <- round(runif(1) * 1000)
   expect_message(r1 <- TestCleanData(seed, TRUE), regexp="Your data did not conform and has been adjusted") 
   r2 <- TestCleanData(seed, FALSE)
+  .Random.seed <<- prev.seed
   expect_equal(r1, r2) 
 })
 

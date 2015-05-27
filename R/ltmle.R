@@ -10,8 +10,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
                   abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, 
                   SL.library=NULL, estimate.time=TRUE, gcomp=FALSE, 
                   iptw.only=FALSE, deterministic.Q.function=NULL, IC.variance.only=FALSE, observation.weights=NULL) {
-  
-  msm.inputs <- GetMSMInputsForLtmle(data, abar, rule, Ynodes, gform)
+  msm.inputs <- GetMSMInputsForLtmle(data, abar, rule, gform)
   inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, IC.variance.only=IC.variance.only, observation.weights=observation.weights) 
   result <- LtmleFromInputs(inputs)
   result$call <- match.call()
@@ -34,7 +33,7 @@ RegimesFromAbar <- function(data, abar, rule) {
 }
 
 # ltmle is a special case of ltmleMSM - get the arguments used by ltmleMSM for the special case
-GetMSMInputsForLtmle <- function(data, abar, rule, Ynodes, gform) {
+GetMSMInputsForLtmle <- function(data, abar, rule, gform) {
   if ((!missing(abar) && is.list(abar)) || is.list(rule)) {
     if (is.list(rule)) {
       if (length(rule) != 2) stop("If rule is a list, it must be of length 2")
@@ -63,7 +62,7 @@ GetMSMInputsForLtmle <- function(data, abar, rule, Ynodes, gform) {
     stopifnot(is.matrix(gform))
     dim(gform) <- c(nrow(gform), ncol(gform), 1)
   }
-  msm.inputs <- list(regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, gform=gform, final.Ynodes=max(Ynodes), msm.weights=msm.weights)
+  msm.inputs <- list(regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, gform=gform, final.Ynodes=NULL, msm.weights=msm.weights)
   return(msm.inputs)
 }
 
@@ -274,11 +273,18 @@ MainCalcs <- function(inputs) {
     variance.estimate <- NULL
   } else {
     fitted.msm <- FitPooledMSM(inputs$working.msm, Qstar, combined.summary.measures, msm.weights * inputs$observation.weights)
-    IC <- FinalizeIC(IC, combined.summary.measures, Qstar, fitted.msm$m.beta, msm.weights, g.ratio, inputs$observation.weights) #n x num.betas
-    C <- NormalizeIC(IC, combined.summary.measures, fitted.msm$m.beta, msm.weights, g.ratio, inputs$observation.weights)
-    C.old <- NormalizeIC(IC, combined.summary.measures, fitted.msm$m.beta, msm.weights, g.ratio = array(1, dim=c(n, num.regimes, num.final.Ynodes)), inputs$observation.weights) #C without using g.ratio (setting g.ratio to 1)
-    
-    if (!inputs$IC.variance.only) {    
+    if (isTRUE(attr(inputs$data, "called.from.estimate.variance", exact=TRUE))) { 
+      #variance estimate is not needed, this avoids some warnings
+      IC <- matrix(NA, n, num.betas)
+      C.old <- matrix(NA, num.betas, num.betas)
+    } else {
+      IC <- FinalizeIC(IC, combined.summary.measures, Qstar, fitted.msm$m.beta, msm.weights, g.ratio, inputs$observation.weights) #n x num.betas
+      C.old <- NormalizeIC(IC, combined.summary.measures, fitted.msm$m.beta, msm.weights, g.ratio = array(1, dim=c(n, num.regimes, num.final.Ynodes)), inputs$observation.weights) #C without using g.ratio (setting g.ratio to 1)
+    }
+ 
+    if (inputs$IC.variance.only) {   
+      variance.estimate <- NULL
+    } else {
       new.var <- matrix(NA, num.betas, num.betas)
       for (i in 1:num.betas) {
         for (j in 1:num.betas) {
@@ -291,10 +297,10 @@ MainCalcs <- function(inputs) {
           }
         }
       }
+      C <- NormalizeIC(IC, combined.summary.measures, fitted.msm$m.beta, msm.weights, g.ratio, inputs$observation.weights)
       variance.estimate <- solve(C) %*% new.var %*% t(solve(C))
-    } else {
-      variance.estimate <- NULL
     }
+    
     IC <- t(solve(C.old, t(IC))) #IC %*% solve(C) 
     beta <- coef(fitted.msm$m)
     names(beta) <- main.terms$beta.names
@@ -355,7 +361,7 @@ CalcIPTW <- function(data, nodes, working.msm, regimes, combined.summary.measure
     for (i in 1:num.regimes) {
       newdata <- data.frame(combined.summary.measures[, , i, j])
       colnames(newdata) <- colnames(combined.summary.measures) #needed if only one summary measure
-      m.beta[, i, j] <- predict(m.glm, newdata=newdata, type="response")
+      SuppressGivenWarnings(m.beta[, i, j] <- predict(m.glm, newdata=newdata, type="response"), "prediction from a rank-deficient fit may be misleading")
       
       cnt <- cnt + 1
       XY.list <- save.xy[[cnt]]
@@ -563,7 +569,7 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
           names(Q.data)[cur.node]  <- "Q.kplus1" #ugly - to match with Qform
           m <- glm(formula = inputs$Qform[LYnode.index], family = "quasibinomial", data = Q.data, control=glm.control(trace=FALSE, maxit=1000)) 
           Q.newdata <- SetA(data = Q.data, abar = GetABar(regimes = inputs$regimes, d1)[alive, , drop=F], nodes = nodes, cur.node = cur.node)
-          Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response")
+          SuppressGivenWarnings(Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response"), "prediction from a rank-deficient fit may be misleading")
           Sigma[alive, d1, d2] <- Q.resid.sq.pred * diff(resid.sq.range) + resid.sq.range[1]
         } else {
           resid.sq.value <- min(resid.sq, na.rm = T) #all values are the same, just get one non-NA
@@ -594,7 +600,7 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
           baseline.msm <- paste(baseline.msm, "+", paste(baseline.column.names, collapse=" + "), "+", paste0("I(", baseline.column.names, "^2)", collapse=" + "))
         }            
         m <- glm(baseline.msm, family = "quasibinomial", data=data.frame(Qstar=var.tmle$Qstar, inputs$data[, baseline.column.names, drop=FALSE]), control=glm.control(trace=FALSE, maxit=1000)) 
-        pred.Qstar <- predict(m, type = "response") * diff(range(Z.without.sum.meas, na.rm=T)) + min(Z.without.sum.meas, na.rm=T)  #n x 1
+        SuppressGivenWarnings(pred.Qstar <- predict(m, type = "response") * diff(range(Z.without.sum.meas, na.rm=T)) + min(Z.without.sum.meas, na.rm=T), "prediction from a rank-deficient fit may be misleading")  #n x 1
         variance.estimate.sum <- matrix(0, num.betas, num.betas)
         for (i in 1:n) {
           #h1 <- combined.summary.measures[i, , d1] * msm.weights[i, d1]
@@ -632,10 +638,13 @@ EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.pos
   if (any(eigen(variance.estimate, only.values = TRUE)$values < -1e-8)) {
     #this happens very rarely
     orig.variance.estimate <- variance.estimate
-    near.pd <- Matrix::nearPD(variance.estimate)
-    variance.estimate <- as.matrix(near.pd$mat)
-    if (!near.pd$converged || any((abs(orig.variance.estimate - variance.estimate) / orig.variance.estimate) > 0.1)) {
-      stop("covariance matrix from EstimateVariance not positive definite")
+    try.result <- try({
+      near.pd <- Matrix::nearPD(variance.estimate) #may cause an error if variance.estimate is negative definite
+      variance.estimate <- as.matrix(near.pd$mat)
+    })
+    if (inherits(try.result, "try-error") || !near.pd$converged || any((abs(orig.variance.estimate - variance.estimate) / orig.variance.estimate) > 0.1)) {
+      warning("Covariance matrix from EstimateVariance not positive definite, unable to compute standard errors. You may want to try IC.variance.only=TRUE.")
+      variance.estimate <- matrix(nrow=num.betas, ncol=num.betas)
     }
   }
   return(variance.estimate)
@@ -694,7 +703,7 @@ FitPooledMSM <- function(working.msm, Qstar, combined.summary.measures, msm.weig
   weight.vec <- as.vector(msm.weights)
   
   m <- glm(as.formula(working.msm), data=data.frame(Y, X), family="quasibinomial", weights=scale(weight.vec, center = FALSE), na.action=na.exclude, control=glm.control(maxit=1000)) 
-  m.beta <- predict(m, type="response")
+  SuppressGivenWarnings(m.beta <- predict(m, type="response"), "prediction from a rank-deficient fit may be misleading")
   dim(m.beta) <- dim(Qstar)
   return(list(m=m, m.beta=m.beta))
 }
@@ -763,9 +772,9 @@ NormalizeIC <- function(IC, combined.summary.measures, m.beta, msm.weights, g.ra
     }
   }
   C <- apply(C, c(1, 2), mean)
-  if (abs(det(C)) < 1e-16 ) {
+  if (rcond(C) < 1e-12) {
     C <- matrix(NA, nrow=num.betas, ncol=num.betas)
-    warning("det(C) = 0, normalized IC <- NA")
+    warning("rcond(C) near 0, standard errors not available")
   } else {
     normalized.IC <- t(solve(C, t(IC))) #IC %*% solve(C) 
     if (!any(abs(colSums(IC)) > 0.001) && any(abs(colSums(normalized.IC)) > 0.001)) {
@@ -955,7 +964,12 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
   }
   variance.estimate.ratio=v/IC.variance
   
-  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=c(0, 1)), v, n=length(object$IC[[estimator]]))
+  if (object$binaryOutcome) {
+    CIBounds <- c(0, 1)
+  } else {
+    CIBounds <- c(-Inf, Inf)  #could truncate at Yrange, but it's not clear that's right
+  }
+  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]))
   ans <- list(treatment=treatment, call=object$call, estimator=estimator, variance.estimate.ratio=variance.estimate.ratio)
   class(ans) <- "summary.ltmle"
   return(ans)
@@ -1277,12 +1291,13 @@ PredictProbAMeanL <- function(data, nodes, subs, fit, SL.XY) {
     newdata[, regression.node] <- meanL
     if (regression.node %in% nodes$LY[1:length(nodes$LY)-1]) {
       LYindex <- LYindex - 1
-      if ("SuperLearner" %in% class(fit)) {
-        g.meanL[, LYindex] <- predict(fit, newdata = cbind(newdata, added.constant=1), X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
-      } else {
-        g.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
-      }
-      
+      SuppressGivenWarnings({
+        if ("SuperLearner" %in% class(fit)) {
+          g.meanL[, LYindex] <- predict(fit, newdata = cbind(newdata, added.constant=1), X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
+        } else {
+          g.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
+        }
+      }, "prediction from a rank-deficient fit may be misleading")
     }
   }
   return(g.meanL)
@@ -1333,10 +1348,10 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes,
   data <- ConvertCensoringNodesToBinary(data, nodes$C) #convert factors to binaries for compatability with glm and some SL libraries
   f <- as.formula(form)
   if (any(is.na(data[subs, LhsVars(f)]))) stop("NA in Estimate")
+  observation.weights <- observation.weights[subs]
   if (is.null(SL.library) || length(RhsVars(f)) == 0) { #in a formula like "Y ~ 1", call glm
     #estimate using GLM
     if (sum(subs) > 1) {
-      observation.weights <- observation.weights[subs]
       SuppressGivenWarnings({
         m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(f, data=data[subs, all.vars(f), drop=F], observation.weights=observation.weights, family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
         predicted.values <- predict(m, newdata=newdata, type=type)
@@ -1362,7 +1377,7 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes,
       newX <- cbind(newX, added.constant=1)
     }
     try.result <- try({
-      SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y, X=X, SL.library=SL.library, verbose=FALSE, family=family, newX=newX, obsWeights=observation.weights), "non-integer #successes in a binomial glm!") 
+      SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y, X=X, SL.library=SL.library, verbose=FALSE, family=family, newX=newX, obsWeights=observation.weights), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
     })
     SL.XY <- list(X=X, Y=Y)
     GetSLStopMsg <- function(Y) ifelse(all(Y %in% c(0, 1, NA)), "", "\n Note that many SuperLeaner libraries crash when called with continuous dependent variables, as in the case of initial Q regressions with continuous Y or subsequent Q regressions even if Y is binary.")
