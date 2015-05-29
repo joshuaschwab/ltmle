@@ -11,14 +11,15 @@ Longitudinal Targeted Maximum Likelihood Estimation
 ltmle(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, 
  gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, 
  deterministic.g.function=NULL, stratify=FALSE, SL.library=NULL, 
- estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, iptw.only=FALSE, 
- deterministic.Q.function=NULL)
+ estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, 
+ deterministic.Q.function=NULL, IC.variance.only=FALSE, observation.weights=NULL)
 ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL,
  gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, 
  SL.library=NULL, regimes, working.msm, summary.measures, 
- summary.baseline.covariates=NULL, final.Ynodes=NULL, pooledMSM=TRUE, stratify=FALSE, 
- weight.msm=TRUE, estimate.time=nrow(data) > 50, gcomp=FALSE, mhte.iptw=FALSE, 
- iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE)
+ final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", 
+ estimate.time=TRUE, gcomp=FALSE,  
+ iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, 
+ IC.variance.only=FALSE, observation.weights=NULL)
 }
 \arguments{
   \item{data}{data frame following the time-ordering of the nodes. See 'Details'.}
@@ -28,10 +29,10 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{Ynodes}{column names or indicies in \code{data} of outcome nodes}
   \item{survivalOutcome}{If \code{TRUE}, then Y nodes are indicators of an event, and if Y at some time point is 1, then all following should be 1. Required to be \code{TRUE} or \code{FALSE} if outcomes are binary and there are multiple Ynodes.}
   \item{Qform}{character vector of regression formulas for \eqn{Q}. See 'Details'.}
-  \item{gform}{character vector of regression formulas for \eqn{g}. See 'Details'.}
-  \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment}
-  \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes}
-  \item{gbounds}{lower and upper bounds on estimated probabilities for g-factors. Vector of length 2, order unimportant.}
+  \item{gform}{character vector of regression formulas for \eqn{g} or a matrix/array of prob(A=1). See 'Details'.}
+  \item{abar}{binary vector (numAnodes x 1) or matrix (n x numAnodes) of counterfactual treatment or a list of length 2. See 'Details'.}
+  \item{rule}{a function to be applied to each row (a named vector) of \code{data} that returns a numeric vector of length numAnodes or a list of length 2. See 'Details'.}
+  \item{gbounds}{lower and upper bounds on estimated cumulative probabilities for g-factors. Vector of length 2, order unimportant.}
   \item{Yrange}{NULL or a numerical vector where the min and max of \code{Yrange} specify the range of all Y nodes. See 'Details'.}
   \item{deterministic.g.function}{optional information on A and C nodes that are given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{stratify}{if \code{TRUE} stratify on following \code{abar} when estimating Q and g. If \code{FALSE}, pool over \code{abar}.}
@@ -40,21 +41,18 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   \item{gcomp}{if \code{TRUE}, run the maximum likelihood based G-computation estimate \emph{instead} of TMLE}
   \item{regimes}{binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions}
   \item{working.msm}{character formula for the working marginal structural model}
-  \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of working.msm}
-  \item{summary.baseline.covariates}{NOT FULLY IMPLEMENTED YET - leave as NULL (default)}
+  \item{summary.measures}{array: num.regimes x num.summary.measures x num.final.Ynodes - measures summarizing the regimes that will be used on the right hand side of \code{working.msm} (baseline covariates may also be used in the right hand side of \code{working.msm} and do not need to be included in \code{summary.measures})}
   \item{final.Ynodes}{vector subset of Ynodes - used in MSM to pool over a set of outcome nodes}
-  \item{pooledMSM}{if \code{TRUE}, the TMLE targeted step will pool across regimes}
-  \item{weight.msm}{if \code{TRUE}, the working.msm will be weighted by the empirical probability of each regime [in the future more flexible weighting may be possible]} 
-  \item{mhte.iptw}{if \code{TRUE}, IPTW is calculated using the modified Horvitz-Thompson estimator (normalizes by sum of the inverse weights)}
-  \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM(pooledMSM=FALSE)}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster. This parameter is not used in \code{ltmleMSM(pooledMSM=FALSE)} since IPTW is not run.}
+  \item{msm.weights}{projection weights for the working MSM. If "empirical", weight by empirical proportions of rows matching each regime for each final.Ynode, with duplicate regimes given zero weight. If \code{NULL}, no weights. Or an array of user-supplied weights with dimensions c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes).}
+  \item{iptw.only}{by default (\code{iptw.only = FALSE}), both TMLE and IPTW are run in \code{ltmle} and \code{ltmleMSM}. If \code{iptw.only = TRUE}, only IPTW is run, which is faster.}
   \item{deterministic.Q.function}{optional information on Q given deterministically. See 'Details'. Default \code{NULL} indicates no deterministic links.}
   \item{memoize}{If \code{TRUE}, glm regressions will be memoized. It is recommended to leave this as \code{TRUE} (the default), especially if there are multiple \code{final.Ynodes}, because the code is not written as efficiently as it should be and will end up repeating the same glm call. Will be fixed in a future release.}
+  \item{observation.weights}{observation (sampling) weights. Vector of length n. If \code{NULL}, assumed to be all 1.}
+  \item{IC.variance.only}{If \code{FALSE}, compute both the robust variance estimate using TMLE and the influence curve based variance estimate (use the larger of the two). If \code{TRUE}, only compute the influence curve based variance estimate, which is faster, but may be substantially anti-conservative if there are positivity violations or rare outcomes.}
 }
 \details{
   The estimates returned by \code{ltmle} are of a treatment specific mean, \eqn{E[Y_{\bar{a}}]}, the mean of the final treatment node, where all treatment nodes, \eqn{A}, are set to \eqn{\bar{a}} (\code{abar}) and all censoring nodes \eqn{C} are set to 1 (uncensored). The estimates returned by \code{ltmleMSM} are similar but are the parameters in a working marginal structural model.
-  
-  By calling \code{ltmle} twice, using two different values of \code{abar}, additive treatment effect, risk ratio, and odds ratio can be computed using \code{\link{summary.ltmle}}. 
-  
+    
   \code{data} should be a data frame where the order of the columns corresponds to the time-ordering of the model. 
   \itemize{
       \item in censoring columns (Cnodes): factor with two levels: "censored" and "uncensored". The helper function \code{CensoringToBinary} can be used to create these factors.
@@ -75,11 +73,15 @@ ltmleMSM(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Q
   
   ** If there is a "block" of L and Y nodes not separated by A or C nodes, only one regression is required at the first L/Y node in a block. You can pass regression formulas for the other L/Y nodes, but they will be ignored (with a message). See example 5.
   
-  \code{gform} should be \code{NULL}, in which case all parent nodes of each L and Y node will be used as regressors, or a character vector that can be coerced to class "\code{\link{formula}}". The length of \code{gform} must be equal to \code{length(Anodes) + length(Cnodes)} and the order of the formulas must be the same as the order the A and C nodes appear in \code{data}. The left hand side of each formula should be the name of the Anode or Cnode. If \code{SL.library} is \code{NULL}, \code{glm} will be called using the elements of \code{gform}. If \code{SL.library} is specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all variables appearing on the right hand side of a formula will be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional form of the formula is unimportant if \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
+  \code{gform} should be \code{NULL}, in which case all parent nodes of each L and Y node will be used as regressors, or a character vector that can be coerced to class "\code{\link{formula}}", or a matrix/array of Prob(A=1). If \code{gform} is a character vector, the length of \code{gform} must be equal to \code{length(Anodes) + length(Cnodes)} and the order of the formulas must be the same as the order the A and C nodes appear in \code{data}. The left hand side of each formula should be the name of the Anode or Cnode. If \code{SL.library} is \code{NULL}, \code{glm} will be called using the elements of \code{gform}. If \code{SL.library} is specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all variables appearing on the right hand side of a formula will be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional form of the formula is unimportant if \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called. 
   
-  \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}.
+  In \code{ltmle}, \code{gform} can also be a n x numACnodes matrix where entry (i, j) is the probability that the ith observation of the jth A/C node is 1 (if an Anode) or uncensored (if a Cnode), conditional on following abar up to that node. In \code{ltmleMSM}, \code{gform} can similarly be a n x numACnodes x numRegimes array, where entry (i, j, k) is the probability that the ith observation of the jth A/C node is 1 (if an Anode) or uncensored (if a Cnode), conditional on following regime k up to that node. If \code{gform} is a matrix/array, \code{deterministic.g.function} will not be used and should be \code{NULL}.
+  
+  \code{abar} specifies the counterfactual values of the Anodes, using the order they appear in \code{data} and should have the same length (if abar is a vector) or number of columns (if abar is a matrix) as \code{Anodes}. 
 
   \code{rule} can be used to specify a dynamic treatment rule. \code{rule} is a function applied to each row of \code{data} which returns the a numeric vector of the same length as \code{Anodes}.
+  
+  \code{abar} and \code{rule} cannot both be specified. If one of them if a list of length 2, additive treatment effect, risk ratio, and odds ratio can be computed using \code{\link{summary.ltmleEffectMeasures}}. 
 
   \code{regimes} can be a binary array: n x numAnodes x numRegimes of counterfactual treatment or a list of 'rule' functions as described above for the \code{rule} parameter for the \code{ltmle} function
   
@@ -95,7 +97,7 @@ Note that the default set of libraries consists of main terms models. It may be 
 The print method for \code{ltmle} objects only prints the tmle estimates. 
 }
 \value{
-\code{ltmle} returns an object of class "\code{ltmle}"
+\code{ltmle} returns an object of class "\code{ltmle}" (unless \code{abar} or \code{rule} is a list, in which case it returns an object of class \code{ltmleSummaryMeasures}, which has the same components as \code{ltmleMSM}.)
 The function \code{\link{summary}} (i.e. \code{\link{summary.ltmle}}) can be used to obtain or print a summary of the results.
 An object of class "\code{ltmle}" is a list containing the following components:
 \item{estimates}{a named vector of length 4 with elements, each an estimate of \eqn{E[Y_{bar{a}}]}:
@@ -103,7 +105,6 @@ An object of class "\code{ltmle}" is a list containing the following components:
   \item \code{tmle} - Targeted Maximum Likelihood Estimate [NULL if \code{gcomp} is \code{TRUE}]
   \item \code{iptw} - Inverse Probability of Treatment/Censoring Weighted estimate 
   \item \code{gcomp} - maximum likelihood based G-computation estimate [NULL if \code{gcomp} is \code{FALSE}]
-  \item \code{naive} - naive estimate \eqn{E[Y|a=\bar{a}]}
   }
 }
 \item{IC}{a list with the following components of Influence Curve values}
@@ -112,7 +113,8 @@ An object of class "\code{ltmle}" is a list containing the following components:
   \item \code{iptw} - vector of influence curve values for Inverse Probability of Treatment/Censoring Weighted estimate 
   \item \code{gcomp} - vector of influence curve values for Targeted Maximum Likelihood Estimate without updating [NULL if \code{gcomp} is \code{FALSE}]
   }
-\item{cum.g}{matrix, n x numACnodes - cumulative g, after bounding}
+\item{cum.g}{cumulative g, after bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
+\item{cum.g.unbounded}{cumulative g, before bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
@@ -127,11 +129,12 @@ An object of class "\code{ltmle}" is a list containing the following components:
 The function \code{\link{summary}} (i.e. \code{\link{summary.ltmleMSM}}) can be used to obtain or print a summary of the results.
 An object of class "\code{ltmleMSM}" is a list containing the following components:
 \item{beta}{parameter estimates for working.msm using TMLE (GCOMP if \code{gcomp} input is \code{TRUE})}
-\item{beta.iptw}{parameter estimates for working.msm using IPTW (\code{NULL} if \code{pooledMSM} is \code{TRUE})}
+\item{beta.iptw}{parameter estimates for working.msm using IPTW}
 \item{IC}{matrix, n x numBetas - influence curve values for TMLE (without updating if \code{gcomp} input is \code{TRUE})}
-\item{IC.iptw}{matrix, n x numBetas - influence curve values for IPTW (\code{NULL} if \code{pooledMSM} is \code{TRUE})}
+\item{IC.iptw}{matrix, n x numBetas - influence curve values for IPTW}
 \item{msm}{object of class glm - the result of fitting the working.msm}
 \item{cum.g}{array, n x numACnodes x numRegimes - cumulative g, after bounding}
+\item{cum.g.unbounded}{array, n x numACnodes x numRegimes - cumulative g, before bounding}
 \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
@@ -178,8 +181,7 @@ Y <- rexpit(-0.5 + 2 * W1^2 + 0.5 * W2 - 0.5 * A + 0.2 * W3 * A
 data <- data.frame(W1, W2, W3, A, Y)
 
 
-\dontrun{
-# The SuperLearner examples are a little slow.
+\donttest{ #This takes about 4 seconds to run
 library(SuperLearner)
 
 #SuperLearner semiparametric estimation using all parents as regressors 
@@ -202,12 +204,13 @@ result.abar1 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y",
  Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
  abar=1, SL.library=NULL)
 
+\donttest{ #This takes about 18 seconds to run
 #Get summary measures (additive treatment effect, odds ratio, relative risk) 
 #  for abar=1 vs abar=0
-result.abar0 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
- Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
- abar=0, SL.library=NULL)
-summary(result.abar1, result.abar0)
+result.compare <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
+                      Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
+                      abar=list(1, 0), SL.library=NULL)
+summary(result.compare)
 
 
 # Example 2: Longitudinal example. Includes informative censoring and treatment. 
@@ -260,11 +263,11 @@ result2 <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"),
                 deterministic.g.function=deterministic.g.function, survivalOutcome=TRUE)
 summary(result2) 
  
-# Example 3: Dynamic treatment
+# Example 3: Dynamic treatment, observation weights
 # W -> A1 -> L -> A2 -> Y
 # Treatment regime of interest is: Always treat at time 1 (A1 = 1), 
 #   treat at at time 2 (A2 = 1), iff L > 0
-# True value of E[Y_d] is approximately 0.346
+# Weight by pmax(W + 2, 0)
 
 n <- 1000
 W <- rnorm(n)
@@ -279,7 +282,7 @@ abar[, 1] <- 1
 abar[, 2] <- L > 0
 
 result3 <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", 
-  survivalOutcome=TRUE, abar=abar)
+  survivalOutcome=TRUE, abar=abar, observation.weights = pmax(W + 2, 0))
 summary(result3)
 
 # Example 3.1: The regime can also be specified as a rule function
@@ -326,7 +329,9 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4a <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE)
+  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE,
+  IC.variance.only=TRUE)
+  #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result4a)
 
@@ -352,7 +357,9 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4b <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE) 
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE,
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
 summary(result4b)
 
 # Example 5: Multiple time-dependent covariates and treatments at each time point, 
@@ -373,12 +380,16 @@ data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 
 #also show some different ways of specifying the nodes:
 result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=
- grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, survivalOutcome=FALSE)
+ grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
+ survivalOutcome=FALSE, IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5)
 
 result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
- survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"))
+ survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), 
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5a)
 
 #Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case 
@@ -387,36 +398,46 @@ summary(result5a)
 # regression formulas for the other L/Y nodes, but they'll be ignored.
 result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
- gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
+ gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"), 
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
 summary(result5b)
 
 
-\dontrun{
 #Gives the same result but prints a message saying some regression formulas will be dropped:
 result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", 
- Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
+ Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"), 
+ IC.variance.only=TRUE) 
+ #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+
 summary(result5c)
-}
+
 
 #If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula
 
 
 # Example 6: MSM
 # Given data over 3 time points where A switches to 1 once and then stays 1. We want to know
-# how death varies as a function of time and an indicator of whether a patient's intended
-# regime was to switch before time.
+# how death varies as a function of gender, time and an indicator of whether a patient's 
+# intended regime was to switch before time.
+# Note that working.msm includes time and switch.time, which are columns of 
+# summary.measures; working.msm also includes male, which is ok because it is a baseline
+# covariate (it comes before any A/C/L/Y nodes).
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
+msm.weights <- matrix(1:12, nrow=4, ncol=3) #just an example (can also use a 200x3x4 array), 
+                                            #or NULL (for no weights), or "empirical" (the default)
 
 result6 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE,
                    regimes=sampleDataForLtmleMSM$regimes, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", 
+                   msm.weights=msm.weights, estimate.time=FALSE)
 print(summary(result6))
 
 
@@ -429,8 +450,29 @@ regimesList <- list(function(row) c(1,1,1),
 result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE, regimes=regimesList, 
                    summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ time + I(pmax(time - switch.time, 0))", estimate.time=FALSE)
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", 
+                   msm.weights=msm.weights, estimate.time=FALSE)
 # This should be the same as the above result
 print(summary(result.regList))         
 
+
+# Example 7: variance estimation
+# A simple point treatment problem W, A, Y. But there is a positivity problem - 
+# for small values of W, Prob(A = 1) is very small.
+# The true parameter value, E[Y_1] is approximately 0.697
+# The true TMLE standard deviation is approximately 0.064, 
+# the true IPTW standard deviation is approximately 0.058.
+set.seed(2)
+n <- 1000
+W <- rnorm(n)
+A <- rexpit(8 * W)
+Y <- rexpit(W + A)
+r1 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE)
+r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
+ IC.variance.only=TRUE)
+print(summary(r1))
+print(summary(r2))
+print(summary(r1, "iptw"))
+print(summary(r2, "iptw")) #the same - IC.variance.only only affects TMLE
+}
 }
