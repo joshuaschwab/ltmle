@@ -18,6 +18,12 @@ I have run devtools::revdep_check on ltmle. There is 1 downstream dependency and
 I apologize for submitting this version less than one month after the previous version. Several bugs were reported by users that I failed to catch and now need to fix.
 
 ## Resubmission
-I have updated to current R (3.2.0).
+I have added comments for \donttest sections.
 
-I believe I have fixed the problems that caused errors on solaris-sparc.  
+I am unable to reproduce the error reported in tests/test-all.R on either my default local OS X install or an installation configured using --disable-long-double. The error reported is:
+ Error in solve.default(C.old, t(IC)) :
+    system is computationally singular: reciprocal condition number = 0
+but the code checks rcond(C.old) first. Nonetheless, I have added a try() around the line. If you can suggest a way I can reproduce this error without submitting to CRAN, I would be happy to do so. 
+Thanks,
+Josh
+

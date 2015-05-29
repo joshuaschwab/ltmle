@@ -181,7 +181,7 @@ Y <- rexpit(-0.5 + 2 * W1^2 + 0.5 * W2 - 0.5 * A + 0.2 * W3 * A
 data <- data.frame(W1, W2, W3, A, Y)
 
 
-\donttest{
+\donttest{ #This takes about 4 seconds to run
 library(SuperLearner)
 
 #SuperLearner semiparametric estimation using all parents as regressors 
@@ -204,7 +204,7 @@ result.abar1 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y",
  Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", 
  abar=1, SL.library=NULL)
 
-\donttest{
+\donttest{ #This takes about 18 seconds to run
 #Get summary measures (additive treatment effect, odds ratio, relative risk) 
 #  for abar=1 vs abar=0
 result.compare <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 

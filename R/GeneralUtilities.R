@@ -1,5 +1,19 @@
 #General utilities
 
+#Strange errors were reported on solaris-sparc, this attempts to avoid them
+safe.solve <- function(a, b) {
+  try.result <- try(x <- solve(a, b))
+  if (inherits(try.result, "try-error")) {
+    if (missing(b)) {
+      x <- matrix(nrow = nrow(a), ncol = ncol(a))
+    } else {
+      x <- matrix(nrow = ncol(a), ncol = ncol(b))
+    }
+    warning("Error in solve(), standard errors not available")
+  }
+  return(x)
+}
+
 #like seq, but returns integer(0) if from > to   (always increments by 1)
 sseq <- function(from, to) {
   if (from > to) return(integer(0))

@@ -298,10 +298,10 @@ MainCalcs <- function(inputs) {
         }
       }
       C <- NormalizeIC(IC, combined.summary.measures, fitted.msm$m.beta, msm.weights, g.ratio, inputs$observation.weights)
-      variance.estimate <- solve(C) %*% new.var %*% t(solve(C))
+      variance.estimate <- safe.solve(C) %*% new.var %*% t(safe.solve(C))
     }
     
-    IC <- t(solve(C.old, t(IC))) #IC %*% solve(C) 
+    IC <- t(safe.solve(C.old, t(IC))) #IC %*% solve(C) 
     beta <- coef(fitted.msm$m)
     names(beta) <- main.terms$beta.names
   }
@@ -370,7 +370,7 @@ CalcIPTW <- function(data, nodes, working.msm, regimes, combined.summary.measure
   }
 
   C <- NormalizeIC(IC, combined.summary.measures, m.beta, msm.weights, g.ratio=array(1, dim=c(n, num.regimes, num.final.Ynodes)), observation.weights=observation.weights) 
-  normalized.IC <- t(solve(C, t(IC)))  
+  normalized.IC <- t(safe.solve(C, t(IC)))  
   return(list(beta=beta, IC=normalized.IC))
 }
 
@@ -776,12 +776,12 @@ NormalizeIC <- function(IC, combined.summary.measures, m.beta, msm.weights, g.ra
     C <- matrix(NA, nrow=num.betas, ncol=num.betas)
     warning("rcond(C) near 0, standard errors not available")
   } else {
-    normalized.IC <- t(solve(C, t(IC))) #IC %*% solve(C) 
-    if (!any(abs(colSums(IC)) > 0.001) && any(abs(colSums(normalized.IC)) > 0.001)) {
+    normalized.IC <- t(safe.solve(C, t(IC))) #IC %*% solve(C) 
+    if (!any(abs(colSums(IC)) > 0.001) && !any(is.na(normalized.IC)) && any(abs(colSums(normalized.IC)) > 0.001)) {
       msg <- capture.output({
         cat("normalized IC problem", colSums(normalized.IC), "\n")
         cat("inv(C) = \n")
-        print(solve(C))
+        print(safe.solve(C))
       })
       warning(paste(msg, collapse="\n"))
     }
