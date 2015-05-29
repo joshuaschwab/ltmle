@@ -13,15 +13,13 @@ test_that("tests from 'create tests to compare versions.R'", {
     additional.args <- list(survivalOutcome=IsSurvival(btests[[j]]$args$data))
 
     args <- c(btests[[j]]$args, additional.args)
-    if (! is.null(args$regimens)) {
-      args$regimes <- args$regimens #regimens were previously referred to as regimes
-      args$regimens <- NULL
-    }
+    args$regimes <- args$regimens #regimens were previously referred to as regimes
+    args$regimens <- NULL
     set.seed(1) #keep superlearner synced
-    result <- btests[[j]]$compareFun(do.call(btests[[j]]$fun, args))
+    result <- do.call(btests[[j]]$fun, args)
     
-    current <- result
-    prev <- btests[[j]]$result
+    current <- btests[[j]]$compareFun(result)
+    prev <- btests[[j]]$compareFun(btests[[j]]$result)
     expect_equals(current, prev, info=paste(btests[[j]]$info, "j = ", j, "current = ", paste(current, collapse=" "), "prev = ", paste(prev, collapse=" ")))
   }
 })
