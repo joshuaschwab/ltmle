@@ -1208,10 +1208,19 @@ EstimateG <- function(inputs, regime.index) {
   uncensored <- rep(TRUE, nrow(inputs$data))
   fit <- vector("list", length(inputs$nodes$AC))
   names(fit) <- names(inputs$data)[inputs$nodes$AC]
+  if (!inputs$IC.variance.only) { 
+    abar.meanL <- abar
+    for (i in sseq(1, length(inputs$nodes$A))) {
+      if (any(is.na(abar.meanL[, i]))) { #abar.meanL needs to be nonNA
+        abar.meanL[is.na(abar.meanL[, i]), i] <- Mode(abar.meanL[, i], na.rm = TRUE)
+      }
+    }
+  }
   for (i in 1:length(inputs$nodes$AC)) {
     cur.node <- inputs$nodes$AC[i]
     uncensored <- IsUncensored(inputs$data, inputs$nodes$C, cur.node)
     newdata <- SetA(inputs$data, abar, inputs$nodes, cur.node)
+    if (!inputs$IC.variance.only) newdata.meanL <- SetA(inputs$data, abar.meanL, inputs$nodes, cur.node)
     deterministic.origdata <- IsDeterministic(inputs$data, cur.node, inputs$deterministic.Q.function, inputs$nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function
     deterministic.newdata <- IsDeterministic(newdata, cur.node, inputs$deterministic.Q.function, inputs$nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function - using data modified so A = abar
     if (is.numeric(inputs$gform)) {
@@ -1241,7 +1250,7 @@ EstimateG <- function(inputs, regime.index) {
           if (!inputs$IC.variance.only) {           
             #n x numACnodes x (numLYnodes - 1)
             #[,,k] is prob.A.is.1 with all L and Y nodes after and including LYnodes[k] set to mean of L (na.rm=T)
-            prob.A.is.1.meanL[, i, ] <- PredictProbAMeanL(newdata, inputs$nodes, subs, g.est$fit, SL.XY=g.est$SL.XY)
+            prob.A.is.1.meanL[, i, ] <- PredictProbAMeanL(newdata.meanL, inputs$nodes, subs, g.est$fit, SL.XY=g.est$SL.XY)
           }
         } else {
           msg <- paste0("ltmle failed trying to estimate ", inputs$gform[i], " because there are no observations that are\nuncensored", ifelse(inputs$stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.g.function or deterministic.Q.function\n")
@@ -1254,29 +1263,37 @@ EstimateG <- function(inputs, regime.index) {
     #cur.abar can be NA after censoring/death if treatment is dynamic
     if (cur.node %in% inputs$nodes$A) {
       cur.abar <- abar[, inputs$nodes$A == cur.node]
+      if (!inputs$IC.variance.only) cur.abar.meanL <- abar.meanL[, inputs$nodes$A == cur.node]
     } else {
-      cur.abar <- rep(1, nrow(inputs$data))  #if this is a cnode, abar is always 1 (uncensored)
+      cur.abar <- cur.abar.meanL <- rep(1, nrow(inputs$data))  #if this is a cnode, abar is always 1 (uncensored)
     }
     gmat[, i] <- CalcGVec(prob.A.is.1[, i], cur.abar, deterministic.newdata)
-    gmat.meanL[, i, ] <- apply(AsMatrix(prob.A.is.1.meanL[, i, ]), 2, CalcGVec, cur.abar, deterministic.newdata)
+    if (!inputs$IC.variance.only) gmat.meanL[, i, ] <- apply(AsMatrix(prob.A.is.1.meanL[, i, ]), 2, CalcGVec, cur.abar.meanL, deterministic.newdata)
     if (any(is.na(gmat[uncensored, i]))) stop("Error - NA in g. g should only be NA after censoring. If you passed numeric gform, make sure there are no NA values except after censoring. Otherwise something has gone wrong.")
     fit[[i]] <- g.est$fit
   }
   cum.g.unbounded <- CalcCumG(gmat, c(0, 1))
   cum.g <- CalcCumG(gmat, inputs$gbounds)
-  for (i in sseq(1, dim(gmat.meanL)[3])) {
-    cum.g.meanL[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), inputs$gbounds)
-    cum.g.meanL.unbounded[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), c(0,1)) 
+  if (!inputs$IC.variance.only) {
+    for (i in sseq(1, dim(gmat.meanL)[3])) {
+      cum.g.meanL[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), inputs$gbounds)
+      cum.g.meanL.unbounded[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), c(0,1)) 
+    }
   }
   return(list(cum.g=cum.g, cum.g.unbounded=cum.g.unbounded, cum.g.meanL=cum.g.meanL, fit=fit, prob.A.is.1=prob.A.is.1, cum.g.meanL.unbounded=cum.g.meanL.unbounded))
 }
 
 PredictProbAMeanL <- function(data, nodes, subs, fit, SL.XY) {
+  #Predict the probability that A=1 if L and Y nodes are set to their mean (or median) values
+  
+  #probAis1.meanL is n x num.LYnodes - 1
+  #probAis1.meanL[, k] is prob.A.is.1 with all L and Y nodes after and including LYnodes[k] set to mean of L
+  
   #somewhat inefficient - for W A.1 L.2 A.2 L.3 A.3 Y, does P(A.1=1) setting L.3 to mean and then L.2 and L.3 to mean, but none of these can be used in P(A.1=1) because they're after A.1
   
   #A is already set to abar in data
-  g.meanL <- matrix(NaN, nrow(data), length(nodes$LY) - 1)
-  if (ncol(g.meanL) == 0) return(g.meanL)
+  probAis1.meanL <- matrix(NaN, nrow(data), length(nodes$LY) - 1)
+  if (ncol(probAis1.meanL) == 0) return(probAis1.meanL)
   all.LY.nodes <- sort(union(nodes$L, nodes$Y)) #not the same as nodes$LY, which removes blocks
   newdata <- data
   LYindex <- length(nodes$LY)
@@ -1293,14 +1310,15 @@ PredictProbAMeanL <- function(data, nodes, subs, fit, SL.XY) {
       LYindex <- LYindex - 1
       SuppressGivenWarnings({
         if ("SuperLearner" %in% class(fit)) {
-          g.meanL[, LYindex] <- predict(fit, newdata = cbind(newdata, added.constant=1), X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
+          probAis1.meanL[, LYindex] <- predict(fit, newdata = cbind(newdata, added.constant=1), X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
         } else {
-          g.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
+          probAis1.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
         }
       }, "prediction from a rank-deficient fit may be misleading")
     }
   }
-  return(g.meanL)
+  if (any(is.na(probAis1.meanL[, 1]))) stop("NA in probAis1.meanL[, 1]")
+  return(probAis1.meanL)
 }
 
 

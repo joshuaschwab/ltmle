@@ -2,7 +2,11 @@
 
 #Strange errors were reported on solaris-sparc, this attempts to avoid them
 safe.solve <- function(a, b) {
-  try.result <- try(x <- solve(a, b))
+  if (missing(b)) {
+    try.result <- try(x <- solve(a))
+  } else {
+    try.result <- try(x <- solve(a, b))
+  }
   if (inherits(try.result, "try-error")) {
     if (missing(b)) {
       x <- matrix(nrow = nrow(a), ncol = ncol(a))
