@@ -190,7 +190,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   if (is.null(observation.weights)) observation.weights <- rep(1, nrow(data))
   
   #error checking (also get value for survivalOutcome if NULL)
-  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights) 
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, IC.variance.only) 
   survivalOutcome <- check.results$survivalOutcome
   
   if (!isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) { 
@@ -477,10 +477,6 @@ FixedTimeTMLE <- function(inputs, msm.weights, combined.summary.measures, baseli
 
 EstimateVariance <- function(inputs, combined.summary.measures, regimes.with.positive.weight, uncensored, deterministic.list.newdata, Qstar, Qstar.kplus1, cur.node, msm.weights, LYnode.index, ACnode.index, cum.g, prob.A.is.1, baseline.column.names, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded, observation.weights, is.last.LYnode) {
   if (inputs$IC.variance.only) return(NA)
-  if (!inputs$binaryOutcome) stop("IC.variance.only=FALSE not currently compatible with non binary outcomes")
-  if (!is.null(inputs$deterministic.Q.function)) stop("IC.variance.only=FALSE not currently compatible with deterministic.Q.function")
-  if (inputs$gcomp) stop("IC.variance.only=FALSE not currently compatible with gcomp")
-  if (inputs$stratify) stop("IC.variance.only=FALSE not currently compatible with stratify=TRUE")
   TmleOfVariance <- function(Z, Z.meanL) {
     if (all(is.na(Z))) stop("all Z are NA in EstimateVariance")
     #length(Z.meanL) == 0 --> point treatment case, return mean(Z); all Z can be zero when summary.measure is 0
@@ -1310,7 +1306,13 @@ PredictProbAMeanL <- function(data, nodes, subs, fit, SL.XY) {
       LYindex <- LYindex - 1
       SuppressGivenWarnings({
         if ("SuperLearner" %in% class(fit)) {
-          probAis1.meanL[, LYindex] <- predict(fit, newdata = cbind(newdata, added.constant=1), X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
+          if ("ltmle.added.constant" %in% SL.XY$rhs) {   #see ltmle:::Estimate for why this is needed
+            newdata.temp <- cbind(newdata, ltmle.added.constant=1)
+          } else {
+            newdata.temp <- newdata
+          }
+          newdata.temp <- newdata.temp[, SL.XY$rhs, drop=FALSE]
+          probAis1.meanL[, LYindex] <- predict(fit, newdata = newdata.temp, X=SL.XY$X, Y=SL.XY$Y, onlySL=TRUE)$pred
         } else {
           probAis1.meanL[, LYindex] <- predict(fit, newdata = newdata, type = "response")
         }
@@ -1391,13 +1393,14 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes,
     newX <- newdata[new.subs, rhs, drop=FALSE]
     if (ncol(X) == 1) {
       #SuperLearner crashes if there are screening algorithms and only one column - add a constant
-      X <- cbind(X, added.constant=1)
-      newX <- cbind(newX, added.constant=1)
+      X <- cbind(X, ltmle.added.constant=1)
+      newX <- cbind(newX, ltmle.added.constant=1)
+      rhs <- c(rhs, "ltmle.added.constant")
     }
     try.result <- try({
       SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y, X=X, SL.library=SL.library, verbose=FALSE, family=family, newX=newX, obsWeights=observation.weights), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
     })
-    SL.XY <- list(X=X, Y=Y)
+    SL.XY <- list(X=X, Y=Y, rhs=rhs)
     GetSLStopMsg <- function(Y) ifelse(all(Y %in% c(0, 1, NA)), "", "\n Note that many SuperLeaner libraries crash when called with continuous dependent variables, as in the case of initial Q regressions with continuous Y or subsequent Q regressions even if Y is binary.")
     if (inherits(try.result, "try-error")) {
       stop(paste("\n\nError occured during call to SuperLearner:\n", form, GetSLStopMsg(Y), "\n The error reported is:\n", try.result))
@@ -1582,7 +1585,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, IC.variance.only) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) {
@@ -1718,6 +1721,13 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if (class(working.msm) != "character") stop("class(working.msm) must be 'character'")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (!is.vector(observation.weights) || length(observation.weights) != nrow(data) || any(is.na(observation.weights)) || any(observation.weights < 0) || max(observation.weights) == 0) stop("observation.weights must be NULL or a vector of length nrow(data) with no NAs, no negative values, and at least one positive value")
+  
+  if (!IC.variance.only) {
+    if (!binaryOutcome) stop("IC.variance.only=FALSE not currently compatible with non binary outcomes")
+    if (!is.null(deterministic.Q.function)) stop("IC.variance.only=FALSE not currently compatible with deterministic.Q.function")
+    if (gcomp) stop("IC.variance.only=FALSE not currently compatible with gcomp")
+    if (stratify) stop("IC.variance.only=FALSE not currently compatible with stratify=TRUE")
+  }
   return(list(survivalOutcome=survivalOutcome, binaryOutcome=binaryOutcome))
 }
 
