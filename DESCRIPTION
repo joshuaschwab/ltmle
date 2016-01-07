@@ -1,8 +1,8 @@
 Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
-Version: 0.9-6
-Date: 2015-5-26
+Version: 0.9-7
+Date: 2015-1-6
 Maintainer: Joshua Schwab <joshuaschwab@yahoo.com>
 Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
     email="joshuaschwab@yahoo.com"), person("Samuel", "Lendle", role="aut"),
@@ -21,11 +21,12 @@ Description: Targeted Maximum Likelihood Estimation (TMLE) of
     point-treatment and longitudinal data.
 License: GPL-2
 Collate:
+    'ltmle-package.R'
     'GeneralUtilities.R'
     'ltmle.R'
     'ltmle_sg.R'
     'BinaryToCensoring.R'
     'DeterministicFunctions.R'
-    'zzz.R'
+    'zzz.R' 
 URL: https://github.com/joshuaschwab/ltmle
 BugReports: https://github.com/joshuaschwab/ltmle/issues

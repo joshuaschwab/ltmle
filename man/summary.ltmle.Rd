@@ -1,104 +1,104 @@
+% Please edit documentation in R/ltmle.R
 \name{summary.ltmle}
-\alias{summary.ltmle}
 \alias{print.ltmle}
-\alias{print.summary.ltmle}
-\alias{summary.ltmleMSM}
-\alias{print.ltmleMSM}
-\alias{print.summary.ltmleMSM}
-\alias{summary.ltmleEffectMeasures}
 \alias{print.ltmleEffectMeasures}
+\alias{print.ltmleMSM}
+\alias{print.summary.ltmle}
 \alias{print.summary.ltmleEffectMeasures}
-\title{
-Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation (ltmle)
-}
-\description{
-These functions are methods for class \code{ltmle} or \code{summary.ltmle} objects.
-}
+\alias{print.summary.ltmleMSM}
+\alias{summary.ltmle}
+\alias{summary.ltmleEffectMeasures}
+\alias{summary.ltmleMSM}
+\title{Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation
+(ltmle)}
 \usage{
-\method{summary}{ltmle}(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
-\method{summary}{ltmleEffectMeasures}(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
-\method{summary}{ltmleMSM}(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...)
-\method{print}{summary.ltmle}(x, ...)
-\method{print}{summary.ltmleMSM}(x, digits = max(3, getOption("digits") - 3), 
-  signif.stars = getOption("show.signif.stars"), ...)
-\method{print}{summary.ltmleEffectMeasures}(x, ...)
+summary.ltmle(object, estimator = ifelse(object$gcomp, "gcomp", "tmle"), ...)
 }
 \arguments{
-  \item{object}{
-an object of class "\code{ltmle}" or "\code{ltmleMSM}" or "\code{ltmleEffectMeasures}", usually a result of a call to \code{\link{ltmle}} or \code{\link{ltmleMSM}}. 
-} 
-  \item{x}{
-an object of class "\code{summary.ltmle}" or "\code{summary.ltmleMSM}" or "\code{ltmleEffectMeasures}", usually a result of a call to \code{\link{summary.ltmle}} or \code{\link{summary.ltmleMSM}}.
-}
-  \item{estimator}{
-character; one of "tmle", "iptw", "gcomp". The estimator for which to get effect measures. "tmle" is valid iff the original ltmle/ltmleMSM call used gcomp=FALSE. "gcomp" is valid iff the original ltmle/ltmleMSM call used gcomp=TRUE
-}
-  \item{digits}{  
-the number of significant digits to use when printing.
-}
-  \item{signif.stars}{
-logical. If \code{TRUE}, significance stars are printed for each coefficient.
-}
-  \item{\dots}{
-further arguments passed to or from other methods.
-}
-}
-\details{
-\code{summary.ltmle} returns the parameter value of the estimator, the estimated variance, a 95 percent confidence interval, and a p-value.
+\item{object}{an object of class "\code{ltmle}" or "\code{ltmleMSM}" or
+"\code{ltmleEffectMeasures}", usually a result of a call to
+\code{\link{ltmle}} or \code{\link{ltmleMSM}}.}
 
-\code{summary.ltmleEffectMeasures} returns the additive treatment effect for each of the two objects in the \code{abar} list passed to \code{ltmle}. Relative risk, and odds ratio are also returned, along with the variance, confidence interval, and p-value for each.
+\item{estimator}{character; one of "tmle", "iptw", "gcomp". The estimator
+for which to get effect measures. "tmle" is valid iff the original
+ltmle/ltmleMSM call used gcomp=FALSE. "gcomp" is valid iff the original
+ltmle/ltmleMSM call used gcomp=TRUE}
 
-\code{summary.ltmleMSM} returns a matrix of MSM parameter estimates.
+\item{x}{an object of class "\code{summary.ltmle}" or
+"\code{summary.ltmleMSM}" or "\code{ltmleEffectMeasures}", usually a result
+of a call to \code{\link{summary.ltmle}} or \code{\link{summary.ltmleMSM}}.}
+
+\item{digits}{the number of significant digits to use when printing.}
+
+\item{signif.stars}{logical. If \code{TRUE}, significance stars are printed
+for each coefficient.}
+
+\item{\dots}{further arguments passed to or from other methods.}
 }
 \value{
-\code{summary.ltmle} returns an object of class "\code{summary.ltmle}", a list with components
-\item{treatment}{a list with components summarizing the estimate of \code{object}
-  \itemize{
-    \item \code{estimate} - the parameter estimate of \eqn{E[Y_d]}
-    \item \code{std.dev} - estimated standard deviation of parameter
-    \item \code{p.value} - two-sided p-value
-    \item \code{CI} - vector of length 2 with 95 percent confidence interval
-  }
-}
+\code{summary.ltmle} returns an object of class
+"\code{summary.ltmle}", a list with components \item{treatment}{a list with
+components summarizing the estimate of \code{object} \itemize{ \item
+\code{estimate} - the parameter estimate of \eqn{E[Y_d]} \item
+\code{std.dev} - estimated standard deviation of parameter \item
+\code{p.value} - two-sided p-value \item \code{CI} - vector of length 2 with
+95 percent confidence interval } }
 
 \item{call}{the matched call to \code{ltmle} for \code{object}}
 \item{estimator}{the \code{estimator} input argument}
-\item{variance.estimate.ratio}{ratio of the TMLE based variance estimate to the influence curve based variance estimate}
+\item{variance.estimate.ratio}{ratio of the TMLE based variance estimate to
+the influence curve based variance estimate}
 
-\code{summary.ltmleEffectMeasures} returns an object of class "\code{summary.ltmleEffectMeasures}", a list with same components as \code{summary.ltmle} above, but also includes:
-\item{effect.measures}{a list with components, each with the same components as \code{treatment} in \code{summary.ltmle} above 
-  \itemize{
-  \item \code{treatment} - corresponds to the first in the list \code{abar} (or \code{rule}) passed to \code{ltmle}
-  \item \code{control} - corresponds to the second in the list \code{abar} (or \code{rule}) passed to \code{ltmle}
-  \item \code{ATE} - average treatment effect
-  \item \code{RR} - relative risk
-  \item \code{OR} - odds ratio
-  }
+\code{summary.ltmleEffectMeasures} returns an object of class
+"\code{summary.ltmleEffectMeasures}", a list with same components as
+\code{summary.ltmle} above, but also includes: \item{effect.measures}{a list
+with components, each with the same components as \code{treatment} in
+\code{summary.ltmle} above \itemize{ \item \code{treatment} - corresponds to
+the first in the list \code{abar} (or \code{rule}) passed to \code{ltmle}
+\item \code{control} - corresponds to the second in the list \code{abar} (or
+\code{rule}) passed to \code{ltmle} \item \code{ATE} - average treatment
+effect \item \code{RR} - relative risk \item \code{OR} - odds ratio } }
+
+\code{summary.ltmleMSM} returns an object of class
+"\code{summary.ltmleMSM}", a matrix with rows for each MSM parameter and
+columns for the point estimate, standard error, 2.5percent confidence
+interval, 97.5percent confidence interval, and p-value.
 }
-
-\code{summary.ltmleMSM} returns an object of class "\code{summary.ltmleMSM}", a matrix with rows for each MSM parameter and columns for the point estimate, standard error, 2.5percent confidence interval, 97.5percent confidence interval, and p-value.
+\description{
+These functions are methods for class \code{ltmle} or \code{summary.ltmle}
+objects.
 }
+\details{
+\code{summary.ltmle} returns the parameter value of the estimator, the
+estimated variance, a 95 percent confidence interval, and a p-value.
 
-\seealso{
-\code{\link{ltmle}}, \code{\link{summary}}
+\code{summary.ltmleEffectMeasures} returns the additive treatment effect for
+each of the two objects in the \code{abar} list passed to \code{ltmle}.
+Relative risk, and odds ratio are also returned, along with the variance,
+confidence interval, and p-value for each.
+
+\code{summary.ltmleMSM} returns a matrix of MSM parameter estimates.
 }
 \examples{
-rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
+rexpit <- function(x) rbinom(n = length(x), size = 1, prob = plogis(x))
 
-# Compare the expected outcomes under two counterfactual plans:
-# Treatment plan: set A1 to 1 if W > 0, set A2 to 1 if W > 1.5, always set A3 to 1
-# Control plan: always set A1, A2, and A3 to 0
+# Compare the expected outcomes under two counterfactual plans: Treatment plan:
+# set A1 to 1 if W > 0, set A2 to 1 if W > 1.5, always set A3 to 1 Control plan:
+# always set A1, A2, and A3 to 0
 W <- rnorm(1000)
 A1 <- rexpit(W)
-A2 <- rexpit(W + 2*A1)
-A3 <- rexpit(2*A1 - A2)
-Y <- rexpit(W - A1 + 0.5*A2 + 2*A3)
+A2 <- rexpit(W + 2 * A1)
+A3 <- rexpit(2 * A1 - A2)
+Y <- rexpit(W - A1 + 0.5 * A2 + 2 * A3)
 data <- data.frame(W, A1, A2, A3, Y)
-treatment <- cbind(W > 0, W > 1.5, 1) 
-control <- matrix(0, nrow=1000, ncol=3)
-result <- ltmle(data, Anodes = c("A1", "A2", "A3"), Ynodes = "Y", abar = list(treatment, control))
+treatment <- cbind(W > 0, W > 1.5, 1)
+control <- matrix(0, nrow = 1000, ncol = 3)
+result <- ltmle(data, Anodes = c("A1", "A2", "A3"), Ynodes = "Y", abar = list(treatment, 
+    control))
 print(summary(result))
 
 ## For examples of summary.ltmle and summary.ltmleMSM, see example(ltmle)
 }
-
+\seealso{
+\code{\link{ltmle}}, \code{\link{summary}}
+}
