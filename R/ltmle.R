@@ -1,12 +1,3 @@
-# Longitudinal TMLE to estimate an intervention-specific mean outcome or marginal structural model
-
-# General code flow:
-#  ltmle -> CreateInputs -> LtmleFromInputs -> LtmleMSMFromInputs -> ...
-#  ltmleMSM -> CreateInputs -> LtmleMSMFromInputs -> ...
-
-#longitudinal targeted maximum liklihood estimation for E[Y_a]
-
-
 #' Longitudinal Targeted Maximum Likelihood Estimation
 #' 
 #' \code{ltmle} is Targeted Maximum Likelihood Estimation (TMLE) of
@@ -625,6 +616,9 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
   result$call <- match.call()
   return(result)
 }
+# General code flow:
+#  ltmle -> CreateInputs -> LtmleFromInputs -> LtmleMSMFromInputs -> ...
+#  ltmleMSM -> CreateInputs -> LtmleMSMFromInputs -> ...
 
 RegimesFromAbar <- function(data, abar, rule) {
   if (!is.null(rule)) {

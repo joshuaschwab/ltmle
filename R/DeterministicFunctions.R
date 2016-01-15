@@ -1,30 +1,3 @@
-#' @export
-MaintainTreatment <- function(data, current.node, nodes) {
-  #if the previous Anode is 1, all subsequent Anodes are 1 
-  Anodes <- nodes$A
-  if (!(current.node %in% Anodes)) return(NULL)
-  if (!(any(Anodes < current.node))) return(NULL)
-  
-  prev.a.node <- max(Anodes[Anodes < current.node])
-  is.deterministic <- data[, prev.a.node] == 1
-  return(list(is.deterministic=is.deterministic, prob1=1))  
-}
-
-#' @export
-MaintainControl <- function(data, current.node, nodes) {
-  #if the previous Anode is 0, all subsequent Anodes are 0
-  Anodes <- nodes$A
-  if (!(current.node %in% Anodes)) return(NULL)
-  if (!(any(Anodes < current.node))) return(NULL)
-  
-  prev.a.node <- max(Anodes[Anodes < current.node])
-  is.deterministic <- data[, prev.a.node] == 0
-  return(list(is.deterministic=is.deterministic, prob1=0))  
-}
-
-
-
-
 #' Deterministic g/Q functions - examples and templates
 #' 
 #' \code{deterministic.g.function_template} and
@@ -203,4 +176,28 @@ deterministic.Q.function_template <- function(data, current.node, nodes, called.
   is.deterministic <- stop("replace me!")
   Q.value <- stop("replace me!")
   return(list(is.deterministic=is.deterministic, Q.value=Q.value))  
+}
+
+#' @export
+MaintainTreatment <- function(data, current.node, nodes) {
+  #if the previous Anode is 1, all subsequent Anodes are 1 
+  Anodes <- nodes$A
+  if (!(current.node %in% Anodes)) return(NULL)
+  if (!(any(Anodes < current.node))) return(NULL)
+  
+  prev.a.node <- max(Anodes[Anodes < current.node])
+  is.deterministic <- data[, prev.a.node] == 1
+  return(list(is.deterministic=is.deterministic, prob1=1))  
+}
+
+#' @export
+MaintainControl <- function(data, current.node, nodes) {
+  #if the previous Anode is 0, all subsequent Anodes are 0
+  Anodes <- nodes$A
+  if (!(current.node %in% Anodes)) return(NULL)
+  if (!(any(Anodes < current.node))) return(NULL)
+  
+  prev.a.node <- max(Anodes[Anodes < current.node])
+  is.deterministic <- data[, prev.a.node] == 0
+  return(list(is.deterministic=is.deterministic, prob1=0))  
 }

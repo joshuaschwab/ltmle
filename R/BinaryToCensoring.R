@@ -1,6 +1,3 @@
-# Helper function to generate censoring as factors
-
-
 #' BinaryToCensoring
 #' 
 #' Helper function for creating censoring columns as factors.
