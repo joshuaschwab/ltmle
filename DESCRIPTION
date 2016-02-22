@@ -9,7 +9,7 @@ Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
     person("Maya", "Petersen", role="aut"), person("Mark", "van der Laan",
     role="aut"), person("Susan", "Gruber", role="ctb"))
 Depends:
-    R(>= 3.1.0)
+     R(>= 3.0.0)
 Imports:
     Matrix
 Suggests:
@@ -27,7 +27,6 @@ Collate:
     'ltmle_sg.R'
     'BinaryToCensoring.R'
     'DeterministicFunctions.R'
-    'zzz.R'
+    'zzz.R' 
 URL: https://github.com/joshuaschwab/ltmle
 BugReports: https://github.com/joshuaschwab/ltmle/issues
-RoxygenNote: 5.0.1
