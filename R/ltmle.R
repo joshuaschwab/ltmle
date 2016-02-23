@@ -724,7 +724,7 @@ LtmleFromInputs <- function(inputs) {
   return(r)
 }
 
-#longitudinal targeted maximum likelihood estimation for a marginal structural model
+#' @describeIn ltmle Longitudinal Targeted Maximum Likelihood Estimation for a Marginal Structural Model
 #' @export 
 ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, memoize=TRUE, IC.variance.only=FALSE, observation.weights=NULL) {
   if (memoize && requireNamespace("memoise")) {
@@ -858,7 +858,6 @@ MainCalcs <- function(inputs) {
   #store IC for each final Ynode, compare var(IC) to sum(var(IC.ynode))
   IC.y <- array(dim=c(n, num.betas, num.final.Ynodes))
   for (j in 1:num.final.Ynodes) {
-    #It would be better to reuse g instead of calculating the same thing every time final.Ynode varies (note: g does need to be recalculated for each abar/regime) - memoizing gets around this to some degree but it could be written better
     fixed.tmle <- FixedTimeTMLE(SubsetInputs(inputs, final.Ynode=inputs$final.Ynodes[j]), drop3(msm.weights[, , j, drop=FALSE]), dropn(combined.summary.measures[, , , j, drop=FALSE], n=4), baseline.column.names)
     IC <- IC + fixed.tmle$IC
     IC.y[, , j] <- fixed.tmle$IC
@@ -1062,6 +1061,7 @@ FixedTimeTMLE <- function(inputs, msm.weights, combined.summary.measures, baseli
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
       curIC.relative.error <- abs(colSums(curIC)) / apply(abs(combined.summary.measures), 2, mean)
       if (any(curIC.relative.error > 0.001) && !inputs$gcomp) {
+        SetSeedIfRegressionTesting()
         fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, deterministic.list.newdata, update.list$off, update.list$X, regimes.with.positive.weight)
         Qstar <- fix.score.list$Qstar
         curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
@@ -1547,9 +1547,7 @@ EstimateTime <- function(inputs) {
   return(NULL)
 }
 
-# Get standard error, p-value, and confidence interval for one ltmle object 
-
-
+#' Get standard error, p-value, and confidence interval for one ltmle object 
 #' Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation
 #' (ltmle)
 #' 
@@ -1632,7 +1630,7 @@ EstimateTime <- function(inputs) {
 #' 
 #' ## For examples of summary.ltmle and summary.ltmleMSM, see example(ltmle)
 #' 
-#' @export summary.ltmle
+#' @export 
 summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...) {
   if ("control.object" %in% names(list(...))) stop("The control.object parameter has been deprecated. To obtain additive treatment effect, risk ratio, and relative risk, call ltmle with abar=list(treatment, control). See ?ltmle and ?summary.ltmleEffectMeasures.")
   if (! estimator[1] %in% c("tmle", "iptw", "gcomp")) stop("estimator should be one of: tmle, iptw, gcomp. If you are trying to use control.object, the control.object parameter has been deprecated. To obtain additive treatment effect, risk ratio, and relative risk, call ltmle with abar=list(treatment, control). See ?ltmle and ?summary.ltmleEffectMeasures.")
@@ -1659,6 +1657,7 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
 }
 
 # Get standard errors, p-values, confidence intervals for an ltmleEffectMeasures object: treatment EYd, control EYd, additive effect, relative risk, odds ratio
+#' @rdname summary.ltmle
 #' @export 
 summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...) {
   info <- GetSummaryLtmleMSMInfo(object, estimator)
@@ -1722,6 +1721,7 @@ GetSummaryLtmleMSMInfo <- function(object, estimator) {
 }
 
 # Get summary measures for MSM parameters (standard errors, p-values, confidence intervals)
+#' @rdname summary.ltmle
 #' @export 
 summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"), ...) {
   info <- GetSummaryLtmleMSMInfo(object, estimator)
@@ -1739,6 +1739,7 @@ summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tm
 }
 
 # Print method for summary.ltmleMSM
+#' @rdname summary.ltmle
 #' @export 
 print.summary.ltmleMSM <- function(x, digits = max(3, getOption("digits") - 3), signif.stars = getOption("show.signif.stars"), ...) {
   cat("Estimator: ", x$estimator, "\n")
@@ -1755,6 +1756,7 @@ print.summary.ltmleMSM <- function(x, digits = max(3, getOption("digits") - 3), 
 }
 
 # Print method for summary.ltmle
+#' @rdname summary.ltmle
 #' @export 
 print.summary.ltmle <- function(x, ...) {
   cat("Estimator: ", x$estimator, "\n")
@@ -1766,6 +1768,7 @@ print.summary.ltmle <- function(x, ...) {
 }
 
 # Print method for ltmleEffectMeasures
+#' @rdname summary.ltmle
 #' @export 
 print.ltmleEffectMeasures <- function(x, ...) {
   PrintCall(x$call)
@@ -1774,6 +1777,7 @@ print.ltmleEffectMeasures <- function(x, ...) {
 }
 
 # Print method for summary.ltmleEffectMeasures
+#' @rdname summary.ltmle
 #' @export 
 print.summary.ltmleEffectMeasures <- function(x, ...) {
   cat("Estimator: ", x$estimator, "\n")
@@ -1802,6 +1806,7 @@ CheckVarianceEstimateRatio <- function(summary.obj) {
 }
 
 # Print method for ltmleMSM
+#' @rdname summary.ltmle
 #' @export 
 print.ltmleMSM <- function(x, ...) {
   PrintCall(x$call)
@@ -1820,6 +1825,7 @@ print.ltmleMSM <- function(x, ...) {
 }
 
 # Print method for ltmle
+#' @rdname summary.ltmle
 #' @export 
 print.ltmle <- function(x, ...) {
   PrintCall(x$call)
@@ -2060,7 +2066,7 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes,
     #estimate using GLM
     if (sum(subs) > 1) {
       SuppressGivenWarnings({
-        m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(f, data=data[subs, all.vars(f), drop=F], observation.weights=observation.weights, family=family, control=glm.control(trace=FALSE, maxit=1000)) #there's probably a better way to do this
+        m <- get.stack("glm.ltmle.memoized", mode="function", ifnotfound=glm.ltmle)(f, data=data[subs, all.vars(f), drop=F], observation.weights=observation.weights, family=family, control=glm.control(trace=FALSE, maxit=1000)) 
         predicted.values <- predict(m, newdata=newdata, type=type)
       }, GetWarningsToSuppress())
     } else {
@@ -2084,6 +2090,7 @@ Estimate <- function(form, data, subs, family, newdata, SL.library, type, nodes,
       newX <- cbind(newX, ltmle.added.constant=1)
       rhs <- c(rhs, "ltmle.added.constant")
     }
+    SetSeedIfRegressionTesting()
     try.result <- try({
       SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y, X=X, SL.library=SL.library, verbose=FALSE, family=family, newX=newX, obsWeights=observation.weights), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
     })
@@ -2725,6 +2732,20 @@ GetWarningsToSuppress <- function(update.step=FALSE) {
   return(warnings.to.suppress)
 }
 
+SetSeedIfRegressionTesting <- function() {
+  #if comparing outputs between different versions of ltmle, we need to sync random numbers 
+  #before calling SuperLearner or FixScoreEquation since these use random numbers
+  seed <- Sys.getenv("LTMLE.REGRESSION.TESTING.SEED") 
+  stopifnot(length(seed) == 1)
+  if (seed != "") {
+    seed <- as.numeric(seed)
+    stopifnot(is.finite(seed))
+    set.seed(seed)
+    cat("set seed 0.9-7\n") 
+  }
+  invisible(NULL)
+}
+
 Default.SL.Library <- list("SL.glm",
                            "SL.stepAIC",
                            "SL.bayesglm", 
@@ -2735,3 +2756,4 @@ Default.SL.Library <- list("SL.glm",
                            c("SL.step.interaction", "screen.corP"), 
                            c("SL.bayesglm", "screen.corP")
 )  
+

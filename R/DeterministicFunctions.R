@@ -1,9 +1,7 @@
 #' Deterministic g/Q functions - examples and templates
 #' 
-#' \code{deterministic.g.function_template} and
-#' \code{deterministic.Q.function_template} are templates for the
-#' \code{deterministic.g.function} and \code{deterministic.Q.function}
-#' arguments to \code{\link{ltmle}} or \code{\link{ltmleMSM}}.
+#' Template for the \code{deterministic.g.function} 
+#' argument to \code{\link{ltmle}} or \code{\link{ltmleMSM}}.
 #' 
 #' \code{MaintainTreatment} and \code{MaintainControl} are two commonly used
 #' \code{deterministic.g.function}s.
@@ -153,6 +151,8 @@ deterministic.g.function_template <- function(data, current.node, nodes) {
   return(list(is.deterministic=is.deterministic, prob1=prob1))  
 }
 
+#' @describeIn deterministic.g.function_template Template for the \code{deterministic.Q.function} 
+#' argument to \code{\link{ltmle}} or \code{\link{ltmleMSM}}.
 #' @export
 deterministic.Q.function_template <- function(data, current.node, nodes, called.from.estimate.g) {
   # data: the 'data' data.frame passed to ltmle/ltmleMSM
