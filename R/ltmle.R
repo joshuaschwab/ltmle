@@ -216,7 +216,10 @@
 #' estimate using TMLE and the influence curve based variance estimate (use the
 #' larger of the two). If \code{TRUE}, only compute the influence curve based
 #' variance estimate, which is faster, but may be substantially
-#' anti-conservative if there are positivity violations or rare outcomes.
+#' anti-conservative if there are positivity violations or rare outcomes.  
+#' IC.variance.only=FALSE is not yet available with non-binary outcomes, 
+#' gcomp=TRUE, stratify=TRUE, deterministic.Q.function, or numeric gform.
+#' 
 #' @return \code{ltmle} returns an object of class "\code{ltmle}" (unless
 #' \code{abar} or \code{rule} is a list, in which case it returns an object of
 #' class \code{ltmleSummaryMeasures}, which has the same components as
@@ -351,6 +354,7 @@
 #' # We incorporate this knowledge using deterministic.g.function
 #' 
 #' # Generate data:
+#' set.seed(2)
 #' ua <- rep(TRUE, n)   #ua = uncensored and alive
 #' L1 <- A1 <- Y1 <- C2.binary <- L2 <- A2 <- Y2 <- as.numeric(rep(NA, n))
 #' W <- rnorm(n)
@@ -398,6 +402,7 @@
 #' #   treat at at time 2 (A2 = 1), iff L > 0
 #' # Weight by pmax(W + 2, 0)
 #' 
+#' set.seed(2)
 #' n <- 1000
 #' W <- rnorm(n)
 #' A1 <- rexpit(W)
@@ -419,12 +424,13 @@
 #' rule <- function(row) c(1, row["L"] > 0)
 #' 
 #' result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", 
-#'   survivalOutcome=TRUE, rule=rule)
+#'   survivalOutcome=TRUE, rule=rule, observation.weights = pmax(W + 2, 0))
 #' # This should be the same as the above result
 #' summary(result.rule)
 #' 
 #' # Example 4: Deterministic Q function
 #' # W -> A1 -> Y1 -> L2 -> A2 -> Y2
+#' set.seed(2)
 #' n <- 200
 #' L2 <- A2 <- Y2 <- as.numeric(rep(NA, n))
 #' W <- rnorm(n)
@@ -458,9 +464,7 @@
 #' data <- data.frame(W, A1, Y1, L2, A2, Y2)
 #' 
 #' result4a <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
-#'   SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE,
-#'   IC.variance.only=TRUE)
-#'   #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
+#'   SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE)
 #' #note: You will get the same result if you pass Lnodes=NULL (see next example)
 #' summary(result4a)
 #' 
@@ -486,14 +490,13 @@
 #' data <- data.frame(W, A1, Y1, L2, A2, Y2)
 #' 
 #' result4b <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
-#'  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE,
-#'  IC.variance.only=TRUE) 
-#'  #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
+#'  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE)
 #' summary(result4b)
 #' 
 #' # Example 5: Multiple time-dependent covariates and treatments at each time point, 
 #' #            continuous Y values
 #' # age -> gender -> A1 -> L1a -> L1b -> Y1 -> A2 -> L2a -> L2b -> Y2
+#' set.seed(2)
 #' n <- 100
 #' age <- rbinom(n, 1, 0.5)
 #' gender <- rbinom(n, 1, 0.5)
@@ -507,18 +510,13 @@
 #' Y2 <- plogis(age - gender + L1a + L1b + A1 + 1.8*A2 + rnorm(n))
 #' data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 #' 
-#' #also show some different ways of specifying the nodes:
-#' result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=
-#'  grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
-#'  survivalOutcome=FALSE, IC.variance.only=TRUE) 
-#'  #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
-#' summary(result5)
+#' #Note that gform is not correctly specified in these examples.
+#' 
+#' #Also show some different ways of specifying the nodes:
 #' 
 #' result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
 #'  Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
-#'  survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), 
-#'  IC.variance.only=TRUE) 
-#'  #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+#'  survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age")) 
 #' summary(result5a)
 #' 
 #' #Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case 
@@ -527,9 +525,7 @@
 #' # regression formulas for the other L/Y nodes, but they'll be ignored.
 #' result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
 #'  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
-#'  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"), 
-#'  IC.variance.only=TRUE) 
-#'  #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+#'  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
 #' summary(result5b)
 #' 
 #' 
@@ -537,9 +533,7 @@
 #' result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
 #'  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
 #'  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", 
-#'  Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"), 
-#'  IC.variance.only=TRUE) 
-#'  #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+#'  Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
 #' 
 #' summary(result5c)
 #' 
@@ -792,9 +786,10 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   }
   if (is.null(observation.weights)) observation.weights <- rep(1, nrow(data))
   
-  #error checking (also get value for survivalOutcome if NULL)
-  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, IC.variance.only) 
+  #error checking (also get value for survivalOutcome)
+  check.results <- CheckInputs(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp) 
   survivalOutcome <- check.results$survivalOutcome
+  
   
   if (!isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) { 
     data <- CleanData(data, nodes, deterministic.Q.function, survivalOutcome)
@@ -810,6 +805,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   
   inputs <- list(data=data, untransformed.data=untransformed.data, nodes=nodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=gform, gbounds=gbounds, Yrange=Yrange, deterministic.g.function=deterministic.g.function, SL.library.Q=SL.library.Q, SL.library.g=SL.library.g, regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, final.Ynodes=final.Ynodes, stratify=stratify, msm.weights=msm.weights, estimate.time=estimate.time, gcomp=gcomp, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, binaryOutcome=binaryOutcome, transformOutcome=transformOutcome, IC.variance.only=IC.variance.only, observation.weights=observation.weights)
   class(inputs) <- "ltmleInputs"
+  if (!inputs$IC.variance.only && !is.null(VarianceAvailableWarning(inputs))) inputs$IC.variance.only <- TRUE
   return(inputs)
 }
 
@@ -865,7 +861,6 @@ MainCalcs <- function(inputs) {
     new.var.y[, , j] <- fixed.tmle$est.var 
     g.ratio[, , j] <- fixed.tmle$g.ratio
   }
-
   iptw <- CalcIPTW(inputs$data, inputs$nodes, inputs$working.msm, inputs$regimes, combined.summary.measures, inputs$final.Ynodes, fixed.tmle$cum.g, msm.weights, inputs$observation.weights)
   names(iptw$beta) <- main.terms$beta.names
 
@@ -880,6 +875,7 @@ MainCalcs <- function(inputs) {
       IC <- matrix(NA, n, num.betas)
       C.old <- matrix(NA, num.betas, num.betas)
     } else {
+      CheckForVarianceWarning(inputs, g.ratio)
       IC <- FinalizeIC(IC, combined.summary.measures, Qstar, fitted.msm$m.beta, msm.weights, g.ratio, inputs$observation.weights) #n x num.betas
       C.old <- NormalizeIC(IC, combined.summary.measures, fitted.msm$m.beta, msm.weights, g.ratio = array(1, dim=c(n, num.regimes, num.final.Ynodes)), inputs$observation.weights) #C without using g.ratio (setting g.ratio to 1)
     }
@@ -910,6 +906,36 @@ MainCalcs <- function(inputs) {
   return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=fixed.tmle$cum.g, cum.g.unbounded=fixed.tmle$cum.g.unbounded, fit=fixed.tmle$fit, variance.estimate=variance.estimate, beta.iptw=iptw$beta, IC.iptw=iptw$IC, Qstar=Qstar, g.ratio=g.ratio)) #note: only returns cum.g and fit for the last final.Ynode
 }
 
+
+VarianceAvailableWarning <- function(inputs) {
+  if (!inputs$binaryOutcome) return("Robust variance estimate is not currently available with non binary outcomes")
+  if (!is.null(inputs$deterministic.Q.function)) return("Robust variance estimate is not currently available with deterministic.Q.function")
+  if (inputs$gcomp) return("Robust variance estimate is not currently available with gcomp")
+  if (inputs$stratify) return("Robust variance estimate is not currently available with stratify=TRUE")
+  if (is.numeric(inputs$gform)) return("Robust variance estimate is not currently available with numeric gform")
+  return(NULL)
+}
+
+CheckForVarianceWarning <- function(inputs, g.ratio) {
+  if (inputs$IC.variance.only) {
+    positivity <- mean(g.ratio < 1, na.rm=TRUE) > 0.01
+    rare.events <- inputs$binaryOutcome && (colMeans(inputs$data[, inputs$final.Ynodes, drop=FALSE], na.rm=TRUE) < 0.03) 
+    if (positivity || rare.events) {
+      variance.available.warning <- VarianceAvailableWarning(inputs)
+      warning.msg <- "Variance estimate is based on influence curve only, which may be significantly anticonservative because your data appears to contain"
+      if (positivity) warning.msg <- paste(warning.msg, "positivity violations")
+      if (positivity && rare.events) warning.msg <- paste(warning.msg, "and")
+      if (rare.events) warning.msg <- paste(warning.msg, "rare events")
+      if (is.null(variance.available.warning)) {
+        warning.msg <- paste0(warning.msg, ". It is recommended to use IC.variance.only=FALSE to obtain a more robust variance estimate (but run time may be significantly longer).")
+      } else {
+        warning.msg <- paste0(warning.msg, ". ", variance.available.warning, " but this will be addressed in a future release.")
+      }
+      warning(warning.msg)
+    }
+  }
+  invisible(NULL)
+}
 
 CalcIPTW <- function(data, nodes, working.msm, regimes, combined.summary.measures, final.Ynodes, cum.g, msm.weights, observation.weights) {
   if (isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) { 
@@ -1074,7 +1100,6 @@ FixedTimeTMLE <- function(inputs, msm.weights, combined.summary.measures, baseli
     fit.Qstar[[LYnode.index]] <- update.list$fit
   }
   g.ratio <- CalcGUnboundedToBoundedRatio(inputs, cum.g, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded)
-  #tmle <- colMeans(Qstar)
   return(list(IC=IC, Qstar=Qstar, cum.g=cum.g, cum.g.unbounded=cum.g.unbounded, g.ratio=g.ratio, est.var=est.var, fit=list(g=fit.g, Q=fit.Q, Qstar=fit.Qstar))) 
 }
 
@@ -1253,7 +1278,6 @@ CalcGUnboundedToBoundedRatio <- function(inputs, cum.g, cum.g.meanL, cum.g.unbou
   n <- dim(cum.g)[1]
   num.AC.nodes <- dim(cum.g)[2]
   num.regimes <- dim(cum.g)[3]
-  if (inputs$IC.variance.only) return(matrix(1, n, num.regimes))
   if (! any(is.na(cum.g))) return(AsMatrix(cum.g.unbounded[, num.AC.nodes, ] / cum.g[, num.AC.nodes, ]))
   #cum.g is NA after censoring - for censored observations use cum.g.meanL  
   #If censored at node j, set all nodes > j to meanl. 
@@ -1897,23 +1921,20 @@ EstimateG <- function(inputs, regime.index) {
   uncensored <- rep(TRUE, nrow(inputs$data))
   fit <- vector("list", length(inputs$nodes$AC))
   names(fit) <- names(inputs$data)[inputs$nodes$AC]
-  if (!inputs$IC.variance.only) { 
-    abar.meanL <- abar
-    for (i in sseq(1, length(inputs$nodes$A))) {
-      if (any(is.na(abar.meanL[, i]))) { #abar.meanL needs to be nonNA
-        abar.meanL[is.na(abar.meanL[, i]), i] <- Mode(abar.meanL[, i], na.rm = TRUE)
-      }
+  abar.meanL <- abar
+  for (i in sseq(1, length(inputs$nodes$A))) {
+    if (any(is.na(abar.meanL[, i]))) { #abar.meanL needs to be nonNA
+      abar.meanL[is.na(abar.meanL[, i]), i] <- Mode(abar.meanL[, i], na.rm = TRUE)
     }
   }
   for (i in 1:length(inputs$nodes$AC)) {
     cur.node <- inputs$nodes$AC[i]
     uncensored <- IsUncensored(inputs$data, inputs$nodes$C, cur.node)
     newdata <- SetA(inputs$data, abar, inputs$nodes, cur.node)
-    if (!inputs$IC.variance.only) newdata.meanL <- SetA(inputs$data, abar.meanL, inputs$nodes, cur.node)
+    newdata.meanL <- SetA(inputs$data, abar.meanL, inputs$nodes, cur.node)
     deterministic.origdata <- IsDeterministic(inputs$data, cur.node, inputs$deterministic.Q.function, inputs$nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function
     deterministic.newdata <- IsDeterministic(newdata, cur.node, inputs$deterministic.Q.function, inputs$nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function - using data modified so A = abar
     if (is.numeric(inputs$gform)) {
-      if (!inputs$IC.variance.only) stop("IC.variance.only=FALSE not currently compatible with numeric gform")
       prob.A.is.1[, i] <- inputs$gform[, i, regime.index]  #if gform is numeric, it's a matrix of prob.A.is.1
       g.est <- list(fit="gform passed as numeric, so no estimation took place")
     } else {
@@ -1936,11 +1957,9 @@ EstimateG <- function(inputs, regime.index) {
         if (any(subs)) {
           g.est <- Estimate(inputs$gform[i], data=inputs$data, subs=subs, family="quasibinomial", newdata=newdata, SL.library=inputs$SL.library.g, type="response", nodes=inputs$nodes, observation.weights=inputs$observation.weights)
           prob.A.is.1[, i] <- g.est$predicted.values
-          if (!inputs$IC.variance.only) {           
-            #n x numACnodes x (numLYnodes - 1)
-            #[,,k] is prob.A.is.1 with all L and Y nodes after and including LYnodes[k] set to mean of L (na.rm=T)
-            prob.A.is.1.meanL[, i, ] <- PredictProbAMeanL(newdata.meanL, inputs$nodes, subs, g.est$fit, SL.XY=g.est$SL.XY)
-          }
+          #n x numACnodes x (numLYnodes - 1)
+          #[,,k] is prob.A.is.1 with all L and Y nodes after and including LYnodes[k] set to mean of L (na.rm=T)
+          prob.A.is.1.meanL[, i, ] <- PredictProbAMeanL(newdata.meanL, inputs$nodes, subs, g.est$fit, SL.XY=g.est$SL.XY)
         } else {
           msg <- paste0("ltmle failed trying to estimate ", inputs$gform[i], " because there are no observations that are\nuncensored", ifelse(inputs$stratify, ", follow abar,", ""), " and are not set deterministically due to death or deterministic.g.function or deterministic.Q.function\n")
           stop(msg)
@@ -1952,22 +1971,20 @@ EstimateG <- function(inputs, regime.index) {
     #cur.abar can be NA after censoring/death if treatment is dynamic
     if (cur.node %in% inputs$nodes$A) {
       cur.abar <- abar[, inputs$nodes$A == cur.node]
-      if (!inputs$IC.variance.only) cur.abar.meanL <- abar.meanL[, inputs$nodes$A == cur.node]
+      cur.abar.meanL <- abar.meanL[, inputs$nodes$A == cur.node]
     } else {
       cur.abar <- cur.abar.meanL <- rep(1, nrow(inputs$data))  #if this is a cnode, abar is always 1 (uncensored)
     }
     gmat[, i] <- CalcGVec(prob.A.is.1[, i], cur.abar, deterministic.newdata)
-    if (!inputs$IC.variance.only) gmat.meanL[, i, ] <- apply(AsMatrix(prob.A.is.1.meanL[, i, ]), 2, CalcGVec, cur.abar.meanL, deterministic.newdata)
+    gmat.meanL[, i, ] <- apply(AsMatrix(prob.A.is.1.meanL[, i, ]), 2, CalcGVec, cur.abar.meanL, deterministic.newdata)
     if (any(is.na(gmat[uncensored, i]))) stop("Error - NA in g. g should only be NA after censoring. If you passed numeric gform, make sure there are no NA values except after censoring. Otherwise something has gone wrong.")
     fit[[i]] <- g.est$fit
   }
   cum.g.unbounded <- CalcCumG(gmat, c(0, 1))
   cum.g <- CalcCumG(gmat, inputs$gbounds)
-  if (!inputs$IC.variance.only) {
-    for (i in sseq(1, dim(gmat.meanL)[3])) {
-      cum.g.meanL[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), inputs$gbounds)
-      cum.g.meanL.unbounded[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), c(0,1)) 
-    }
+  for (i in sseq(1, dim(gmat.meanL)[3])) {
+    cum.g.meanL[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), inputs$gbounds)
+    cum.g.meanL.unbounded[, , i] <- CalcCumG(drop3(gmat.meanL[, , i, drop=F]), c(0,1)) 
   }
   return(list(cum.g=cum.g, cum.g.unbounded=cum.g.unbounded, cum.g.meanL=cum.g.meanL, fit=fit, prob.A.is.1=prob.A.is.1, cum.g.meanL.unbounded=cum.g.meanL.unbounded))
 }
@@ -2279,7 +2296,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, IC.variance.only) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) {
@@ -2415,14 +2432,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if (class(working.msm) != "character") stop("class(working.msm) must be 'character'")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (!is.vector(observation.weights) || length(observation.weights) != nrow(data) || any(is.na(observation.weights)) || any(observation.weights < 0) || max(observation.weights) == 0) stop("observation.weights must be NULL or a vector of length nrow(data) with no NAs, no negative values, and at least one positive value")
-  
-  if (!IC.variance.only) {
-    if (!binaryOutcome) stop("IC.variance.only=FALSE not currently compatible with non binary outcomes")
-    if (!is.null(deterministic.Q.function)) stop("IC.variance.only=FALSE not currently compatible with deterministic.Q.function")
-    if (gcomp) stop("IC.variance.only=FALSE not currently compatible with gcomp")
-    if (stratify) stop("IC.variance.only=FALSE not currently compatible with stratify=TRUE")
-  }
-  return(list(survivalOutcome=survivalOutcome, binaryOutcome=binaryOutcome))
+ return(list(survivalOutcome=survivalOutcome, binaryOutcome=binaryOutcome))
 }
 
 TransformOutcomes <- function(data, nodes, Yrange) {

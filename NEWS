@@ -1,6 +1,13 @@
 ltmle 0.9-7
 ===========
 
+* Passing IC.variance.only=FALSE no longer gives an error if the robust variance estimate is not available (due to non-binary outcomes, stratify=TRUE, numeric gform, gcomp=TRUE, or deterministic.Q.function). Instead the package will throw a warning if it detects possible positivity violations (greater than 1% of values in g are truncated by gbounds) or rare events (at least one binary Y node has mean less than 0.03). A warning will also be thrown if IC.variance.only=TRUE and it detects possible positivity violations or rare events.
+
+* Fixed a bug: if IC.variance.only=FALSE and there is a censoring node before the first Anode an error may occur
+
+* Fixed a bug: if IC.variance.only=FALSE and abar/regimes contains an NA after death or censoring an error may occur
+
+* Converted to roxygen2 comments
 
 ltmle 0.9-6
 ===========

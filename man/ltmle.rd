@@ -90,7 +90,9 @@ deterministic links.}
 estimate using TMLE and the influence curve based variance estimate (use the
 larger of the two). If \code{TRUE}, only compute the influence curve based
 variance estimate, which is faster, but may be substantially
-anti-conservative if there are positivity violations or rare outcomes.}
+anti-conservative if there are positivity violations or rare outcomes.  
+IC.variance.only=FALSE is not yet available with non-binary outcomes, 
+gcomp=TRUE, stratify=TRUE, deterministic.Q.function, or numeric gform.}
 
 \item{observation.weights}{observation (sampling) weights. Vector of length
 n. If \code{NULL}, assumed to be all 1.}
@@ -385,6 +387,7 @@ summary(result.compare)
 # We incorporate this knowledge using deterministic.g.function
 
 # Generate data:
+set.seed(2)
 ua <- rep(TRUE, n)   #ua = uncensored and alive
 L1 <- A1 <- Y1 <- C2.binary <- L2 <- A2 <- Y2 <- as.numeric(rep(NA, n))
 W <- rnorm(n)
@@ -432,6 +435,7 @@ summary(result2)
 #   treat at at time 2 (A2 = 1), iff L > 0
 # Weight by pmax(W + 2, 0)
 
+set.seed(2)
 n <- 1000
 W <- rnorm(n)
 A1 <- rexpit(W)
@@ -453,12 +457,13 @@ summary(result3)
 rule <- function(row) c(1, row["L"] > 0)
 
 result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", 
-  survivalOutcome=TRUE, rule=rule)
+  survivalOutcome=TRUE, rule=rule, observation.weights = pmax(W + 2, 0))
 # This should be the same as the above result
 summary(result.rule)
 
 # Example 4: Deterministic Q function
 # W -> A1 -> Y1 -> L2 -> A2 -> Y2
+set.seed(2)
 n <- 200
 L2 <- A2 <- Y2 <- as.numeric(rep(NA, n))
 W <- rnorm(n)
@@ -492,9 +497,7 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4a <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
-  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE,
-  IC.variance.only=TRUE)
-  #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
+  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE)
 #note: You will get the same result if you pass Lnodes=NULL (see next example)
 summary(result4a)
 
@@ -520,14 +523,13 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
 result4b <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE,
- IC.variance.only=TRUE) 
- #IC.variance.only=FALSE is not currently compatible with deterministic.Q.function
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE)
 summary(result4b)
 
 # Example 5: Multiple time-dependent covariates and treatments at each time point, 
 #            continuous Y values
 # age -> gender -> A1 -> L1a -> L1b -> Y1 -> A2 -> L2a -> L2b -> Y2
+set.seed(2)
 n <- 100
 age <- rbinom(n, 1, 0.5)
 gender <- rbinom(n, 1, 0.5)
@@ -541,18 +543,13 @@ L2b <- rexpit(age + 1.5*gender - A1 - A2)
 Y2 <- plogis(age - gender + L1a + L1b + A1 + 1.8*A2 + rnorm(n))
 data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
 
-#also show some different ways of specifying the nodes:
-result5 <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), Ynodes=
- grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
- survivalOutcome=FALSE, IC.variance.only=TRUE) 
- #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
-summary(result5)
+#Note that gform is not correctly specified in these examples.
+
+#Also show some different ways of specifying the nodes:
 
 result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), SL.library=NULL, estimate.time=FALSE, 
- survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age"), 
- IC.variance.only=TRUE) 
- #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+ survivalOutcome=FALSE, gform=c("A1 ~ gender", "A2 ~ age")) 
 summary(result5a)
 
 #Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case 
@@ -561,9 +558,7 @@ summary(result5a)
 # regression formulas for the other L/Y nodes, but they'll be ignored.
 result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
- gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"), 
- IC.variance.only=TRUE) 
- #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+ gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
 summary(result5b)
 
 
@@ -571,9 +566,7 @@ summary(result5b)
 result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
  Ynodes=grep("^Y", names(data)), abar=c(1, 0), estimate.time=FALSE, survivalOutcome=FALSE, 
  gform=c("A1 ~ gender", "A2 ~ age"), Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", 
- Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"), 
- IC.variance.only=TRUE) 
- #IC.variance.only=FALSE is not currently compatible with non-binary outcomes
+ Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
 
 summary(result5c)
 

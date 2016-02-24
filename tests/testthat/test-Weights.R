@@ -62,6 +62,6 @@ test_that("integer observation weights act like making copies", {
   observation.weights[W > 1] <- sampling.weight
   r.weights <- ltmleMSM(data, Anodes=c("A1","A2"), Ynodes=c("Y1", "Y2"), final.Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, regimes=regimes, working.msm="Y~1", summary.measures=NULL, estimate.time=FALSE, observation.weights=observation.weights, msm.weights=NULL)
   
-  expect_equal(r.copies$beta, r.weights$beta, tolerance=1e-5)
+  expect_equal(r.copies$beta, r.weights$beta, tolerance=0.001)
   expect_true(summary(r.copies)$cmat[1, "Std. Error"] / summary(r.weights)$cmat[1, "Std. Error"] < 0.95)
 })
