@@ -117,12 +117,6 @@ weight by empirical proportions of rows matching each regime for each
 final.Ynode, with duplicate regimes given zero weight. If \code{NULL}, no
 weights. Or an array of user-supplied weights with dimensions c(n,
 num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes).}
-
-\item{memoize}{If \code{TRUE}, glm regressions will be memoized. It is
-recommended to leave this as \code{TRUE} (the default), especially if there
-are multiple \code{final.Ynodes}, because the code is not written as
-efficiently as it should be and will end up repeating the same glm call.
-Will be fixed in a future release.}
 }
 \value{
 \code{ltmle} returns an object of class "\code{ltmle}" (unless

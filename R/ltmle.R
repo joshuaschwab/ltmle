@@ -601,7 +601,7 @@ ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcom
                   iptw.only=FALSE, deterministic.Q.function=NULL, IC.variance.only=FALSE, observation.weights=NULL) {
   msm.inputs <- GetMSMInputsForLtmle(data, abar, rule, gform)
   inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, IC.variance.only=IC.variance.only, observation.weights=observation.weights) 
-  print(tracemem(inputs)) #fixme
+  # print(tracemem(inputs)) #fixme
   result <- LtmleFromInputs(inputs)
   result$call <- match.call()
   return(result)
@@ -727,7 +727,7 @@ ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOut
 
 # run ltmleMSM from ltmleInputs object
 LtmleMSMFromInputs <- function(inputs) {  
-  cat("\ndev version\n")
+  # cat("\ndev version\n")
   if (inputs$estimate.time) EstimateTime(inputs)
   result <- MainCalcs(inputs)
   result$gcomp <- inputs$gcomp
@@ -781,7 +781,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   if (is.null(observation.weights)) observation.weights <- rep(1, nrow(data))
   
   #error checking (also get value for survivalOutcome if NULL)
-  check.results <- CheckInputs(data, all.nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, IC.variance.only) 
+  check.results <- CheckInputs(data, all.nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp) 
   survivalOutcome <- check.results$survivalOutcome
   
   if (!isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) { 
@@ -819,14 +819,16 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   }
 }
 
-# Prevent misspelled argument after $<- from adding new element
-`$<-.ltmleInputs` <- function(x, name, value) {
-  if (! (name %in% names(x))) stop(paste(name, "is not an element of x"))
-  if (is.null(value)) {
-    value <- "ltmleInputs-NULL"
+SubsetSummaryMeasures <- function(combined.summary.measures, final.Ynode.index, working.msm) {
+  combined.summary.measures = dropn(combined.summary.measures[, , , final.Ynode.index, drop=FALSE], n=4)
+  stacked.summary.measures <- apply(combined.summary.measures, 2, rbind)
+  aliased.cols.string <- rownames(alias(formula(working.msm), data.frame(Y=1, stacked.summary.measures))$Complete)
+  non.aliased.cols <- ! (colnames(combined.summary.measures) %in% aliased.cols.string)
+  for (col in aliased.cols.string) {
+    working.msm <- sub(x=working.msm, replacement="", pattern=paste0(" + ", col), fixed=TRUE)
   }
-  x[[name]] <- value
-  return(x)
+  combined.summary.measures <- combined.summary.measures[, non.aliased.cols, , drop=FALSE]
+  return(list(combined.summary.measures=combined.summary.measures, working.msm=working.msm, non.aliased.cols=non.aliased.cols))
 }
 
 # Loop over final Ynodes, run main calculations
@@ -855,12 +857,14 @@ MainCalcs <- function(inputs) {
   } else {
     for (j in 1:num.final.Ynodes) {
       # cat("j = ", j, "   ")
-      print(Sys.time())
-      fixed.tmle <- FixedTimeTMLE(inputs, nodes = SubsetNodes(inputs$all.nodes, final.Ynode=inputs$final.Ynodes[j]), msm.weights = drop3(all.msm.weights[, , j, drop=FALSE]), combined.summary.measures = dropn(inputs$combined.summary.measures[, , , j, drop=FALSE], n=4), g.list = g.list)
-      IC <- IC + fixed.tmle$IC
-      IC.y[, , j] <- fixed.tmle$IC
+      # print(Sys.time())
+      summary.measures.list <- SubsetSummaryMeasures(inputs$combined.summary.measures, j, inputs$working.msm)
+      fixed.tmle <- FixedTimeTMLE(inputs, nodes = SubsetNodes(inputs$all.nodes, final.Ynode=inputs$final.Ynodes[j]), msm.weights = drop3(all.msm.weights[, , j, drop=FALSE]), combined.summary.measures = summary.measures.list$combined.summary.measures, g.list = g.list, working.msm = summary.measures.list$working.msm)
+      non.aliased.cols <- summary.measures.list$non.aliased.cols
+      IC[, non.aliased.cols] <- IC[, non.aliased.cols] + fixed.tmle$IC
+      IC.y[, non.aliased.cols, j] <- fixed.tmle$IC
       Qstar[, , j] <- fixed.tmle$Qstar # n x num.regimes
-      new.var.y[, , j] <- fixed.tmle$est.var 
+      new.var.y[non.aliased.cols, non.aliased.cols, j] <- fixed.tmle$est.var 
     }
     
     
@@ -970,7 +974,7 @@ CalcIPTW <- function(inputs, cum.g, msm.weights) {
     num.beta <- ncol(inputs$combined.summary.measures)
     return(list(beta=rep(NA, num.beta), IC=matrix(nrow=n, ncol=num.beta)))
   }
-  m.glm <- speedglm(formula(inputs$working.msm), family=quasibinomial(), data=data.frame(Y=Y.vec, X.mat, weight.vec), weights=as.vector(scale(weight.vec, center=FALSE))) #note: scale weights because there were rare problems where large weights caused convergence problems
+  m.glm <- ltmle.glm(formula(inputs$working.msm), family=quasibinomial(), data=data.frame(Y=Y.vec, X.mat, weight.vec), weights=as.vector(scale(weight.vec, center=FALSE))) #note: scale weights because there were rare problems where large weights caused convergence problems
   beta <- coef(m.glm)
   IC <- matrix(0, nrow=n, ncol=length(beta))  #n x num.betas
   m.beta <- array(dim=c(n, num.regimes, num.final.Ynodes)) 
@@ -995,7 +999,7 @@ CalcIPTW <- function(inputs, cum.g, msm.weights) {
 }
 
 # ltmleMSM for a single final.Ynode
-FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures, g.list) {
+FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures, g.list, working.msm) {
   #combined.summary.measures: n x num.measures x num.regimes   (num.measures=num.summary.measures + num.baseline.covariates)
   data <- inputs$data
   
@@ -1028,14 +1032,14 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
     logitQ <- Q.est$predicted.values
     fit.Q[[LYnode.index]] <- Q.est$fit 
     ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
-    update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, g.list$cum.g[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights)
+    update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, g.list$cum.g[, ACnode.index, ], working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights)
     Qstar <- update.list$Qstar
     Qstar[Q.est$is.deterministic] <- Q.est$deterministic.Q[Q.est$is.deterministic] #matrix indexing
     curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
     curIC.relative.error <- abs(colSums(curIC)) / mean.summary.measures
     if (any(curIC.relative.error > 0.001) && !inputs$gcomp) {
-      cat("fixing: ", curIC.relative.error, "\n")
-      SetSeedIfRegressionTesting(inputs)
+      # cat("fixing: ", curIC.relative.error, "\n")
+      SetSeedIfRegressionTesting()
       fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, Q.est$is.deterministic, Q.est$deterministic.Q, update.list$off, update.list$X, regimes.with.positive.weight)
       Qstar <- fix.score.list$Qstar
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
@@ -1132,6 +1136,7 @@ EstimateVariance <- function(inputs, nodes, combined.summary.measures, regimes.w
   static.treatment <- IsStaticTreatment()
   variance.estimate <- matrix(0, num.betas, num.betas)
   Sigma <- array(dim=c(n, num.regimes, num.regimes))
+  if (!is.last.LYnode) Q.data <- inputs$data[alive, 1:cur.node, drop=F]
   #fixme - Sigma is not exactly symmetric due to SetA on d1, but could probably save time with approximate symmetry
   for (d1 in regimes.with.positive.weight) {
     if (static.treatment) {
@@ -1143,13 +1148,12 @@ EstimateVariance <- function(inputs, nodes, combined.summary.measures, regimes.w
       if (is.last.LYnode) {
         Sigma[, d1, d2] <- Qstar[, d1] * (1 - Qstar[, d1]) 
       } else {
-        Q.data <- inputs$data[alive, 1:cur.node, drop=F]
         resid.sq <- (Qstar.kplus1[alive, d1] - Qstar[alive, d1]) * (Qstar.kplus1[alive, d2] - Qstar[alive, d2]) 
         resid.sq.range <- range(resid.sq, na.rm=T)
         if (diff(resid.sq.range) > 0.0001) {
           Q.data[, cur.node] <- (resid.sq - resid.sq.range[1]) / diff(resid.sq.range)
           names(Q.data)[cur.node]  <- "Q.kplus1" #ugly - to match with Qform
-          m <- speedglm(formula = formula(inputs$Qform[LYnode.index]), family = quasibinomial(), data = Q.data, maxit = 100) 
+          m <- ltmle.glm(formula = formula(inputs$Qform[LYnode.index]), family = quasibinomial(), data = Q.data) 
           Q.newdata <- SetA(data = Q.data, regimes = inputs$regimes[alive, , d1, drop=F], Anodes = nodes$A, cur.node = cur.node)
           SuppressGivenWarnings(Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response"), "prediction from a rank-deficient fit may be misleading")
           Sigma[alive, d1, d2] <- Q.resid.sq.pred * diff(resid.sq.range) + resid.sq.range[1]
@@ -1164,7 +1168,7 @@ EstimateVariance <- function(inputs, nodes, combined.summary.measures, regimes.w
  
   if (est.var.iptw) Z.without.sum.meas.meanL <- Z.meanL <- NA 
   no.V <- length(inputs$baseline.column.names) == 0
-  if ((!est.var.iptw && static.treatment) || (est.var.iptw && static.treatment && no.V)) {
+  if ((!est.var.iptw && static.treatment) || (est.var.iptw && static.treatment && no.V)) { #est.var.iptw doesn't work with the V code because we don't have var.tmle$Qstar
     for (d1 in regimes.with.positive.weight) {   
       #Z.without.h1h1 <- Sigma[, d1, d1] / cum.g[, ACnode.index, d1] #without h1*h1'
       #Z.without.h1h1.meanL <- 1 / cum.g.meanL[, ACnode.index, d1, ]
@@ -1178,14 +1182,9 @@ EstimateVariance <- function(inputs, nodes, combined.summary.measures, regimes.w
       } else {
         #has V (so combined.summary.measures varies)
         baseline.msm <- paste("Qstar ~", paste(inputs$baseline.column.names, collapse=" + "), "+", paste0("I(", inputs$baseline.column.names, "^2)", collapse=" + "))
-        m <- glm(formula(baseline.msm), family = quasibinomial(), data=data.frame(Qstar=var.tmle$Qstar, inputs$data[, inputs$baseline.column.names, drop=FALSE]), maxit = 100) #fixme - speedglm?
+        m <- glm(formula(baseline.msm), family = quasibinomial(), data=data.frame(Qstar=var.tmle$Qstar, inputs$data[, inputs$baseline.column.names, drop=FALSE]), ) #fixme - speedglm?
         SuppressGivenWarnings(pred.Qstar <- predict(m, type = "response") * diff(range(Z.without.sum.meas, na.rm=T)) + min(Z.without.sum.meas, na.rm=T), "prediction from a rank-deficient fit may be misleading")  #n x 1
-        variance.estimate.sum <- matrix(0, num.betas, num.betas)
-        for (i in 1:n) { #fixme - replace with crossprod?
-          #h1 <- combined.summary.measures[i, , d1] * msm.weights[i, d1]
-          #variance.estimate.sum <- variance.estimate.sum + (h1 %*% t(h1)) * pred.Qstar[i]
-          variance.estimate.sum <- variance.estimate.sum + (combined.summary.measures[i, , d1] %*% t(combined.summary.measures[i, , d1])) * pred.Qstar[i]
-        }
+        variance.estimate.sum <- crossprod(combined.summary.measures[, , d1], combined.summary.measures[, , d1] * pred.Qstar) #equivalent to:  for (i in 1:n) variance.estimate.sum <- variance.estimate.sum + (combined.summary.measures[i, , d1] %*% t(combined.summary.measures[i, , d1])) * pred.Qstar[i]
         variance.estimate <- variance.estimate + variance.estimate.sum / n
       }
     }
@@ -1277,7 +1276,7 @@ FitPooledMSM <- function(working.msm, Qstar, combined.summary.measures, msm.weig
   data.pooled <- data.frame(Y, X)
   positive.weight <- weight.vec > 0 #speedglm crashes if Y is NA even if weight is 0
   
-  m <- speedglm(formula(working.msm), data=data.pooled[positive.weight, ], family=quasibinomial(), weights=weight.vec[positive.weight], maxit=100) 
+  m <- ltmle.glm(formula(working.msm), data=data.pooled[positive.weight, ], family=quasibinomial(), weights=weight.vec[positive.weight])
   SuppressGivenWarnings(m.beta <- predict(m, newdata=data.pooled, type="response"), "prediction from a rank-deficient fit may be misleading")
   dim(m.beta) <- dim(Qstar)
   return(list(m=m, m.beta=m.beta))
@@ -1420,7 +1419,7 @@ UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, cum.g, work
     m <- "no Qstar fit because gcomp=TRUE (so no updating step)"
   } else {
     if (any(weight.vec > 0)) {
-      SuppressGivenWarnings(m <- speedglm(f, data=data.temp[weight.vec > 0, ], family=quasibinomial(), weights=as.vector(scale(weight.vec[weight.vec > 0], center=FALSE)), maxit=100), GetWarningsToSuppress(TRUE)) #this should include the indicators
+      SuppressGivenWarnings(m <- ltmle.glm(f, data=data.temp[weight.vec > 0, ], family=quasibinomial(), weights=as.vector(scale(weight.vec[weight.vec > 0], center=FALSE))), GetWarningsToSuppress(TRUE)) #this should include the indicators
       SuppressGivenWarnings(Qstar <- matrix(predict(m, newdata=data.temp, type="response"), nrow=nrow(logitQ)), GetWarningsToSuppress(TRUE))  #this should NOT include the indicators  #note: could also use plogis(off + X %*% coef(m)) [but this has problems with NAs in coef(m)?]
     } else {
       Qstar <- plogis(logitQ)
@@ -1511,13 +1510,15 @@ EstimateTime <- function(inputs) {
     return(NULL)
   }
   sample.index <- sample(nrow(inputs$data), size=sample.size)
-  
   small.inputs <- inputs
-  small.inputs$data <- inputs$data[sample.index, ]
-  small.inputs$regimes <- inputs$regimes[sample.index, , , drop=F]
-  small.inputs$observation.weights <- inputs$observation.weights[sample.index]
-  if (is.numeric(inputs$gform)) small.inputs$gform <- inputs$gform[sample.index, , , drop=F]
-  if (length(dim(inputs$msm.weights)) == 3) small.inputs$msm.weights <- inputs$msm.weights[sample.index, , , drop=F]
+  small.inputs$data <- small.inputs$data[sample.index, ]
+  small.inputs$regimes <- small.inputs$regimes[sample.index, , , drop=F]
+  small.inputs$observation.weights <- small.inputs$observation.weights[sample.index]
+  small.inputs$uncensored <- small.inputs$uncensored[sample.index, , drop=F]
+  small.inputs$intervention.match <- small.inputs$intervention.match[sample.index, , , drop=F]
+  small.inputs$combined.summary.measures <- small.inputs$combined.summary.measures[sample.index, , , , drop=F]
+  if (is.numeric(inputs$gform)) small.inputs$gform <- small.inputs$gform[sample.index, , , drop=F]
+  if (length(dim(inputs$msm.weights)) == 3) small.inputs$msm.weights <- small.inputs$msm.weights[sample.index, , , drop=F]
   start.time <- Sys.time()
   try.result <- suppressWarnings(try(MainCalcs(small.inputs), silent=TRUE))
   if (inherits(try.result, "try-error")) {
@@ -2004,7 +2005,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
       #estimate using GLM
       # cat(" fit: ", form, "\n")
       SuppressGivenWarnings({
-        m <- speedglm.wfit(Y.subset, X.subset, family=family, maxit = 100, weights=observation.weights.subset, offset=offst, intercept=intercept)
+        m <- ltmle.glm.fit(y=Y.subset, x=X.subset, family=family, weights=observation.weights.subset, offset=offst, intercept=intercept)
         m$terms <- tf
         class(m) <- c("speedglm", "speedlm")
         predicted.values <- predict(m, newdata=newdata, type=type)
@@ -2012,9 +2013,9 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
     } else {
       #estimate using SuperLearner
       
-      #rhs <- setdiff(RhsVars(form), rownames(alias(form, data=X.subset)$Complete))  #remove aliased (linearly dependent) columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped ## 2/2 is this really needed?
+      #rhs <- setdiff(RhsVars(form), rownames(alias(form, data=X.subset)$Complete))  #remove aliased (linearly dependent) columns from X - these can cause problems if they contain NAs and the user is expecting the column to be dropped ## 2/2 is this really needed? (fixme)
       newX.list <- GetNewX(newdata)
-      SetSeedIfRegressionTesting(inputs)
+      SetSeedIfRegressionTesting()
       try.result <- try({
         SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
       })
@@ -2123,11 +2124,11 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   
   if (use.glm) {
     #scale Lnodes to 0-1 to avoid numerical problems in speedglm
-    for (L in c(nodes$baseline, nodes$L, nodes$Y)) { #this is faster than using base::scale
+    for (L in c(nodes$baseline, nodes$L)) { #this is faster than using base::scale
       if (is.numeric(data[, L])) {
         mx <- max(abs(data[, L]), na.rm = T)
         if (mx == 0) {
-          data[, L] <- 1
+          data[, L] <- 1  #all 0 Lnodes cause problems in speedglm
         } else if (mx < 0.1 || mx > 10) {
           data[, L] <- data[, L] / mx
         }
@@ -2393,7 +2394,7 @@ RhsVars <- function(f) {
 }
 
 # Error checking for inputs
-CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, IC.variance.only) {
+CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) {
@@ -2532,13 +2533,6 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
   if (class(working.msm) != "character") stop("class(working.msm) must be 'character'")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (!is.vector(observation.weights) || length(observation.weights) != nrow(data) || anyNA(observation.weights) || any(observation.weights < 0) || max(observation.weights) == 0) stop("observation.weights must be NULL or a vector of length nrow(data) with no NAs, no negative values, and at least one positive value")
-  
-  if (!IC.variance.only) {
-    if (!binaryOutcome) stop("IC.variance.only=FALSE not currently compatible with non binary outcomes")
-    if (!is.null(deterministic.Q.function)) stop("IC.variance.only=FALSE not currently compatible with deterministic.Q.function")
-    if (gcomp) stop("IC.variance.only=FALSE not currently compatible with gcomp")
-    if (stratify) stop("IC.variance.only=FALSE not currently compatible with stratify=TRUE")
-  }
   return(list(survivalOutcome=survivalOutcome, binaryOutcome=binaryOutcome, uncensored=uncensored.array))
 }
 
@@ -2863,6 +2857,34 @@ SetSeedIfRegressionTesting <- function() {
     cat("set-dev\n")
   }
   invisible(NULL)
+}
+
+ltmle.glm <- function(formula, family, data, weights = NULL) {
+  try.result <- try(m <- speedglm::speedglm(formula=formula, family=family, data=data, weights=weights, maxit=100))
+  if (inherits(try.result, "try-error")) {
+    cat("speedglm failed, trying glm\n")
+    cat("error was: ")
+    print(try.result)
+    # browser()
+    m <- glm(formula=formula, family=family, data=data.frame(data, weights), weights=weights, control=glm.control(maxit=100))
+  }
+  return(m)
+} 
+
+ltmle.glm.fit <- function(x, y, weights, family, offset, intercept) {
+  try.result <- try({
+    m <- speedglm::speedglm.wfit(y=y, X=x, family=family, weights=weights, offset=offset, intercept=intercept, maxit=100)
+    class(m) <- c("speedglm", "speedlm")
+  })
+  if (inherits(try.result, "try-error")) {
+    cat("speedglm.wfit failed, trying glm\n")
+    cat("error was: ")
+    print(try.result)
+    browser()
+    m <- glm.fit(x=x, y=y, family=family, weights=weights, offset=offset, intercept=intercept, control=glm.control(maxit=100))
+    class(m) <- c("glm", "lm")
+  }
+  return(m)
 }
 
 Default.SL.Library <- list("SL.glm",

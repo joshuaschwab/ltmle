@@ -2,7 +2,7 @@
 
 #' @import stats
 #' @import utils
-
+#' @import matrixStats
 #Strange errors were reported on solaris-sparc, this attempts to avoid them
 safe.solve <- function(a, b) {
   if (missing(b)) {
