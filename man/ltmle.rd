@@ -10,7 +10,7 @@ ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   gbounds = c(0.01, 1), Yrange = NULL, deterministic.g.function = NULL,
   stratify = FALSE, SL.library = NULL, estimate.time = TRUE,
   gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
-  IC.variance.only = FALSE, observation.weights = NULL)
+  variance.method = "tmle", observation.weights = NULL, id = NULL)
 
 ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   survivalOutcome = NULL, Qform = NULL, gform = NULL, gbounds = c(0.01,
@@ -18,7 +18,7 @@ ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   regimes, working.msm, summary.measures, final.Ynodes = NULL,
   stratify = FALSE, msm.weights = "empirical", estimate.time = TRUE,
   gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
-  memoize = TRUE, IC.variance.only = FALSE, observation.weights = NULL)
+  variance.method = "tmle", observation.weights = NULL, id = NULL)
 }
 \arguments{
 \item{data}{data frame following the time-ordering of the nodes. See
@@ -48,8 +48,7 @@ matrix/array of prob(A=1). See 'Details'.}
 counterfactual treatment or a list of length 2. See 'Details'.}
 
 \item{rule}{a function to be applied to each row (a named vector) of
-\code{data} that returns a numeric vector of length numAnodes or a list of
-length 2. See 'Details'.}
+\code{data} that returns a numeric vector of length numAnodes. See 'Details'.}
 
 \item{gbounds}{lower and upper bounds on estimated cumulative probabilities
 for g-factors. Vector of length 2, order unimportant.}
@@ -86,16 +85,25 @@ only IPTW is run, which is faster.}
 deterministically. See 'Details'. Default \code{NULL} indicates no
 deterministic links.}
 
-\item{IC.variance.only}{If \code{FALSE}, compute both the robust variance
+\item{variance.method}{Method for estimating variance of TMLE. 
+One of "ic", "tmle", "iptw". If "tmle", compute both the robust variance
 estimate using TMLE and the influence curve based variance estimate (use the
-larger of the two). If \code{TRUE}, only compute the influence curve based
-variance estimate, which is faster, but may be substantially
-anti-conservative if there are positivity violations or rare outcomes.  
-IC.variance.only=FALSE is not yet available with non-binary outcomes, 
+larger of the two). If "iptw", compute both the robust variance
+estimate using IPTW and the influence curve based variance estimate (use the
+larger of the two). If "ic", only compute the influence curve based
+variance estimate. "ic" is fastest, but may be substantially
+anti-conservative if there are positivity violations or rare outcomes. "tmle" is
+slowest but most robust if there are positivity violations or rare outcomes. 
+"iptw" is a compromise between speed and robustness.
+variance.method="tmle" or "iptw" are not yet available with non-binary outcomes, 
 gcomp=TRUE, stratify=TRUE, deterministic.Q.function, or numeric gform.}
 
 \item{observation.weights}{observation (sampling) weights. Vector of length
 n. If \code{NULL}, assumed to be all 1.}
+
+\item{id}{Household or subject identifiers. Vector of length n or \code{NULL}. 
+Integer, factor, or character recommended, but any type that can be coerced 
+to factor will work. \code{NULL} means all distinct ids.}
 
 \item{regimes}{binary array: n x numAnodes x numRegimes of counterfactual
 treatment or a list of 'rule' functions}
@@ -619,34 +627,21 @@ A <- rexpit(8 * W)
 Y <- rexpit(W + A)
 r1 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE)
 r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
- IC.variance.only=TRUE)
+ variance.method="ic")
+r3 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
+ variance.method="iptw")
 print(summary(r1))
 print(summary(r2))
-print(summary(r1, "iptw"))
-print(summary(r2, "iptw")) #the same - IC.variance.only only affects TMLE
+print(summary(r3))
+print(summary(r1, estimator="iptw"))
+print(summary(r2, estimator="iptw")) #the same - variance.method only affects TMLE
+print(summary(r3, estimator="iptw")) #the same - variance.method only affects TMLE
 }
 
 }
 \author{
 Joshua Schwab \email{joshuaschwab@yahoo.com}, Samuel Lendle, Maya
 Petersen, and Mark van der Laan
-}
-\references{
-Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der
-Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based
-Estimation for Longitudinal Data", Forthcoming
-
-Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum
-Likelihood Estimation of Marginal Structural Working Models for Dynamic
-Treatments Time-Dependent Outcomes", Forthcoming
-
-van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based
-Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C.
-Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
-\url{http://biostats.bepress.com/ucbbiostat/paper290}
-
-van der Laan, Mark J. and Rose, Sherri, "Targeted Learning: Causal Inference
-for Observational and Experimental Data" New York: Springer, 2011.
 }
 \seealso{
 \code{\link{summary.ltmle}}, \code{\link{summary.ltmleMSM}},

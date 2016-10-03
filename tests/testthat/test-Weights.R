@@ -1,6 +1,6 @@
 context("Weights")
 
-n <- 100
+n <- 300
 W <- rnorm(n)
 A1 <- rbinom(n, 1, 0.2)
 Y1 <- rbinom(n, 1, plogis(W + 2*A1))
@@ -47,6 +47,24 @@ test_that("MSM weights influence result", {
   expect_true(plogis(r.msm2$beta[1]) - plogis(r1$beta[1]) > 0.01)
   expect_true(plogis(r.msm3$beta[1]) - plogis(r1$beta[1]) > 0.01)
   expect_true(plogis(r.msm.empirical$beta[1]) - plogis(r1$beta[1]) < -0.01)
+})
+
+test_that("empirical weights are correctly calculated", {
+  r.msm.empirical <- ltmleMSM(data, Anodes=c("A1","A2"), Ynodes=c("Y1", "Y2"), final.Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, regimes=regimes, working.msm="Y~1", summary.measures=NULL, estimate.time=FALSE, msm.weights="empirical")
+  msm.weights <- matrix(c(mean(A1==1), mean(A1==0), mean(A1==1 & (A2==1 | is.na(A2))), mean(A1==0 & (A2==0 | is.na(A2)))), 2, 2)
+  r.msm1 <- ltmleMSM(data, Anodes=c("A1","A2"), Ynodes=c("Y1", "Y2"), final.Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, regimes=regimes, working.msm="Y~1", summary.measures=NULL, estimate.time=FALSE, msm.weights=msm.weights)
+  
+  regimes.duplicate <- list(function(row) c(1, 1), function(row) c(0, 0), function(row) c(1, 1))
+  r.msm.empirical.duplicate <- ltmleMSM(data, Anodes=c("A1","A2"), Ynodes=c("Y1", "Y2"), final.Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, regimes=regimes.duplicate, working.msm="Y~1", summary.measures=NULL, estimate.time=FALSE, msm.weights="empirical")
+  expect_equal(summary(r.msm.empirical), summary(r.msm1))
+  expect_equal(summary(r.msm.empirical), summary(r.msm.empirical.duplicate))
+  
+  data2 <- data.frame(W, C=BinaryToCensoring(is.censored = A1), Y1, A2, Y2)
+  regimes2 <-  list(function(row) 1, function(row) 0)
+  regimes.duplicate2 <- list(function(row) 1, function(row) 0, function(row) 0)
+  r.msm.empirical2 <- ltmleMSM(data2, Anodes="A2", Cnodes="C", Ynodes=c("Y1", "Y2"), final.Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, regimes=regimes2, working.msm="Y~1", summary.measures=NULL, estimate.time=FALSE, msm.weights="empirical")
+  r.msm.empirical.duplicate2 <- ltmleMSM(data2, Anodes="A2", Cnodes="C", Ynodes=c("Y1", "Y2"), final.Ynodes=c("Y1", "Y2"), survivalOutcome=TRUE, regimes=regimes.duplicate2, working.msm="Y~1", summary.measures=NULL, estimate.time=FALSE, msm.weights="empirical")
+  expect_equal(summary(r.msm.empirical2), summary(r.msm.empirical.duplicate2))
 })
 
 test_that("integer observation weights act like making copies", {

@@ -14,7 +14,7 @@ safe.solve <- function(a, b) {
     if (missing(b)) {
       x <- matrix(nrow = nrow(a), ncol = ncol(a))
     } else {
-      x <- matrix(nrow = ncol(a), ncol = ncol(b))
+      x <- matrix(nrow = ncol(a), ncol = ncol(AsMatrix(b)))
     }
     warning("Error in solve(), standard errors not available")
   }
@@ -62,20 +62,12 @@ AsMatrix <- function(x) {
     dim(x) <- c(length(x), 1)
     return(x)
   } else {
-    stop("AsMatrix input should be a matrix or vector")
+    stop("AsMatrix input should be a matrix or vector") # nocov (should never occur - ignore in code coverage checks)
   }
 }
 
 is.equal <- function(...) {
   isTRUE(all.equal(...))
-}
-
-#same as model.matrix, but leave NA rows
-model.matrix.NA <- function(object, data) {
-  MM <- model.matrix(object, data)
-  MM <- MM[match(rownames(data), rownames(MM)), , drop=FALSE]
-  rownames(MM) <- rownames(data)
-  return(MM)
 }
 
 #if warning is in ignoreWarningList, ignore it; otherwise post it as usual
@@ -86,25 +78,15 @@ SuppressGivenWarnings <- function(expr, warningsToIgnore) {
   withCallingHandlers(expr, warning = h )
 }
 
-get.stack <- function(x, ifnotfound=NULL, mode="any") {
-  #Look for object x (string) searching through the calling stack, starting at the current parent frame and going back through the parents
-  if (!is.character(x)) stop("x must be a character string")
-  for (f in (sys.parent(1)):0) {
-    if (exists(x, envir=sys.frame(f), mode=mode, inherits=FALSE)) {
-      return(get(x, envir=sys.frame(f), mode=mode, inherits=FALSE))
-    }
-  }
-  return(ifnotfound)
-}
-
-
 rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
 
 # Given row and column numbers of a matrix with num.rows rows, compute the single index
+# https://cran.r-project.org/doc/contrib/Hiebeler-matlabR.pdf
 sub2ind <- function(row, col, num.rows) {
   return((col - 1) * num.rows + row)
 }
 
+# http://haky-functions.blogspot.com/2006/11/repmat-function-matlab.html
 repmat <- function(X,m,n){
   #R equivalent of repmat (matlab)
   mx <- dim(X)[1]
@@ -113,7 +95,7 @@ repmat <- function(X,m,n){
   return(matrix(t(matrix(X,mx,nx*n)),mx*m,nx*n,byrow=T))
 }
 
-# from Ken Williams on StackOverflow
+# from Ken Williams on StackOverflow http://stackoverflow.com/questions/2547402/is-there-a-built-in-function-for-finding-the-mode
 Mode <- function(x, na.rm=FALSE) {
   if (na.rm) x <- x[!is.na(x)]
   ux <- unique(x)

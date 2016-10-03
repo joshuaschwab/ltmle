@@ -78,7 +78,6 @@ ltmle.sg <- function(d, Inodes, Lnodes, Ynodes, Qform, gform, gbd=0, family="qua
     x[x>max(bounds)] <- max(bounds)
     return(x)
   }
-  
   n <- nrow(d)
   n.Q <- length(Lnodes)
   n.g <- length(Inodes)

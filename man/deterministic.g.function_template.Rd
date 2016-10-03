@@ -138,7 +138,8 @@ deterministic.Q.function_template <- function(data, current.node, nodes,
     # numerical indicies before deterministic.Q.function is called
     
     # It is not necessary to specify that deterministic Y events (Y==1)
-    # indicate a deterministic Q value of 1; this is automatic.
+    # indicate a deterministic Q value of 1; this is automatic 
+    # if the survivalFunction input to ltmle/ltmleMSM is TRUE.
     # deterministic.Q.function will be called at all Lnodes and Ynodes (after
     # removing 'blocks') and Anodes and Cnodes (see called.from.estimate.g
     # above) return(NULL) is equivalent to

@@ -14,10 +14,17 @@ test_that("Previous Ys are included in default formulas when they should be", {
   Ynodes <- c("Y2", "Y3")
 
   forms <- ltmle(data, Anodes, Ynodes=Ynodes, abar=c(1,1), survivalOutcome=FALSE)$formulas
-  expect_that("Y2" %in% RhsVars(forms$gform["A2"]), is_true())
-  expect_that("Y2" %in% RhsVars(forms$Qform["Y3"]), is_true())  
+  expect_true("Y2" %in% RhsVars(forms$gform["A2"]))
+  expect_true("Y2" %in% RhsVars(forms$Qform["Y3"]))  
 
   forms2 <- ltmle(data2, Anodes, Ynodes=Ynodes, abar=c(1,1), survivalOutcome=TRUE)$formulas
-  expect_that("Y2" %in% RhsVars(forms2$gform["A2"]), is_false())
-  expect_that("Y2" %in% RhsVars(forms2$Qform["Y3"]), is_false())  
+  expect_false("Y2" %in% RhsVars(forms2$gform["A2"]))
+  expect_false("Y2" %in% RhsVars(forms2$Qform["Y3"]))
+  
+  data3 <- data[, -1] #test with no W
+  form3 <- ltmle(data3, Anodes, Ynodes=Ynodes, abar=c(1,1), survivalOutcome=FALSE)$formulas
+  expect_equivalent(form3$gform, c("A1 ~ 1", "A2 ~ A1 + Y2"))
+  
+  form4 <- ltmle(data3, Anodes, Ynodes=Ynodes, abar=c(1,1), survivalOutcome=FALSE, stratify=TRUE)$formulas
+  expect_equivalent(form4$gform, c("A1 ~ 1", "A2 ~ Y2"))
 })
