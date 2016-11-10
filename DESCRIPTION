@@ -1,7 +1,7 @@
 Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
-Version: 0.9-8-3
+Version: 0.9-8-4
 Date: 2016-02-22
 Maintainer: Joshua Schwab <joshuaschwab@yahoo.com>
 Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),

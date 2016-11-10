@@ -69,10 +69,9 @@ test_that("invalid inputs throw errors SL", {
   Y <- rexpit(W + A)
   data <- data.frame(W, W2=rnorm(n), A1=A, Y1=Y, A2=A, Y2=as.numeric(rexpit(W) | Y))
   print(head(data))
-  expect_warning(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.library = list(g=NULL, Q=c("SL.mean", "SL.knn")), survivalOutcome = T), "SuperLearner returned predicted.values > 1 or < 0")
-  expect_error(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.library = list(g=NULL, Q=c("SL.xxxx")), survivalOutcome = T), "Error occured during call to SuperLearner")
-  expect_error(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.library = list(g=NULL, Q=c("SL.glmnet")), survivalOutcome = T), "Note that some SuperLeaner libraries crash when called with continuous dependent variables")
-  expect_error(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.library = list(g=NULL, Q=c("SL.mean", "SL.cforest")), survivalOutcome = T), "SuperLearner returned all NAs")
+  expect_warning(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.options=list(g=NULL, Q=list(SL.library=c("SL.mean", "SL.knn"))), survivalOutcome = T), "SuperLearner returned predicted.values > 1 or < 0")
+  expect_error(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.options = list(g=NULL, Q=list(SL.library="SL.xxx")), survivalOutcome = T), "Error occured during call to SuperLearner")
+  expect_error(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), SL.options = list(g=NULL, Q=list(SL.library="SL.glmnet")), survivalOutcome = T), "Note that some SuperLeaner libraries crash when called with continuous dependent variables")
   expect_error(ltmle(data, Anodes = c("A1", "A2"), Ynodes = c("Y1", "Y2"), estimate.time = FALSE, abar = c(1, 1), survivalOutcome = T, deterministic.Q.function = function(data, ...) list(is.deterministic=rep(T, nrow(data)), Q.value=0.5)), "inconsistent deterministic Q at node")
 })
 }
