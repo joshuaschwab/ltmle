@@ -6,6 +6,13 @@
 There were no ERRORs or WARNINGs. There is one NOTE:  
   Maintainer: Joshua Schwab <joshuaschwab@yahoo.com>
   (this is my correct email)
+  
+  
+This NOTE has been fixed, sorry about that:
+* checking top-level files ... NOTE
+Non-standard file/directory found at top level:
+  'revdep'
+
 
 ## Downstream dependencies
 I have run devtools::revdep_check on ltmle. There is 1 downstream dependency and no failures were reported.
