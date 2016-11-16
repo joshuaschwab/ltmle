@@ -1,7 +1,7 @@
 context("Tests with random data")
 
 expect_equals <- function(...) expect_equal(..., tolerance=0.0001, scale=1, check.attributes=FALSE)
-expect_near <- function(...) expect_equal(..., tolerance=0.02, scale=1, check.attributes=FALSE)
+expect_near <- function(...) expect_equal(..., tolerance=0.03, scale=1, check.attributes=FALSE)
 
 test_that("treatment specific mean point treatment matches Susan Gruber tmle package", {
   skip_on_cran() #requires tmle package

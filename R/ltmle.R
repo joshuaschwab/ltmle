@@ -60,10 +60,7 @@
 #' "\code{Q.kplus1}". If \code{SL.library} is \code{NULL}, \code{glm} will be
 #' called using the elements of \code{Qform}. If \code{SL.library} is
 #' specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be
-#' called and all variables appearing on the right hand side of a formula will
-#' be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The
-#' actual functional form of the formula is unimportant if
-#' \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
+#' called after a design matrix is created using \code{Qform.} 
 #' 
 #' ** If there is a "block" of L and Y nodes not separated by A or C nodes,
 #' only one regression is required at the first L/Y node in a block. You can
@@ -79,11 +76,8 @@
 #' hand side of each formula should be the name of the Anode or Cnode. If
 #' \code{SL.library} is \code{NULL}, \code{glm} will be called using the
 #' elements of \code{gform}. If \code{SL.library} is specified,
-#' \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all
-#' variables appearing on the right hand side of a formula will be passed to
-#' \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional
-#' form of the formula is unimportant if
-#' \code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
+#' \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called after a 
+#' design matrix is created using \code{gform}. 
 #' 
 #' In \code{ltmle}, \code{gform} can also be a n x numACnodes matrix where
 #' entry (i, j) is the probability that the ith observation of the jth A/C node
@@ -137,8 +131,12 @@
 #' "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction",
 #' "screen.corP"), c("SL.bayesglm", "screen.corP")}.  Note that the default set
 #' of libraries consists of main terms models. It may be advisable to include
-#' squared terms, interaction terms, etc in \code{data} or include libraries
-#' that consider non-linear terms.
+#' squared terms, interaction terms, etc in \code{gform} and \code{Qform} or 
+#' include libraries that consider non-linear terms.
+#' 
+#' If \code{attr(SL.library, "return.fit") == TRUE}, then \code{fit$g} and 
+#' \code{fit$Q} will return full \code{SuperLearner} objects. If not, only a
+#' summary matrix will be returned to save memory.
 #' 
 #' The print method for \code{ltmle} objects only prints the tmle estimates.
 #' 
@@ -243,13 +241,18 @@
 #' updating [NULL if \code{gcomp} is \code{FALSE}] } \item{cum.g}{cumulative g,
 #' after bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x
 #' num.regimes} \item{cum.g.unbounded}{cumulative g, before bounding: for
-#' ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
+#' ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes} 
+#' \item{cum.g.used}{binary - TRUE if an entry of cum.g was used in the updating
+#' step (note: even if cum.g.used is FALSE, a small value of cum.g.unbounded may
+#' still indicate a positivity problem): for ltmle, n x numACnodes, 
+#' for ltmleMSM, n x numACnodes x num.regimes} 
 #' \item{call}{the matched call} \item{gcomp}{the \code{gcomp} input}
 #' \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 #' \item{fit}{a list with the following components} \itemize{ \item \code{g} -
-#' list of length numACnodes - \code{glm} or \code{SuperLearner} return objects
-#' from fitting g regressions \item \code{Q} - list of length numLYnodes -
-#' \code{glm} or \code{SuperLearner} return objects from fitting Q regressions
+#' list of length numACnodes - \code{glm} or \code{SuperLearner} (see Details) 
+#' return objects from fitting g regressions 
+#' \item \code{Q} - list of length numLYnodes - \code{glm} or \code{SuperLearner} 
+#' (see Details) return objects from fitting Q regressions
 #' \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 #' optimization if \code{glm} fails to solve the score equation) return objects
 #' from updating the Q fit }
@@ -268,11 +271,13 @@
 #' bounding} \item{cum.g.unbounded}{array, n x numACnodes x numRegimes -
 #' cumulative g, before bounding} \item{call}{the matched call}
 #' \item{gcomp}{the \code{gcomp} input} \item{formulas}{a \code{list} with
-#' elements \code{Qform} and \code{gform}} \item{fit}{a list with the following
-#' components} \itemize{ \item \code{g} - list of length numRegimes of list of
-#' length numACnodes - \code{glm} or \code{SuperLearner} return objects from
+#' elements \code{Qform} and \code{gform}} 
+#' \item{fit}{a list with the following components} 
+#' \itemize{ \item \code{g} - list of length numRegimes of list of length 
+#' numACnodes - \code{glm} or \code{SuperLearner} (see Details) return objects from
 #' fitting g regressions \item \code{Q} - list of length numLYnodes -
-#' \code{glm} or \code{SuperLearner} return objects from fitting Q regressions
+#' \code{glm} or \code{SuperLearner} (see Details) return objects from fitting Q 
+#' regressions
 #' \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 #' optimization if \code{glm} fails to solve the score equation) return objects
 #' from updating the Q fit }
@@ -282,6 +287,21 @@
 #' \code{\link[SuperLearner:SuperLearner]{SuperLearner}},
 #' \code{\link{deterministic.g.function_template}},
 #' \code{\link{deterministic.Q.function_template}}
+#' @references Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der
+#' Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based
+#' Estimation for Longitudinal Data", Forthcoming
+#' 
+#' Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum
+#' Likelihood Estimation of Marginal Structural Working Models for Dynamic
+#' Treatments Time-Dependent Outcomes", Forthcoming
+#' 
+#' van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based
+#' Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C.
+#' Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
+#' \url{http://biostats.bepress.com/ucbbiostat/paper290}
+#' 
+#' van der Laan, Mark J. and Rose, Sherri, "Targeted Learning: Causal Inference
+#' for Observational and Experimental Data" New York: Springer, 2011.
 #' @examples
 #' 
 #' rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
@@ -309,11 +329,9 @@
 #' summary(result1)
 #' summary(result1, estimator="iptw")
 #' 
-#' #SuperLearner semiparametric estimation using (incorrectly) specified regressors
-#' #note: The functional form for Qform and gform is unimportant if 
-#' # using SuperLearner - see 'Details'
+#' #SuperLearner semiparametric estimation using correctly specified regressors
 #' result1a <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
-#'  Qform=c(Y="Q.kplus1 ~ W1 + W3 + A"), gform="A ~ W1", abar=1, 
+#'  Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", abar=1, 
 #'  SL.library=c("SL.glm", "SL.step", "SL.mean"))
 #' summary(result1a)
 #' }
@@ -736,7 +754,6 @@ ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOut
 
 # run ltmleMSM from ltmleInputs object
 LtmleMSMFromInputs <- function(inputs) {  
-  # cat("\ndev version\n")
   if (inputs$estimate.time) EstimateTime(inputs)
   result <- MainCalcs(inputs)
   result$gcomp <- inputs$gcomp
@@ -1015,7 +1032,7 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
     } else {
       subs <- uncensored & !deterministic.list.origdata$is.deterministic #vector
     }
-    SuppressGivenWarnings(Q.est <- Estimate(inputs, form = inputs$Qform[LYnode.index], Qstar.kplus1=if (LYnode.index == length(nodes$LY)) Qstar.kplus1[, 1] else Qstar.kplus1, family=quasibinomial(), subs=subs, type="link", nodes=nodes, called.from.estimate.g=FALSE, calc.meanL=FALSE, cur.node=cur.node, regimes.meanL=NULL, regimes.with.positive.weight=regimes.with.positive.weight), GetWarningsToSuppress(update.step = FALSE)) #if this is the last node, only pass the first column as a vector
+    Q.est <- Estimate(inputs, form = inputs$Qform[LYnode.index], Qstar.kplus1=if (LYnode.index == length(nodes$LY)) Qstar.kplus1[, 1] else Qstar.kplus1, family=quasibinomial(), subs=subs, type="link", nodes=nodes, called.from.estimate.g=FALSE, calc.meanL=FALSE, cur.node=cur.node, regimes.meanL=NULL, regimes.with.positive.weight=regimes.with.positive.weight) #if this is the last node, only pass the first column as a vector
     logitQ <- Q.est$predicted.values
     fit.Q[[LYnode.index]] <- Q.est$fit 
     ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
@@ -1135,18 +1152,20 @@ EstimateVariance <- function(inputs, nodes, combined.summary.measures, regimes.w
       if (is.last.LYnode) {
         Sigma[, d1, d2] <- Qstar[, d1] * (1 - Qstar[, d1]) 
       } else {
-        resid.sq <- (Qstar.kplus1[alive, d1] - Qstar[alive, d1]) * (Qstar.kplus1[alive, d2] - Qstar[alive, d2]) 
-        resid.sq.range <- range(resid.sq, na.rm=T)
-        if (diff(resid.sq.range) > 0.0001) {
-          Q.data[, cur.node] <- (resid.sq - resid.sq.range[1]) / diff(resid.sq.range)
-          names(Q.data)[cur.node]  <- "Q.kplus1" #to match with Qform
-          m <- ltmle.glm(formula = formula(inputs$Qform[LYnode.index]), family = quasibinomial(), data = Q.data, weights=NULL) 
-          Q.newdata <- SetA(data = Q.data, regimes = inputs$regimes[alive, , d1, drop=F], Anodes = nodes$A, cur.node = cur.node)
-          SuppressGivenWarnings(Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response"), "prediction from a rank-deficient fit may be misleading")
-          Sigma[alive, d1, d2] <- Q.resid.sq.pred * diff(resid.sq.range) + resid.sq.range[1]
-        } else {
-          resid.sq.value <- min(resid.sq, na.rm = T) #all values are the same, just get one non-NA
-          Sigma[alive, d1, d2] <- resid.sq.value
+        if (any(alive)) { #if none alive, skip this to avoid warnings on range
+          resid.sq <- (Qstar.kplus1[alive, d1] - Qstar[alive, d1]) * (Qstar.kplus1[alive, d2] - Qstar[alive, d2]) 
+          resid.sq.range <- range(resid.sq, na.rm=T)
+          if (diff(resid.sq.range) > 0.0001) {
+            Q.data[, cur.node] <- (resid.sq - resid.sq.range[1]) / diff(resid.sq.range)
+            names(Q.data)[cur.node]  <- "Q.kplus1" #to match with Qform
+            m <- ltmle.glm(formula = formula(inputs$Qform[LYnode.index]), family = quasibinomial(), data = Q.data, weights=NULL) 
+            Q.newdata <- SetA(data = Q.data, regimes = inputs$regimes[alive, , d1, drop=F], Anodes = nodes$A, cur.node = cur.node)
+            SuppressGivenWarnings(Q.resid.sq.pred <- predict(m, newdata = Q.newdata, type = "response"), "prediction from a rank-deficient fit may be misleading")
+            Sigma[alive, d1, d2] <- Q.resid.sq.pred * diff(resid.sq.range) + resid.sq.range[1]
+          } else {
+            resid.sq.value <- min(resid.sq, na.rm = T) #all values are the same, just get one non-NA
+            Sigma[alive, d1, d2] <- resid.sq.value
+          }
         }
         Sigma[!alive, d1, d2] <- 0
       }
@@ -1605,7 +1624,6 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
   treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]))
   ans <- list(treatment=treatment, call=object$call, estimator=estimator, variance.estimate.ratio=variance.estimate.ratio)
   class(ans) <- "summary.ltmle"
-  # browser()
   return(ans)
 }
 
@@ -1877,11 +1895,11 @@ EstimateG <- function(inputs) {
       if (inputs$variance.method != "ic") stop("numeric gform is currently only compatible with variance.method = 'ic'")
       if (!is.null(inputs$deterministic.g.function)) stop("deterministic.g.function is not compatible with numeric gform")
       prob.A.is.1[, i, ] <- inputs$gform[, i, ]
-      g.est <- list(is.deterministic = deterministic.origdata) #note: this assumes that deterministic.Q.function doesn't depend on A (throw warning in CheckInputs)
+      g.est <- list(is.deterministic = deterministic.origdata) 
       fit[[i]] <- "no fit due to numeric gform"
     } else {
       form <- inputs$gform[i]
-      deterministic.g.list.origdata <- IsDeterministicG(inputs$data, cur.node, inputs$deterministic.g.function, nodes, using.newdata=F) #deterministic due to acnode map - using original data
+      deterministic.g.list.origdata <- IsDeterministicG(inputs$data, cur.node, inputs$deterministic.g.function, nodes, using.newdata=F) #deterministic due to deterministic.g.function - using original data
       deterministic.g.origdata <- deterministic.g.list.origdata$is.deterministic
       if (inputs$stratify) {
         intervention.match <- InterventionMatch(inputs$intervention.match, nodes$A, cur.node=nodes$AC[i])
@@ -1889,7 +1907,7 @@ EstimateG <- function(inputs) {
       } else {
         subs <- uncensored & !deterministic.origdata & !deterministic.g.origdata
       }
-      SuppressGivenWarnings(g.est <- Estimate(inputs, form=form, Qstar.kplus1=NULL, subs=subs, family=quasibinomial(), type="response", nodes=nodes, called.from.estimate.g=TRUE, calc.meanL=inputs$variance.method != "ic", cur.node=cur.node, regimes.meanL=regimes.meanL, regimes.with.positive.weight=1:num.regimes), GetWarningsToSuppress(update.step = FALSE)) #assume all regimes have positive weight for some final.Ynode 
+      g.est <- Estimate(inputs, form=form, Qstar.kplus1=NULL, subs=subs, family=quasibinomial(), type="response", nodes=nodes, called.from.estimate.g=TRUE, calc.meanL=inputs$variance.method != "ic", cur.node=cur.node, regimes.meanL=regimes.meanL, regimes.with.positive.weight=1:num.regimes) #assume all regimes have positive weight for some final.Ynode 
       prob.A.is.1[, i, ] <- g.est$predicted.values
       fit[[i]] <- g.est$fit
     }
@@ -2004,7 +2022,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         try.result <- try({
           SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
         })
-        if (all(is.na(m$SL.predict))) { #there's a bug in SuperLearner - if a library returns NAs, it gets coef 0 but the final prediction is still all NA - predict(..., onlySL = TRUE) gets around this
+        if (!inherits(try.result, "try-error") && all(is.na(m$SL.predict))) { #there's a bug in SuperLearner - if a library returns NAs, it gets coef 0 but the final prediction is still all NA; predict(..., onlySL = TRUE) gets around this
           m$SL.predict <- predict(m, newX.list$newX, X.subset, Y.subset, onlySL = TRUE)$pred
         }
         predicted.values <- ProcessSLPrediction(m$SL.predict, newX.list$new.subs, try.result)
@@ -2021,7 +2039,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
       stop(paste("\n\nError occured during call to SuperLearner:\n", form, GetSLStopMsg(Y.subset), "\n The error reported is:\n", try.result)) 
     }
     if (all(is.na(pred))) {
-      stop(paste("\n\nSuperLearner returned all NAs during regression:\n", form, GetSLStopMsg(Y.subset))) 
+      stop(paste("\n\n Unexpected error: SuperLearner returned all NAs during regression:\n", form, GetSLStopMsg(Y.subset))) #nocovr
     }
     predicted.values <- rep(NA, nrow(newdata))
     predicted.values[new.subs] <- pred
@@ -2455,6 +2473,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
       if (length(dim(gform)) != 3 || dim(gform)[3] != num.regimes) stop("if gform is numeric, dim[3] should be num.regimes")
       if (!is.null(deterministic.g.function)) stop("if gform is numeric, deterministic.g.function must be NULL")
       if (max(gform, na.rm=T) > 1 || min(gform, na.rm=T) < 0) stop("if gform is numeric, all values should be probabilities")
+      if (!is.null(deterministic.Q.function) && !isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) warning("If gform is numeric and deterministic.Q.function is not NULL, deterministic.Q.function will only affect g based on the observed values of the Anodes, not the counterfactual values. If your deterministic.Q.function does depends on the values of the Anodes, it is recommended to not use numeric gform.")
     }
   }
   
@@ -2731,13 +2750,14 @@ GetMsmWeights <- function(inputs) {
     #default is probability of following abar given alive, uncensored; conditioning on past treatment/no censoring, but not L, W; duplicates get weight 0
     msm.weights <- matrix(nrow=num.regimes, ncol=num.final.Ynodes)
     
-    if (dim(inputs$regimes)[2] > 0) {
-      is.duplicate <- duplicated(inputs$regimes, MARGIN=3)
-    } else {
-      is.duplicate <- c(FALSE, rep(TRUE, num.regimes - 1))  #in case there are C nodes but no A nodes before a Ynode
-    }
     for (j in 1:num.final.Ynodes) {
       final.Ynode <- inputs$final.Ynodes[j]
+      regimes.subset <- inputs$regimes[, inputs$all.nodes$A < final.Ynode, , drop = FALSE]
+      if (ncol(regimes.subset) > 0) {
+        is.duplicate <- duplicated(regimes.subset, MARGIN=3)
+      } else {
+        is.duplicate <- c(FALSE, rep(TRUE, num.regimes - 1))  #in case there are C nodes but no A nodes before a Ynode
+      }
       uncensored <- IsUncensored(inputs$uncensored, inputs$all.nodes$C, cur.node=final.Ynode)
       intervention.match <- InterventionMatch(inputs$intervention.match, inputs$all.nodes$A, cur.node=final.Ynode)
       for (i in 1:num.regimes) {

@@ -4,7 +4,7 @@
 
 ## R CMD check results
 There were no ERRORs or WARNINGs. There is one NOTE:  
-  Maintainer: ‘Joshua Schwab <joshuaschwab@yahoo.com>’
+  Maintainer: Joshua Schwab <joshuaschwab@yahoo.com>
   (this is my correct email)
 
 ## Downstream dependencies

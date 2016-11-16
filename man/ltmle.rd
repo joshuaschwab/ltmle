@@ -148,13 +148,18 @@ influence curve values for Targeted Maximum Likelihood Estimate without
 updating [NULL if \code{gcomp} is \code{FALSE}] } \item{cum.g}{cumulative g,
 after bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x
 num.regimes} \item{cum.g.unbounded}{cumulative g, before bounding: for
-ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
+ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes} 
+\item{cum.g.used}{binary - TRUE if an entry of cum.g was used in the updating
+step (note: even if cum.g.used is FALSE, a small value of cum.g.unbounded may
+still indicate a positivity problem): for ltmle, n x numACnodes, 
+for ltmleMSM, n x numACnodes x num.regimes} 
 \item{call}{the matched call} \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 \item{fit}{a list with the following components} \itemize{ \item \code{g} -
-list of length numACnodes - \code{glm} or \code{SuperLearner} return objects
-from fitting g regressions \item \code{Q} - list of length numLYnodes -
-\code{glm} or \code{SuperLearner} return objects from fitting Q regressions
+list of length numACnodes - \code{glm} or \code{SuperLearner} (see Details) 
+return objects from fitting g regressions 
+\item \code{Q} - list of length numLYnodes - \code{glm} or \code{SuperLearner} 
+(see Details) return objects from fitting Q regressions
 \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 optimization if \code{glm} fails to solve the score equation) return objects
 from updating the Q fit }
@@ -173,11 +178,13 @@ values for TMLE (without updating if \code{gcomp} input is \code{TRUE})}
 bounding} \item{cum.g.unbounded}{array, n x numACnodes x numRegimes -
 cumulative g, before bounding} \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input} \item{formulas}{a \code{list} with
-elements \code{Qform} and \code{gform}} \item{fit}{a list with the following
-components} \itemize{ \item \code{g} - list of length numRegimes of list of
-length numACnodes - \code{glm} or \code{SuperLearner} return objects from
+elements \code{Qform} and \code{gform}} 
+\item{fit}{a list with the following components} 
+\itemize{ \item \code{g} - list of length numRegimes of list of length 
+numACnodes - \code{glm} or \code{SuperLearner} (see Details) return objects from
 fitting g regressions \item \code{Q} - list of length numLYnodes -
-\code{glm} or \code{SuperLearner} return objects from fitting Q regressions
+\code{glm} or \code{SuperLearner} (see Details) return objects from fitting Q 
+regressions
 \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 optimization if \code{glm} fails to solve the score equation) return objects
 from updating the Q fit }
@@ -244,10 +251,7 @@ in \code{data}. The left hand side of each formula should be
 "\code{Q.kplus1}". If \code{SL.library} is \code{NULL}, \code{glm} will be
 called using the elements of \code{Qform}. If \code{SL.library} is
 specified, \code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be
-called and all variables appearing on the right hand side of a formula will
-be passed to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The
-actual functional form of the formula is unimportant if
-\code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
+called after a design matrix is created using \code{Qform.}
 
 ** If there is a "block" of L and Y nodes not separated by A or C nodes,
 only one regression is required at the first L/Y node in a block. You can
@@ -263,11 +267,8 @@ be the same as the order the A and C nodes appear in \code{data}. The left
 hand side of each formula should be the name of the Anode or Cnode. If
 \code{SL.library} is \code{NULL}, \code{glm} will be called using the
 elements of \code{gform}. If \code{SL.library} is specified,
-\code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called and all
-variables appearing on the right hand side of a formula will be passed to
-\code{\link[SuperLearner:SuperLearner]{SuperLearner}}. The actual functional
-form of the formula is unimportant if
-\code{\link[SuperLearner:SuperLearner]{SuperLearner}} is called.
+\code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called after a 
+design matrix is created using \code{gform}.
 
 In \code{ltmle}, \code{gform} can also be a n x numACnodes matrix where
 entry (i, j) is the probability that the ith observation of the jth A/C node
@@ -321,8 +322,12 @@ to \code{list("SL.glm", "SL.stepAIC", "SL.bayesglm", c("SL.glm",
 "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction",
 "screen.corP"), c("SL.bayesglm", "screen.corP")}.  Note that the default set
 of libraries consists of main terms models. It may be advisable to include
-squared terms, interaction terms, etc in \code{data} or include libraries
-that consider non-linear terms.
+squared terms, interaction terms, etc in \code{gform} and \code{Qform} or 
+include libraries that consider non-linear terms.
+
+If \code{attr(SL.library, "return.fit") == TRUE}, then \code{fit$g} and 
+\code{fit$Q} will return full \code{SuperLearner} objects. If not, only a
+summary matrix will be returned to save memory.
 
 The print method for \code{ltmle} objects only prints the tmle estimates.
 }
@@ -357,11 +362,9 @@ result1 <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", abar=1,
 summary(result1)
 summary(result1, estimator="iptw")
 
-#SuperLearner semiparametric estimation using (incorrectly) specified regressors
-#note: The functional form for Qform and gform is unimportant if 
-# using SuperLearner - see 'Details'
+#SuperLearner semiparametric estimation using correctly specified regressors
 result1a <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
- Qform=c(Y="Q.kplus1 ~ W1 + W3 + A"), gform="A ~ W1", abar=1, 
+ Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ I(W1^2)", abar=1, 
  SL.library=c("SL.glm", "SL.step", "SL.mean"))
 summary(result1a)
 }
@@ -642,6 +645,23 @@ print(summary(r3, estimator="iptw")) #the same - variance.method only affects TM
 \author{
 Joshua Schwab \email{joshuaschwab@yahoo.com}, Samuel Lendle, Maya
 Petersen, and Mark van der Laan
+}
+\references{
+Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der
+Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based
+Estimation for Longitudinal Data", Forthcoming
+
+Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum
+Likelihood Estimation of Marginal Structural Working Models for Dynamic
+Treatments Time-Dependent Outcomes", Forthcoming
+
+van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based
+Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C.
+Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
+\url{http://biostats.bepress.com/ucbbiostat/paper290}
+
+van der Laan, Mark J. and Rose, Sherri, "Targeted Learning: Causal Inference
+for Observational and Experimental Data" New York: Springer, 2011.
 }
 \seealso{
 \code{\link{summary.ltmle}}, \code{\link{summary.ltmleMSM}},

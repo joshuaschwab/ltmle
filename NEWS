@@ -1,3 +1,28 @@
+ltmle 0.9-9
+===========
+
+MAJOR CHANGES
+
+* Package speed has been significantly increased and memory usage has been decreased.
+
+* IC.variance.only has been removed and replaced with variance.method. IC.variance.only=TRUE is equivalent to variance.method = "ic", IC.variance.only=FALSE is equivalent to variance.method="tmle". variance.method="iptw" is also available. See ?ltmle.
+
+* id (household or subject ID) has been added 
+
+* if SL.library is not NULL then gform and Qform will be used to create a design matrix before calling SuperLearner (in previous versions the functional form of Qform/gform was not used)
+
+MINOR CHANGES
+
+* the memorize parameter has been removed
+
+* fit$g and fit$Q only return a summary matrix if SuperLearner is used (to reduce memory usage). You can still get the full SuperLearner return object by using attr(SL.library, "return.fit") <- TRUE.
+
+* cum.g.used has been added to the ltmle/ltmleMSM return object
+
+ltmle 0.9-8
+===========
+* Updated references in ltmle-package.rd
+
 ltmle 0.9-7
 ===========
 
