@@ -2395,6 +2395,7 @@ RhsVars <- function(f) {
 # Error checking for inputs
 CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.options, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, variance.method, id) {
   stopifnot(length(dim(regimes)) == 3)
+  stopifnot(nrow(data) > 0)
   num.regimes <- dim(regimes)[3]
   if (!all(is.null(GetSLOptions(SL.options, "Q")), is.null(GetSLOptions(SL.options, "g")))) {
     if (!requireNamespace("SuperLearner")) stop("SuperLearner package is required if SL.options is not NULL")
