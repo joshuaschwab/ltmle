@@ -678,10 +678,6 @@ GetMSMInputsForLtmle <- function(data, abar, rule, gform) {
     msm.weights <- matrix(1, nrow=1, ncol=1)
     summary.measures <- array(dim=c(1, 0, 1))
   }
-  if (is.numeric(gform)) {
-    stopifnot(is.matrix(gform))
-    dim(gform) <- c(nrow(gform), ncol(gform), 1)
-  }
   msm.inputs <- list(regimes=regimes, working.msm=working.msm, summary.measures=summary.measures, gform=gform, final.Ynodes=NULL, msm.weights=msm.weights)
   return(msm.inputs)
 }
@@ -779,6 +775,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
     }
     regimes <- array(numeric(0), dim=c(nrow(data), 0, 1))
   }
+  num.regimes <- dim(regimes)[3]
   if (is.logical(regimes)) {
     regimes <- regimes * 1
     message("abar or regimes was passed as logical and was converted to numeric")
@@ -798,13 +795,18 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   SL.library.g <- GetLibrary(SL.library, "g")
   
   if (is.null(summary.measures)) {
-    summary.measures <- matrix(nrow=dim(regimes)[3], ncol=0)
+    summary.measures <- matrix(nrow=num.regimes, ncol=0)
   }
   if (length(dim(summary.measures)) == 2) {
     num.final.Ynodes <- length(final.Ynodes)
     summary.measures <- array(repmat(summary.measures, m=1, n=num.final.Ynodes), dim=c(nrow(summary.measures), ncol(summary.measures), num.final.Ynodes), dimnames=list(rownames(summary.measures), colnames(summary.measures), NULL))
   }
   if (is.null(observation.weights)) observation.weights <- rep(1, nrow(data))
+  
+  if (is.matrix(gform)) {
+    if (num.regimes > 1 && variance.method != "ic") stop("If there is more than one regime (using ltmle with list abar or ltmleMSM) and numeric gform and variance.method != 'ic', then gform must be an array, not a matrix.")
+    gform <- array(gform, dim=c(nrow(gform), ncol(gform), num.regimes))
+  }
   
   #error checking (also get value for survivalOutcome if NULL)
   check.results <- CheckInputs(data, all.nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, variance.method, id) 
@@ -911,7 +913,6 @@ VarianceAvailableWarning <- function(inputs) {
   if (!is.null(inputs$deterministic.Q.function)) return("Robust variance estimate is not currently available with deterministic.Q.function")
   if (inputs$gcomp) return("Robust variance estimate is not currently available with gcomp")
   if (inputs$stratify) return("Robust variance estimate is not currently available with stratify=TRUE")
-  if (is.numeric(inputs$gform)) return("Robust variance estimate is not currently available with numeric gform")
   if (!is.null(inputs$id)) return("Robust variance estimate is not currently available with non-null id")
   return(NULL)
 }
@@ -1041,7 +1042,7 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
       logitQ <- Q.est$predicted.values
       fit.Q[[LYnode.index]] <- Q.est$fit 
       ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
-      SuppressGivenWarnings(update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, g.list$cum.g[, ACnode.index, ], g.list$cum.g.unbounded[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights), GetWarningsToSuppress(update.step = TRUE))
+      SuppressGivenWarnings(update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, g.list$cum.g[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights), GetWarningsToSuppress(update.step = TRUE))
       if (length(ACnode.index) > 0) cum.g.used[, ACnode.index, ] <- cum.g.used[, ACnode.index, ] | update.list$cum.g.used 
       Qstar <- update.list$Qstar
       Qstar[Q.est$is.deterministic] <- Q.est$deterministic.Q[Q.est$is.deterministic] #matrix indexing
@@ -1394,7 +1395,7 @@ GetABar <- function(regimes, regime.index, Anodes) {
 }
 
 # Targeting step - update the initial fit of Q using clever covariates
-UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, cum.g, cum.g.unbounded, working.msm, uncensored, intervention.match, is.deterministic, msm.weights, gcomp, observation.weights) { 
+UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, cum.g, working.msm, uncensored, intervention.match, is.deterministic, msm.weights, gcomp, observation.weights) { 
   #logitQ, Qstar.kplus1: n x num.regimes
   #cum.g: n x num.regimes (already indexed for this node)
   #uncensored: n x 1
@@ -1871,7 +1872,7 @@ GetCI <- function(estimate, std.dev) {
   return(CI)
 }
 
-# Parametric estimation of each g-factor
+# Parametric or SuperLeaner estimation of each g-factor
 EstimateG <- function(inputs) {
   n <- nrow(inputs$data)
   num.regimes <- dim(inputs$regimes)[3]
@@ -1902,7 +1903,6 @@ EstimateG <- function(inputs) {
     uncensored <- IsUncensored(inputs$uncensored, nodes$C, cur.node)
     deterministic.origdata <- IsDeterministic(inputs$data, cur.node, inputs$deterministic.Q.function, nodes, called.from.estimate.g=TRUE, inputs$survivalOutcome)$is.deterministic #deterministic due to death or Q.function
     if (is.numeric(inputs$gform)) {
-      if (inputs$variance.method != "ic") stop("numeric gform is currently only compatible with variance.method = 'ic'")
       if (!is.null(inputs$deterministic.g.function)) stop("deterministic.g.function is not compatible with numeric gform")
       prob.A.is.1[, i, ] <- inputs$gform[, i, ]
       g.est <- list(is.deterministic = deterministic.origdata) 
@@ -1935,12 +1935,16 @@ EstimateG <- function(inputs) {
     }
     g[, i, ] <- CalcG(AsMatrix(prob.A.is.1[, i, ]), cur.abar, g.est$is.deterministic)
     if (inputs$variance.method != "ic") {
-      for (j in sseq(1, dim(g.meanL)[4])) {
-        g.meanL[, i, , j] <- CalcG(AsMatrix(g.est$prob.A.is.1.meanL[, , j]), cur.abar.meanL, g.est$is.deterministic)
+      if (is.numeric(inputs$gform)) {
+        if (anyNA(g[, i, ])) stop("Error - NA in numeric gform. There may not be NA values in gform (including after censoring if variance.method is 'tmle' or 'iptw'.")
+        g.meanL[, i, , ] <- g[, i, ] #recyles
+      } else {
+        for (j in sseq(1, dim(g.meanL)[4])) {
+          g.meanL[, i, , j] <- CalcG(AsMatrix(g.est$prob.A.is.1.meanL[, , j]), cur.abar.meanL, g.est$is.deterministic)
+        }
       }
     }
     if (anyNA(g[uncensored, i, ])) stop("Error - NA in g. g should only be NA after censoring. If you passed numeric gform, make sure there are no NA values except after censoring. Otherwise something has gone wrong.")
-    
   }
   
   
@@ -2148,21 +2152,6 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   SL.library <- if (called.from.estimate.g) inputs$SL.library.g else inputs$SL.library.Q
   use.glm <- (is.null(SL.library) || length(RhsVars(f)) == 0)  #in a formula like "Y ~ 1", call glm
   
-  if (F) {
-    if (use.glm) {
-      #scale Lnodes to 0-1 to avoid numerical problems in speedglm
-      for (L in c(nodes$baseline, nodes$L)) { #this is faster than using base::scale
-        if (is.numeric(data[, L]) && !all(is.na(data[, L]))) {  #data[, L] can be all NA if everyone died at earlier time point - causes warning
-          mx <- max(abs(data[, L]), na.rm = T)
-          if (mx == 0) {
-            data[, L] <- 1  #all 0 Lnodes cause problems in speedglm
-          } else if (mx < 0.1 || mx > 10) {
-            data[, L] <- data[, L] / mx
-          }
-        }
-      }
-    } 
-  }
   first.regime <- min(regimes.with.positive.weight)
   if (is.null(Qstar.kplus1)) {
     data.with.Qstar <- data
@@ -2480,7 +2469,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
       if (! is.numeric(gform)) stop("gform should be a character vector or numeric")
       if (nrow(gform) != nrow(data)) stop("if gform is numeric, it should have the same number of rows as data")
       if (ncol(gform) != length(nodes$AC)) stop("if gform is numeric, it should have the same number of columns as length(c(Anodes, Cnodes))")
-      if (length(dim(gform)) != 3 || dim(gform)[3] != num.regimes) stop("if gform is numeric, dim[3] should be num.regimes")
+      if (length(dim(gform)) != 3 || dim(gform)[3] != num.regimes) stop("if gform is numeric, dim[3] should be num.regimes (gform can also be a matrix if variance.method == 'ic')")
       if (!is.null(deterministic.g.function)) stop("if gform is numeric, deterministic.g.function must be NULL")
       if (max(gform, na.rm=T) > 1 || min(gform, na.rm=T) < 0) stop("if gform is numeric, all values should be probabilities")
       if (!is.null(deterministic.Q.function) && !isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) warning("If gform is numeric and deterministic.Q.function is not NULL, deterministic.Q.function will only affect g based on the observed values of the Anodes, not the counterfactual values. If your deterministic.Q.function does depends on the values of the Anodes, it is recommended to not use numeric gform.")
@@ -2616,33 +2605,35 @@ CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, sh
   if (ncol(data) == 1) return(data)
   deterministic.Q.function.depends.on.called.from.estimate.g <- length(grep("called.from.estimate.g", as.character(body(deterministic.Q.function)))) > 0
   for (i in 1:(ncol(data)-1)) {
-    if (anyNA(data[ua, 1:i])) stop("NA values are not permitted in data except after censoring or a survival event")
-    is.deterministic <- ua & IsDeterministic(data, cur.node=i + 1, deterministic.Q.function=deterministic.Q.function, nodes=nodes, called.from.estimate.g=TRUE, survivalOutcome=survivalOutcome)$is.deterministic #check determinisitic including node i 
-    
-    if (deterministic.Q.function.depends.on.called.from.estimate.g) {
-      is.deterministic.Q <- ua & IsDeterministic(data, cur.node=i + 1, deterministic.Q.function=deterministic.Q.function, nodes=nodes, called.from.estimate.g=FALSE, survivalOutcome=survivalOutcome)$is.deterministic 
-      if (any(is.deterministic[ua] & !is.deterministic.Q[ua])) stop("Any row set deterministic by deterministic.Q.function(..., called.from.estimate.g=TRUE) must imply that the row is also set deterministic by deterministic.Q.function(..., called.from.estimate.g=FALSE)") #det.Q.fun(T) should imply det.Q.fun(F)
-    }
-    
-    ua[ua] <- !is.deterministic[ua]
-    if (anyNA(ua)) stop("internal ltmle error - ua should not be NA in CleanData")
-    if (! all(is.na.strict(data[is.deterministic, setdiff((i+1):ncol(data), nodes$Y), drop=FALSE]))) {
-      data[is.deterministic, setdiff((i+1):ncol(data), nodes$Y)] <- NA #if deterministic, set all nodes except Y to NA
-      changed <- TRUE
-    }
-    
-    if (i %in% nodes$C) {
-      censored <- data[, i] == "censored" & ua
-      if (! all(is.na.strict(data[censored, (i+1):ncol(data), drop=FALSE]))) {
-        data[censored, (i+1):ncol(data)] <- NA  #if censored, set all nodes (including Y) to NA
+    if (anyNA(data[ua, i])) stop("NA values are not permitted in data except after censoring or a survival event")
+    if (i %in% c(nodes$L, nodes$Y, nodes$AC)) { #don't use nodes$LY - this can leave out some Y nodes because of blocks
+      is.deterministic <- ua & IsDeterministic(data, cur.node=i + 1, deterministic.Q.function=deterministic.Q.function, nodes=nodes, called.from.estimate.g=TRUE, survivalOutcome=survivalOutcome)$is.deterministic #check determinisitic including node i 
+      
+      if (deterministic.Q.function.depends.on.called.from.estimate.g) {
+        is.deterministic.Q <- ua & IsDeterministic(data, cur.node=i + 1, deterministic.Q.function=deterministic.Q.function, nodes=nodes, called.from.estimate.g=FALSE, survivalOutcome=survivalOutcome)$is.deterministic 
+        if (any(is.deterministic[ua] & !is.deterministic.Q[ua])) stop("Any row set deterministic by deterministic.Q.function(..., called.from.estimate.g=TRUE) must imply that the row is also set deterministic by deterministic.Q.function(..., called.from.estimate.g=FALSE)") #det.Q.fun(T) should imply det.Q.fun(F)
+      }
+      
+      ua[ua] <- !is.deterministic[ua]
+      if (anyNA(ua)) stop("internal ltmle error - ua should not be NA in CleanData")
+      if (! all(is.na.strict(data[is.deterministic, setdiff((i+1):ncol(data), nodes$Y), drop=FALSE]))) {
+        data[is.deterministic, setdiff((i+1):ncol(data), nodes$Y)] <- NA #if deterministic, set all nodes except Y to NA
         changed <- TRUE
       }
-      ua[ua] <- !censored[ua] 
-      if (anyNA(ua)) stop("internal ltmle error - ua should not be NA in CleanData")
-    } 
-  }
-  if (changed && showMessage) {
-    message("Note: for internal purposes, all nodes after a censoring event are set to NA and \n all nodes (except Ynodes) are set to NA after Y=1 if survivalFunction is TRUE (or if specified by deterministic.Q.function).\n Your data did not conform and has been adjusted. This may be relevant if you are \n writing your own deterministic function(s) or debugging ltmle.")
+      
+      if (i %in% nodes$C) {
+        censored <- data[, i] == "censored" & ua
+        if (! all(is.na.strict(data[censored, (i+1):ncol(data), drop=FALSE]))) {
+          data[censored, (i+1):ncol(data)] <- NA  #if censored, set all nodes (including Y) to NA
+          changed <- TRUE
+        }
+        ua[ua] <- !censored[ua] 
+        if (anyNA(ua)) stop("internal ltmle error - ua should not be NA in CleanData")
+      } 
+      if (changed && showMessage) {
+        message("Note: for internal purposes, all nodes after a censoring event are set to NA and \n all nodes (except Ynodes) are set to NA after Y=1 if survivalFunction is TRUE (or if specified by deterministic.Q.function).\n Your data did not conform and has been adjusted. This may be relevant if you are \n writing your own deterministic function(s) or debugging ltmle.")
+      }
+    }
   }
   return(data)
 }
@@ -2878,6 +2869,7 @@ SetSeedIfRegressionTesting <- function() {
 ltmle.glm <- function(formula, family, data, weights) {
   try.result <- try(m <- speedglm::speedglm(formula=formula, family=family, data=data, weights=weights, maxit=100), silent = TRUE)
   if (inherits(try.result, "try-error")) { 
+    ShowGlmMessage()
     if (is.null(weights)) {
       m <- glm(formula=formula, family=family, data=data, control=glm.control(maxit=100)) 
     } else {
@@ -2893,10 +2885,15 @@ ltmle.glm.fit <- function(x, y, weights, family, offset, intercept) {
     class(m) <- c("speedglm", "speedlm")
   }, silent = TRUE)
   if (inherits(try.result, "try-error")) {
+    ShowGlmMessage()
     m <- glm.fit(x=x, y=y, family=family, weights=weights, offset=offset, intercept=intercept, control=glm.control(maxit=100)) 
     class(m) <- c("glm", "lm")
   }
   return(m)
+}
+
+ShowGlmMessage <- function() {
+  message("speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.")
 }
 
 Default.SL.Library <- list("SL.glm",
