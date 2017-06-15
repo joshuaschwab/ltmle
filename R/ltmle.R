@@ -2967,7 +2967,6 @@ ltmle.glm.fit <- function(x, y, weights, family, offset, intercept) {
   }, silent = TRUE)
   if (inherits(try.result, "try-error")) {
     ShowGlmMessage()
-    browser()
     m <- glm.fit(x=x, y=y, family=family, weights=weights, offset=offset, intercept=intercept, control=glm.control(maxit=100)) 
     class(m) <- c("glm", "lm")
   }
