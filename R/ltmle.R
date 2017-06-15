@@ -722,6 +722,7 @@ LtmleFromInputs <- function(inputs) {
   r$fit$g <- r$fit$g[[1]]  #only one regime
   r$fit$Q <- r$fit$Q[[1]]  #only one regime 
   r$Qstar <- msm.result$Qstar[, 1, 1] #1 regime, 1 final.Ynode
+  r$Qstar.array <- msm.result$Qstar.array
   
   r$formulas <- msm.result$formulas
   r$binaryOutcome <- msm.result$binaryOutcome
@@ -851,8 +852,11 @@ MainCalcs <- function(inputs) {
   num.regimes <- dim(inputs$regimes)[3]
   Qstar <- array(dim=c(n, num.regimes, num.final.Ynodes))
   all.msm.weights <- GetMsmWeights(inputs) #n x num.regimes x num.final.Ynodes
+  delta.set <- attr(inputs$gcomp, "delta.set")
+  Qstar.delta <- array(dim=c(n, num.regimes, num.final.Ynodes, length(delta.set)))
   new.var.y <- array(dim=c(num.betas, num.betas, num.final.Ynodes))
   IC <- matrix(0, n, num.betas)
+  IC.delta <- array(0, dim = c(n, num.betas, length(delta.set)))
   #store IC for each final Ynode, compare var(IC) to sum(var(IC.ynode))
   IC.y <- array(dim=c(n, num.betas, num.final.Ynodes))
   
@@ -871,41 +875,59 @@ MainCalcs <- function(inputs) {
       IC.y[, , j] <- fixed.tmle$IC
       Qstar[, , j] <- fixed.tmle$Qstar # n x num.regimes
       new.var.y[, , j] <- fixed.tmle$est.var 
+      Qstar.delta[, , j, ] <- fixed.tmle$Qstar.array 
+      IC.delta <- IC.delta + fixed.tmle$IC.array
     }
     fit <- c(fit, fixed.tmle$fit)
     if (isTRUE(attr(inputs$data, "called.from.estimate.variance", exact=TRUE))) { 
       return(list(IC=matrix(NA, 1, 1), msm=NULL, beta=qlogis(mean(Qstar)), cum.g=g.list$cum.g, cum.g.unbounded=g.list$cum.g.unbounded, fit=fit, variance.estimate=NULL, beta.iptw=iptw$beta, IC.iptw=iptw$IC, Qstar=Qstar, cum.g.used=fixed.tmle$cum.g.used))
     }
-    fitted.msm <- FitPooledMSM(inputs$working.msm, Qstar, inputs$combined.summary.measures, all.msm.weights * inputs$observation.weights) 
-    IC <- FinalizeIC(IC, inputs$combined.summary.measures, Qstar, fitted.msm$m.beta, all.msm.weights, inputs$observation.weights, inputs$id) #n x num.betas
-    C.old <- NormalizeIC(IC, inputs$combined.summary.measures, fitted.msm$m.beta, all.msm.weights, inputs$observation.weights, g.ratio = NULL) #C without using g.ratio 
-    g.ratio <- CalcGUnboundedToBoundedRatio(g.list, inputs$all.nodes, inputs$final.Ynodes)
-    CheckForVarianceWarning(inputs, g.ratio)
-    if (inputs$variance.method == "ic") {   
-      variance.estimate <- NULL
-    } else {
-      new.var <- matrix(NA, num.betas, num.betas)
-      for (i in 1:num.betas) {
-        for (j in 1:num.betas) {
-          if (num.final.Ynodes > 1) {
-            cov.IC <- cov(IC.y[, i, ], IC.y[, j, ])
-            diag(cov.IC) <- new.var.y[i, j, ]
-            new.var[i, j] <- sum(cov.IC)
-          } else {
-            new.var[i, j] <- new.var.y[i, j, 1]
+    
+    IC.list <- msm.list <- beta.list <- list()
+    variance.estimate <- NULL #temp
+    if (is.null(delta.set)) {
+      Qstar.delta <- Qstar
+      dim(Qstar.delta) <- c(dim(Qstar), 1)
+      IC.delta <- IC
+      dim(IC.delta) <- c(dim(IC.delta), 1)
+      delta.set <- NA
+    }
+    for (delta.index in seq_along(delta.set)) {
+      Qstar <- dropn(Qstar.delta[, , , delta.index, drop = F], n = 4)
+      fitted.msm <- FitPooledMSM(inputs$working.msm, Qstar, inputs$combined.summary.measures, all.msm.weights * inputs$observation.weights) 
+      IC <- FinalizeIC(AsMatrix(IC.delta[, , delta.index]), inputs$combined.summary.measures, Qstar, fitted.msm$m.beta, all.msm.weights, inputs$observation.weights, inputs$id) #n x num.betas
+      C.old <- NormalizeIC(IC, inputs$combined.summary.measures, fitted.msm$m.beta, all.msm.weights, inputs$observation.weights, g.ratio = NULL) #C without using g.ratio 
+      g.ratio <- CalcGUnboundedToBoundedRatio(g.list, inputs$all.nodes, inputs$final.Ynodes)
+      #CheckForVarianceWarning(inputs, g.ratio)
+      if (inputs$variance.method == "ic") {   
+        variance.estimate <- NULL
+      } else {
+        stop("not supported with delta.set")
+        new.var <- matrix(NA, num.betas, num.betas)
+        for (i in 1:num.betas) {
+          for (j in 1:num.betas) {
+            if (num.final.Ynodes > 1) {
+              cov.IC <- cov(IC.y[, i, ], IC.y[, j, ])
+              diag(cov.IC) <- new.var.y[i, j, ] 
+              new.var[i, j] <- sum(cov.IC)
+            } else {
+              new.var[i, j] <- new.var.y[i, j, 1]
+            }
           }
         }
+        
+        C <- NormalizeIC(IC, inputs$combined.summary.measures, fitted.msm$m.beta, all.msm.weights, inputs$observation.weights, g.ratio)
+        variance.estimate <- safe.solve(C) %*% new.var %*% t(safe.solve(C))
       }
-      
-      C <- NormalizeIC(IC, inputs$combined.summary.measures, fitted.msm$m.beta, all.msm.weights, inputs$observation.weights, g.ratio)
-      variance.estimate <- safe.solve(C) %*% new.var %*% t(safe.solve(C))
+      IC <- t(safe.solve(C.old, t(IC))) #IC %*% solve(C) 
+      beta <- coef(fitted.msm$m)
+      names(beta) <- inputs$beta.names
+      IC.list[[delta.index]] <- IC
+      msm.list[[delta.index]] <- fitted.msm$m
+      beta.list[[delta.index]] <- beta
     }
-    IC <- t(safe.solve(C.old, t(IC))) #IC %*% solve(C) 
-    beta <- coef(fitted.msm$m)
-    names(beta) <- inputs$beta.names
   }
-  
-  return(list(IC=IC, msm=fitted.msm$m, beta=beta, cum.g=g.list$cum.g, cum.g.unbounded=g.list$cum.g.unbounded, fit=fit, variance.estimate=variance.estimate, beta.iptw=iptw$beta, IC.iptw=iptw$IC, Qstar=Qstar, cum.g.used=fixed.tmle$cum.g.used)) #note: only returns cum.g and fit and cum.g.used for the last final.Ynode
+  return(list(IC=IC.list, msm=msm.list, beta=beta.list, cum.g=g.list$cum.g, cum.g.unbounded=g.list$cum.g.unbounded, fit=fit, variance.estimate=variance.estimate, beta.iptw=iptw$beta, IC.iptw=iptw$IC, Qstar=Qstar, cum.g.used=fixed.tmle$cum.g.used, Qstar.array=fixed.tmle$Qstar.array)) #note: only returns cum.g and fit and cum.g.used for the last final.Ynode
 }
 
 VarianceAvailableWarning <- function(inputs) {
@@ -1018,6 +1040,7 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
   num.betas <- ncol(combined.summary.measures)
   tmle <- rep(NA, num.regimes)
   IC <- matrix(0, nrow=n, ncol=num.betas)
+  IC.array <- NA
   cum.g.used <- array(FALSE, dim=dim(g.list$cum.g)) #n x num.AC.nodes x num.regimes
   
   est.var <- matrix(0, num.betas, num.betas)  
@@ -1026,6 +1049,7 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
   fit.Qstar <- fit.Q <- vector("list", length(nodes$LY))
   names(fit.Qstar) <- names(fit.Q) <- names(data)[nodes$LY]
   Qstar.kplus1 <- matrix(data[, max(nodes$Y)], nrow=n, ncol=num.regimes)
+  Qstar.array <- logitQ.array <- is.deterministic.array <- deterministic.Q.array <- array(dim=c(n, num.regimes, length(nodes$LY)))
   mean.summary.measures <- apply(abs(combined.summary.measures), 2, mean)
   if (length(nodes$LY) > 0) {
     for (LYnode.index in length(nodes$LY):1) {
@@ -1040,6 +1064,9 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
       }
       Q.est <- Estimate(inputs, form = inputs$Qform[LYnode.index], Qstar.kplus1=if (LYnode.index == length(nodes$LY)) Qstar.kplus1[, 1] else Qstar.kplus1, family=quasibinomial(), subs=subs, type="link", nodes=nodes, called.from.estimate.g=FALSE, calc.meanL=FALSE, cur.node=cur.node, regimes.meanL=NULL, regimes.with.positive.weight=regimes.with.positive.weight) #if this is the last node, only pass the first column as a vector
       logitQ <- Q.est$predicted.values
+      logitQ.array[, , LYnode.index] <- logitQ
+      is.deterministic.array[, , LYnode.index] <- Q.est$is.deterministic
+      deterministic.Q.array[, , LYnode.index] <- Q.est$deterministic.Q
       fit.Q[[LYnode.index]] <- Q.est$fit 
       ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
       SuppressGivenWarnings(update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, g.list$cum.g[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights), GetWarningsToSuppress(update.step = TRUE))
@@ -1060,12 +1087,62 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
       IC <- IC + curIC 
       Qstar.kplus1 <- Qstar
       fit.Qstar[[LYnode.index]] <- update.list$fit
+      Qstar.array[, , LYnode.index] <- Qstar
     }
   } else {
     Qstar <- Qstar.kplus1 #if there are no LY nodes (can happen if no A/C nodes before a final.Ynode)
   }
+  if (!is.null(attr(inputs$gcomp, "delta.set"))) {
+    delta.set <- attr(inputs$gcomp, "delta.set")
+    inputs$gcomp <- F
+    IC.array <- array(dim=c(n, num.betas, length(delta.set)))
+    #reset stuff - may not all be needed
+    cum.g.used <- array(FALSE, dim=dim(g.list$cum.g)) #n x num.AC.nodes x num.regimes
+    Qstar.array <- array(dim=c(n, num.regimes, length(delta.set)))
+    for (delta.index in seq_along(delta.set)) {
+      Qstar.kplus1 <- matrix(data[, max(nodes$Y)], nrow=n, ncol=num.regimes)
+      IC <- matrix(0, nrow=n, ncol=num.betas)
+      delta <- delta.set[delta.index]
+      for (LYnode.index in length(nodes$LY):1) {
+        Q.est <- list(is.deterministic = drop3(is.deterministic.array[, , LYnode.index, drop=F]), deterministic.Q = drop3(deterministic.Q.array[, , LYnode.index, drop=F]))
+        logitQ <- drop3(logitQ.array[, , LYnode.index, drop=F]) 
+        
+        cur.node <- nodes$LY[LYnode.index]
+        deterministic.list.origdata <- IsDeterministic(data, cur.node, inputs$deterministic.Q.function, nodes, called.from.estimate.g=FALSE, inputs$survivalOutcome)
+        uncensored <- IsUncensored(inputs$uncensored, nodes$C, cur.node)
+        intervention.match <- InterventionMatch(inputs$intervention.match, nodes$A, cur.node)
+        if (inputs$stratify) {
+          subs <- uncensored & intervention.match & !deterministic.list.origdata$is.deterministic #n x num.regimes
+        } else {
+          subs <- uncensored & !deterministic.list.origdata$is.deterministic #vector
+        }
+       
+        ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
+        SuppressGivenWarnings(update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, Bound(g.list$cum.g.unbounded[, ACnode.index, ], c(delta, 1)), inputs$working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights), GetWarningsToSuppress(update.step = TRUE))
+        if (length(ACnode.index) > 0) cum.g.used[, ACnode.index, ] <- cum.g.used[, ACnode.index, ] | update.list$cum.g.used 
+        Qstar <- update.list$Qstar
+        Qstar[Q.est$is.deterministic] <- Q.est$deterministic.Q[Q.est$is.deterministic] #matrix indexing 
+        
+        curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
+        curIC.relative.error <- abs(colSums(curIC)) 
+        curIC.relative.error[mean.summary.measures > 0] <- curIC.relative.error[mean.summary.measures > 0] / mean.summary.measures[mean.summary.measures > 0]
+        if (any(curIC.relative.error > 0.001)) {
+          SetSeedIfRegressionTesting()
+          fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, Q.est$is.deterministic, Q.est$deterministic.Q, update.list$off, update.list$X, regimes.with.positive.weight)
+          Qstar <- fix.score.list$Qstar
+          curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
+          update.list$fit <- fix.score.list$fit      
+        }
+        IC <- IC + curIC 
+        Qstar.kplus1 <- Qstar
+        fit.Qstar[[LYnode.index]] <- update.list$fit
+      }
+      Qstar.array[, , delta.index] <- Qstar
+      IC.array[, , delta.index] <- IC
+    }
+  }
   #tmle <- colMeans(Qstar)
-  return(list(IC=IC, Qstar=Qstar, est.var=est.var, fit=list(Q=ReorderFits(fit.Q), Qstar=fit.Qstar), cum.g.used=cum.g.used)) 
+  return(list(IC=IC, Qstar=Qstar, est.var=est.var, fit=list(Q=ReorderFits(fit.Q), Qstar=fit.Qstar), cum.g.used=cum.g.used, Qstar.array=Qstar.array, IC.array=IC.array)) 
 }
 
 EstimateVariance <- function(inputs, nodes, combined.summary.measures, regimes.with.positive.weight, uncensored, alive, Qstar, Qstar.kplus1, cur.node, msm.weights, LYnode.index, ACnode.index, cum.g, prob.A.is.1, cum.g.meanL, cum.g.unbounded, cum.g.meanL.unbounded, observation.weights, is.last.LYnode, intervention.match) { 
@@ -2655,6 +2732,9 @@ GetDefaultForm <- function(data, nodes, is.Qform, stratify, survivalOutcome, sho
   if (survivalOutcome) {
     stratify.nodes <- c(stratify.nodes, nodes$Y)
   }
+  if (isTRUE(attr(data, "exclude.Lnodes"))) {
+    stratify.nodes <- c(stratify.nodes, nodes$L)
+  }
   form <- NULL
   for (i in seq_along(node.set)) {
     cur.node <- node.set[i]
@@ -2870,6 +2950,7 @@ ltmle.glm <- function(formula, family, data, weights) {
   try.result <- try(m <- speedglm::speedglm(formula=formula, family=family, data=data, weights=weights, maxit=100), silent = TRUE)
   if (inherits(try.result, "try-error")) { 
     ShowGlmMessage()
+    browser()
     if (is.null(weights)) {
       m <- glm(formula=formula, family=family, data=data, control=glm.control(maxit=100)) 
     } else {
