@@ -31,14 +31,14 @@ test_that("multiple subjects per household increases variance", {
   r1 <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, estimate.time = FALSE, variance.method = "ic")
   r2 <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, estimate.time = FALSE, variance.method = "ic", id=id)
   for (est in c("tmle", "iptw")) {
-    expect_lt(summary(r1, estimator=est)$treatment$std.dev, summary(r2, estimator=est)$treatment$std.dev)
+    expect_true(summary(r1, estimator=est)$treatment$std.dev < summary(r2, estimator=est)$treatment$std.dev)
     expect_equal(r1$estimates[est], r2$estimates[est])
   }
   r3 <- ltmleMSM(data, Anodes="A", Ynodes="Y", regimes=list(function (x) 1, function (x) 0), summary.measures=NULL, working.msm = "Y~1", variance.method = "ic", estimate.time = FALSE)
   r4 <- ltmleMSM(data, Anodes="A", Ynodes="Y", regimes=list(function (x) 1, function (x) 0), summary.measures=NULL, working.msm = "Y~1", variance.method = "ic", id=id, estimate.time = FALSE)
   
   for (est in c("tmle", "iptw")) {
-    expect_lt(summary(r3, estimator=est)$cmat[, 2], summary(r4, estimator=est)$cmat[, 2])
+    expect_true(summary(r3, estimator=est)$cmat[, 2] < summary(r4, estimator=est)$cmat[, 2])
     expect_equal(summary(r3, estimator=est)$cmat[, 1], summary(r4, estimator=est)$cmat[, 1])
   }
 })

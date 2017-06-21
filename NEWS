@@ -1,3 +1,13 @@
+ltmle 0.9-9-3
+===========
+* Robust variance estimate (variance.method = "tmle" or "iptw") is now available with numeric gform
+
+* Ynodes are now permitted before the first A/C node
+
+* Bug fix: in 0.9-9, if all (uncensored, non-deterministic) Qstar.kplus1 values were the same at some Q regression, final results could be wrong
+
+* Bug fix: in 0.9-9, if all values of an Lnode were 0 and a deterministic.Q.function depended on the value of this Lnode, final results could be wrong
+
 ltmle 0.9-9
 ===========
 

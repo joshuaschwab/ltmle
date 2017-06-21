@@ -955,7 +955,6 @@ CalcIPTW <- function(inputs, cum.g, msm.weights) {
     for (i in 1:num.regimes) {
       index <- uncensored & intervention.match[, i]
       col.index <- which.max(nodes$AC[nodes$AC < final.Ynode]) 
-      
       Y <- inputs$data[index, final.Ynode]
       if (length(col.index > 0)) {
         g <- cum.g[index, col.index, i] 
@@ -2014,11 +2013,11 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
     Y.subset.range <- range(Y.subset)
     if (anyNA(Y.subset.range[1])) stop("Internal error - NA in Y during Estimate")
     if (Y.subset.range[1] < -0.0001 || Y.subset.range[2] > 1.0001) stop("Internal error - Y negative or greater than 1 in Estimate")
-    if (Y.subset.range[2] - Y.subset.range[1] < 0.0001) {
+    if (Y.subset.range[2] - Y.subset.range[1] < 0.0001) { 
       # all equal Y values causes errors in some SL libraries (and is a waste of time anyway)
       Y.value <- Y.subset.range[2]
       m <- list("no estimation occured because all Y values are the same", Y.value=Y.value)
-      predicted.values <- rep(Y.value, nrow(newdata))
+      predicted.values <- ValuesByType(rep(Y.value, nrow(newdata)))
       class(m) <- "no.Y.variation"
     } else {
       if (use.glm) {
@@ -2603,7 +2602,7 @@ CleanData <- function(data, nodes, deterministic.Q.function, survivalOutcome, sh
   changed <- FALSE
   ua <- rep(TRUE, nrow(data))  #uncensored and alive
   if (ncol(data) == 1) return(data)
-  deterministic.Q.function.depends.on.called.from.estimate.g <- length(grep("called.from.estimate.g", as.character(body(deterministic.Q.function)))) > 0
+  deterministic.Q.function.depends.on.called.from.estimate.g <- !is.null(deterministic.Q.function) && length(grep("called.from.estimate.g", as.character(body(deterministic.Q.function)))) > 0
   for (i in 1:(ncol(data)-1)) {
     if (anyNA(data[ua, i])) stop("NA values are not permitted in data except after censoring or a survival event")
     if (i %in% c(nodes$L, nodes$Y, nodes$AC)) { #don't use nodes$LY - this can leave out some Y nodes because of blocks

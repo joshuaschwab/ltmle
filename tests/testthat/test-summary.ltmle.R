@@ -27,7 +27,7 @@ test_that("CI is truncated if outcome is binary", {
   data <- data.frame(W, A, Y)
   r1 <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, variance.method="iptw", estimate.time = FALSE)
   s1 <- summary(r1)
-  expect_lt(max(s1$treatment$CI), 1.0001)
+  expect_true(max(s1$treatment$CI) < 1.0001)
 })
 
 test_that("CI is not truncated if outcome is not binary", {
@@ -37,5 +37,5 @@ test_that("CI is not truncated if outcome is not binary", {
                      Y = rnorm(n, mean = 5))
   r1 <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, variance.method="ic", estimate.time = FALSE)
   s1 <- summary(r1)
-  expect_gt(max(s1$treatment$CI), 1)
+  expect_true(max(s1$treatment$CI) > 1)
 })

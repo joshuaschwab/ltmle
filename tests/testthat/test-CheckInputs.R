@@ -15,7 +15,7 @@ test_that("Lnodes, Anodes, Cnodes, Ynodes include all columns after the first on
      abar = c(1,1),
      survivalOutcome = FALSE,
      estimate.time = FALSE),
-     throws_error("All nodes after the first of A-, C-, L-, or Ynodes must be in A-, C-, L-, or Ynodes"))
+     throws_error("All nodes after the first A/C node must be in A-, C-, L-, or Ynodes"))
   })
 
 test_that("In formulas RHS variables are parents of the current node", {

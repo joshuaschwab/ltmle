@@ -19,8 +19,8 @@ test_that("TMLE based variance estimate > IC based variance estimate under posit
   }
   expect_true(mean(std.dev.ratio.tmle) > 1.2)
   expect_true(mean(std.dev.ratio.tmle) > mean(std.dev.ratio.iptw))
-  expect_gte(min(std.dev.ratio.iptw), 1)
-  expect_gte(min(std.dev.ratio.tmle), 1)
+  expect_true(min(std.dev.ratio.iptw) >= 1)
+  expect_true(min(std.dev.ratio.tmle) >= 1)
 })
 
 test_that("All variance estimation methods run", {

@@ -3,6 +3,16 @@
 #' @import stats
 #' @import utils
 #' @import matrixStats
+
+#useful for testing SuperLearner
+SL.NA <- function (Y, X, newX, family, obsWeights, id, ...) {
+  pred <- rep.int(NA, times = nrow(newX)) #nocov -- this function doesn't show up in coverage checks
+  fit <- list(object = NA) #nocov
+  out <- list(pred = pred, fit = fit) #nocov
+  class(out$fit) <- c("SL.NA") #nocov
+  return(out) #nocov
+}
+
 #Strange errors were reported on solaris-sparc, this attempts to avoid them
 safe.solve <- function(a, b) {
   if (missing(b)) {
