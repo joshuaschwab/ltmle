@@ -9,6 +9,7 @@
 #run: CheckBeforeSubmit
 #update cran-comments.rd
 #update in github
+#build_win
 #submit
 #once accepted, tag in github as accepted on CRAN
 
