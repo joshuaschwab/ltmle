@@ -812,7 +812,7 @@ CreateInputs <- function(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, 
   check.results <- CheckInputs(data, all.nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, variance.method, id) 
   survivalOutcome <- check.results$survivalOutcome
   
-  if (!isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE))) { 
+  if (!isTRUE(attr(data, "called.from.estimate.variance", exact=TRUE)) && !isTRUE(attr(data, "skip.clean.data", exact=TRUE))) { 
     data <- CleanData(data, all.nodes, deterministic.Q.function, survivalOutcome)
   }
   transform.list <- TransformOutcomes(data, all.nodes, Yrange)
@@ -1996,7 +1996,7 @@ ReorderFits <- function(l1) {
 }
 # Convert named nodes to indicies of nodes
 NodeToIndex <- function(data, node) {
-  if (! is.data.frame(data)) stop("data must be a data frame")
+ # if (! is.data.frame(data)) stop("data must be a data frame")
   if (is.numeric(node) || is.null(node)) return(node)
   if (! is.character(node)) stop("nodes must be numeric, character, or NULL")
   index <- match(node, names(data))
@@ -2004,6 +2004,11 @@ NodeToIndex <- function(data, node) {
     stop(paste("\nnamed node(s) not found:", node[is.na(index)]))
   }
   return(index)
+}
+
+ # check if glm should be run instead of SuperLearner
+is.glm <- function(SL.library) {
+  is.equal(SL.library, "glm", check.attributes = FALSE)
 }
 
 # Run GLM or SuperLearner
@@ -2149,7 +2154,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   }
   f <- as.formula(form)
   SL.library <- if (called.from.estimate.g) inputs$SL.library.g else inputs$SL.library.Q
-  use.glm <- (is.null(SL.library) || length(RhsVars(f)) == 0)  #in a formula like "Y ~ 1", call glm
+  use.glm <- (is.glm(SL.library) || length(RhsVars(f)) == 0)  #in a formula like "Y ~ 1", call glm
   
   first.regime <- min(regimes.with.positive.weight)
   if (is.null(Qstar.kplus1)) {
@@ -2243,9 +2248,19 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
     if (calc.meanL) prob.A.is.1.meanL[deterministic.g.list.newdata$is.deterministic, regime.index, ] <- deterministic.g.list.newdata$prob1 
     is.deterministic[, regime.index] <- deterministic.list.newdata$is.deterministic
     if (!called.from.estimate.g) deterministic.Q[deterministic.list.newdata$is.deterministic, regime.index] <- deterministic.list.newdata$Q
-    if (!use.glm && !isTRUE(attr(SL.library, "return.fit", exact = TRUE))) {
-      capture.output(print.m <- print(m))
-      fit[[regime.index]] <- print.m #if using SuperLearner, only return print matrix to save space (unless return.fit attr)
+    # if (!use.glm && !isTRUE(attr(SL.library, "return.fit", exact = TRUE))) {
+    if (!isTRUE(attr(SL.library, "return.fit", exact = TRUE))) {
+      if (use.glm) {
+        if (class(m)[1] %in% c("speedglm", "glm")) {
+          fit[[regime.index]] <- summary(m)$coefficients #only return matrix to save space (unless return.fit attr)
+        } else {
+          stopifnot(class(m)[1] %in% c("no.Y.variation", "character"))
+          fit[[regime.index]] <- m #there was no fit because all determinsitic or all Y the same
+        }
+      } else {
+        capture.output(print.m <- print(m))
+        fit[[regime.index]] <- print.m #only return print matrix to save space (unless return.fit attr)
+      }
     } else {
       fit[[regime.index]] <- m  
     }
@@ -2395,7 +2410,9 @@ CalcIC <- function(Qstar.kplus1, Qstar, h.g.ratio, uncensored, intervention.matc
 #Set the Anodes of data to regime[, , regime.index] up to cur.node
 SetA <- function(data, regimes, Anodes, regime.index, cur.node) {
   Anode.index <- which(Anodes < cur.node)
-  data[, Anodes[Anode.index]] <- regimes[, Anode.index, regime.index]
+  for (a in Anode.index) {
+    data[, Anodes[a]] <- regimes[, a, regime.index]
+  }
   return(data)
 }
 
@@ -2415,8 +2432,8 @@ RhsVars <- function(f) {
 CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, variance.method, id) {
   stopifnot(length(dim(regimes)) == 3)
   num.regimes <- dim(regimes)[3]
-  if (!all(is.null(GetLibrary(SL.library, "Q")), is.null(GetLibrary(SL.library, "g")))) {
-    if (!requireNamespace("SuperLearner")) stop("SuperLearner package is required if SL.library is not NULL")
+  if (!is.glm(GetLibrary(SL.library, "Q")) || !is.glm(GetLibrary(SL.library, "g"))) {
+    if (!requireNamespace("SuperLearner")) stop("SuperLearner package is required if SL.library is not NULL or 'glm'")
   } 
   #each set of nodes should be sorted - otherwise causes confusion with gform, Qform, abar
   if (is.unsorted(nodes$A, strictly=TRUE)) stop("Anodes must be in increasing order")
@@ -2733,13 +2750,14 @@ CreateLYNodes <- function(data, nodes, check.Qform, Qform) {
 
 # SL.library can be a character vector of library or a list with two separate vectors, one for Q and one for g
 GetLibrary <- function(SL.library, estimate.type) {
-  if (is.null(names(SL.library))) return(SL.library)
+  NullToGlm <- function(libr) if (is.null(libr)) "glm" else libr
+  if (is.null(names(SL.library))) return(NullToGlm(SL.library))
   if (! identical(sort(names(SL.library)), sort(c("Q", "g")))) stop("If SL.library has names, it must have two names: Q and g")
   if (! estimate.type %in% c("Q", "g")) stop("bad estimate.type") 
   if (length(setdiff(names(attributes(SL.library)), c("names", "return.fit"))) > 0) stop("If SL.library has attributes, the only valid attributes are name and return.fit")
   lib <- SL.library[[estimate.type]]
   attr(lib, "return.fit") <- attr(SL.library, "return.fit", exact = TRUE)
-  return(SL.library[[estimate.type]])
+  return(NullToGlm(SL.library[[estimate.type]]))
 }
 
 GetMsmWeights <- function(inputs) {
