@@ -1,3 +1,13 @@
+ltmle 0.9-9-5
+===========
+* Speed and memory handling improved for large number of time periods
+
+* For ltmle with abar = list(...) and continuous Y outcomes: treatment, control and ATE are now calculated at the original scale (in previous versions they were printed on a transformed scale). This only affects summary.ltmleEffectMeasures.
+
+* If attr(SL.library, "return.fit") == TRUE, then fit$g and fit$Q will return full SuperLearner or speedglm objects. If not, only a summary matrix will be returned to save memory. In previous versions this was used only for SuperLearner; it is now used for both glm and SuperLearner.
+
+* The default for SL.library has been changed from NULL to "glm", but the meaning is the same (run glm instead of SuperLearner). NULL is still accepted (although it is not possible to set attr on NULL - see the change above).
+
 ltmle 0.9-9-3
 ===========
 * Robust variance estimate (variance.method = "tmle" or "iptw") is now available with numeric gform

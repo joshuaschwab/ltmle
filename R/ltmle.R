@@ -18,7 +18,7 @@
 #' \code{data} should be a data frame where the order of the columns
 #' corresponds to the time-ordering of the model.  \itemize{ \item in censoring
 #' columns (Cnodes): factor with two levels: "censored" and "uncensored". The
-#' helper function \code{CensoringToBinary} can be used to create these
+#' helper function \code{BinaryToCensoring} can be used to create these
 #' factors.  \item in treatment columns (Anodes): 1 = treated, 0 = untreated
 #' (must be binary) \item in event columns (Ynodes): If \code{survivalOutcome}
 #' is \code{TRUE}, then Y nodes are treated as indicators of a one-time event.
@@ -119,11 +119,11 @@
 #' For details on the form of the function and examples, see
 #' \code{\link{deterministic.Q.function_template}}
 #' 
-#' \code{SL.library} may be a character vector of libraries (or \code{NULL} or
+#' \code{SL.library} may be a character vector of libraries (or '\code{glm}' or
 #' '\code{default}'), in which case these libraries are used to estimate both
 #' \eqn{Q} and \eqn{g} OR a list with two components, \code{Q} and \code{g},
-#' where each is a character vector of libraries (or \code{NULL} or
-#' '\code{default}').  \code{NULL} indicates \link{glm} should be called
+#' where each is a character vector of libraries (or '\code{glm}' or
+#' '\code{default}').  '\code{glm}' indicates \link{glm} should be called
 #' instead of \code{\link[SuperLearner:SuperLearner]{SuperLearner}} If
 #' \code{SL.library} is the string '\code{default}', \code{SL.library} is set
 #' to \code{list("SL.glm", "SL.stepAIC", "SL.bayesglm", c("SL.glm",
@@ -135,8 +135,8 @@
 #' include libraries that consider non-linear terms.
 #' 
 #' If \code{attr(SL.library, "return.fit") == TRUE}, then \code{fit$g} and 
-#' \code{fit$Q} will return full \code{SuperLearner} objects. If not, only a
-#' summary matrix will be returned to save memory.
+#' \code{fit$Q} will return full \code{SuperLearner} or \code{speedglm} objects. 
+#' If not, only a summary matrix will be returned to save memory.
 #' 
 #' The print method for \code{ltmle} objects only prints the tmle estimates.
 #' 
@@ -215,7 +215,7 @@
 #' slowest but most robust if there are positivity violations or rare outcomes. 
 #' "iptw" is a compromise between speed and robustness.
 #' variance.method="tmle" or "iptw" are not yet available with non-binary outcomes, 
-#' gcomp=TRUE, stratify=TRUE, deterministic.Q.function, or numeric gform.
+#' gcomp=TRUE, stratify=TRUE, or deterministic.Q.function.
 #' @param id Household or subject identifiers. Vector of length n or \code{NULL}. 
 #' Integer, factor, or character recommended, but any type that can be coerced 
 #' to factor will work. \code{NULL} means all distinct ids.
@@ -609,7 +609,7 @@
 #' }
 #' 
 #' @export ltmle
-ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, SL.library=NULL, estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.method="tmle", observation.weights=NULL, id=NULL) {
+ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, SL.library="glm", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.method="tmle", observation.weights=NULL, id=NULL) {
   msm.inputs <- GetMSMInputsForLtmle(data, abar, rule, gform)
   inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, variance.method=variance.method, observation.weights=observation.weights, id=id) 
   result <- LtmleFromInputs(inputs)
@@ -740,7 +740,7 @@ LtmleFromInputs <- function(inputs) {
 
 #' @describeIn ltmle Longitudinal Targeted Maximum Likelihood Estimation for a Marginal Structural Model
 #' @export 
-ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library=NULL, regimes, working.msm, summary.measures, final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.method="tmle", observation.weights=NULL, id=NULL) {
+ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library="glm", regimes, working.msm, summary.measures, final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.method="tmle", observation.weights=NULL, id=NULL) {
   inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, estimate.time, gcomp, iptw.only, deterministic.Q.function, variance.method, observation.weights, id)
   result <- LtmleMSMFromInputs(inputs)
   result$call <- match.call()
@@ -1671,8 +1671,23 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
       measures.max[[i]] <- measures.variance.estimate[[i]]
     }
   }
-  
-  ans <- list(call=object$call, effect.measures=measures.max, variance.estimate.ratio=info$variance.estimate.ratio, transformOutcome=object$transformOutcome, estimator=estimator)
+  if (object$transformOutcome) {
+    #transform back to original scale
+    Yrange <- attr(object$transformOutcome, "Yrange")
+    measures.max <- lapply(measures.max, function (x) {
+      x$estimate <- x$estimate * diff(Yrange)
+      x$std.dev <- x$std.dev * diff(Yrange)
+      x$CI <- x$CI * diff(Yrange)
+      if (x$long.name %in% c("Treatment Estimate", "Control Estimate")) {
+        x$estimate <- x$estimate + min(Yrange)
+        x$CI <- x$CI + min(Yrange)
+      } else {
+        stopifnot(x$long.name == "Additive Treatment Effect")
+      }
+      return(x)
+    })
+  }
+  ans <- list(call=object$call, effect.measures=measures.max, variance.estimate.ratio=info$variance.estimate.ratio, estimator=estimator)
   class(ans) <- "summary.ltmleEffectMeasures"
   return(ans) 
 }
@@ -1767,11 +1782,6 @@ print.summary.ltmleEffectMeasures <- function(x, ...) {
   PrintCall(x$call)
   lapply(x$effect.measures, PrintSummary)
   CheckVarianceEstimateRatio(x)
-  if (x$transformOutcome) {
-    Yrange <- attr(x$transformOutcome, "Yrange")
-    cat("NOTE: All parameters are based on the transformed outcome ( Y -", min(Yrange),
-        ")/(", max(Yrange),"-", min(Yrange),")")
-  }
   invisible(x)
 }
 
@@ -2031,7 +2041,6 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         SuppressGivenWarnings({
           m <- ltmle.glm.fit(y=Y.subset, x=X.subset, family=family, weights=observation.weights.subset, offset=offst, intercept=intercept)
           m$terms <- tf
-          class(m) <- c("speedglm", "speedlm")
           predicted.values <- predict(m, newdata=newdata, type=type)
         }, GetWarningsToSuppress())
       } else {
@@ -2248,8 +2257,9 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
     if (calc.meanL) prob.A.is.1.meanL[deterministic.g.list.newdata$is.deterministic, regime.index, ] <- deterministic.g.list.newdata$prob1 
     is.deterministic[, regime.index] <- deterministic.list.newdata$is.deterministic
     if (!called.from.estimate.g) deterministic.Q[deterministic.list.newdata$is.deterministic, regime.index] <- deterministic.list.newdata$Q
-    # if (!use.glm && !isTRUE(attr(SL.library, "return.fit", exact = TRUE))) {
-    if (!isTRUE(attr(SL.library, "return.fit", exact = TRUE))) {
+    if (isTRUE(attr(SL.library, "return.fit", exact = TRUE))) {
+      fit[[regime.index]] <- m  
+    } else {
       if (use.glm) {
         if (class(m)[1] %in% c("speedglm", "glm")) {
           fit[[regime.index]] <- summary(m)$coefficients #only return matrix to save space (unless return.fit attr)
@@ -2261,9 +2271,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         capture.output(print.m <- print(m))
         fit[[regime.index]] <- print.m #only return print matrix to save space (unless return.fit attr)
       }
-    } else {
-      fit[[regime.index]] <- m  
-    }
+    } 
     if (multiple.subs) subs.index <- subs.index + 1
     if (multiple.Qstar) Qstar.index <- Qstar.index + 1
   }
