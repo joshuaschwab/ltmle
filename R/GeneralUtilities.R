@@ -39,7 +39,7 @@ sseq <- function(from, to) {
 
 #source: http://stackoverflow.com/questions/23274170/how-to-efficiently-check-if-a-matrix-is-in-binary-form-e-g-all-1s-or-0s
 IsBinary <- function(mat) {
-  identical(mat, as.numeric(as.logical(mat)))
+  is.equal(mat, as.numeric(as.logical(mat)))
 }
 
 # scale to 0.01, 0.99 and take logit

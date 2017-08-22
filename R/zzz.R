@@ -1,10 +1,10 @@
 #...
 #search for fixme, browser
-#run: create tests to compare versions.R (check that it works with niter=1, then run again with niter=10)
+#run: create tests to compare versions.R (check that it works with niter=1, then run again with niter=10, then back to niter=1)
 #move test-prevRelease to ltmle-dev/tests/testthat
 #test("ltmle-dev")
-#run: check coverage 
-#source('~/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/ltmle development/check coverage.R'
+#run: check coverage (done, but not sure about above)
+#source('~/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/ltmle development/check coverage.R')
 #move test-prevRelease.R back to /ltmle development
 #run: CheckBeforeSubmit
 #update cran-comments.rd
