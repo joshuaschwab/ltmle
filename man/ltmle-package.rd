@@ -17,12 +17,6 @@ and odds ratio.
 ## For examples see examples(ltmle)
 
 }
-\author{
-Joshua Schwab, Samuel Lendle, Maya Petersen, and Mark van der Laan,
-with contributions from Susan Gruber
-
-Maintainer: Joshua Schwab \email{joshuaschwab@yahoo.com}
-}
 \seealso{
 \code{\link{ltmle}}
 #' @references 
@@ -50,5 +44,10 @@ Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
 van der Laan, Mark J. and Rose, Sherri, "Targeted Learning: Causal Inference
 for Observational and Experimental Data" New York: Springer, 2011.
 }
-\keyword{package}
+\author{
+Joshua Schwab, Samuel Lendle, Maya Petersen, and Mark van der Laan,
+with contributions from Susan Gruber
 
+Maintainer: Joshua Schwab \email{joshuaschwab@yahoo.com}
+}
+\keyword{package}

@@ -25,4 +25,3 @@ data(sampleDataForLtmleMSM)
 
 }
 \keyword{datasets}
-

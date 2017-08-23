@@ -33,10 +33,9 @@ or \code{NA}
  }
 
 }
-\author{
-Joshua Schwab \email{joshuaschwab@yahoo.com}
-}
 \seealso{
 \code{\link{factor}}
 }
-
+\author{
+Joshua Schwab \email{joshuaschwab@yahoo.com}
+}

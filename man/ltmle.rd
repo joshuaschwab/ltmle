@@ -3,6 +3,7 @@
 \name{ltmle}
 \alias{ltmle}
 \alias{ltmleMSM}
+\alias{ltmleMSM}
 \title{Longitudinal Targeted Maximum Likelihood Estimation}
 \usage{
 ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
@@ -335,6 +336,7 @@ The print method for \code{ltmle} objects only prints the tmle estimates.
 \itemize{
 \item \code{ltmleMSM}: Longitudinal Targeted Maximum Likelihood Estimation for a Marginal Structural Model
 }}
+
 \examples{
 
 rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
@@ -642,10 +644,6 @@ print(summary(r3, estimator="iptw")) #the same - variance.method only affects TM
 }
 
 }
-\author{
-Joshua Schwab \email{joshuaschwab@yahoo.com}, Samuel Lendle, Maya
-Petersen, and Mark van der Laan
-}
 \references{
 Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der
 Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based
@@ -669,4 +667,7 @@ for Observational and Experimental Data" New York: Springer, 2011.
 \code{\link{deterministic.g.function_template}},
 \code{\link{deterministic.Q.function_template}}
 }
-
+\author{
+Joshua Schwab \email{joshuaschwab@yahoo.com}, Samuel Lendle, Maya
+Petersen, and Mark van der Laan
+}
