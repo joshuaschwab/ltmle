@@ -6,11 +6,15 @@
 #run: check coverage (done, but not sure about above)
 #source('~/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/ltmle development/check coverage.R')
 #move test-prevRelease.R back to /ltmle development
-#run: CheckBeforeSubmit
+#run: CheckBeforeSubmit:
+#  source('~/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/utils/GeneralUtilities.R')
+#  CheckBeforeSubmit("ltmle-dev")
+#revdep_check("ltmle-dev")
 #update cran-comments.rd
 #update in github
-#build_win
-#submit
+#build_win("ltmle-dev", version = "R-release")
+#build_win("ltmle-dev", version = "R-devel")
+#release("ltmle-dev)
 #once accepted, tag in github as accepted on CRAN
 
 release_questions <- function() {
