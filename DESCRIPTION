@@ -10,7 +10,7 @@ Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
     role="aut"), person("Susan", "Gruber", role="ctb"))
 Depends:
     R(>= 3.1.0)
-Imports: 
+Imports:
     Matrix,
     matrixStats,
     speedglm

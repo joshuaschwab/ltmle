@@ -6,6 +6,7 @@
 #run: check coverage (done, but not sure about above)
 #source('~/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/ltmle development/check coverage.R')
 #move test-prevRelease.R back to /ltmle development
+#document("ltmle-dev")
 #run: CheckBeforeSubmit:
 #  source('~/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/utils/GeneralUtilities.R')
 #  CheckBeforeSubmit("ltmle-dev")
