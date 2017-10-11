@@ -15,15 +15,16 @@
 #' @author Joshua Schwab, Samuel Lendle, Maya Petersen, and Mark van der Laan,
 #' with contributions from Susan Gruber
 #' 
-#' Maintainer: Joshua Schwab \email{joshuaschwab@@yahoo.com}
+#' Maintainer: Joshua Schwab \email{jschwab77@berkeley.edu}
 #' @seealso \code{\link{ltmle}}
-#' #' @references 
+#' @references 
 #' Bang, Heejung, and James M. Robins. "Doubly robust estimation in missing data
 #' and causal inference models." Biometrics 61.4 (2005): 962-973.
 #' 
-#' Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der
-#' Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based
-#' Estimation for Longitudinal Data", Forthcoming
+#' Lendle SD, Schwab J, Petersen ML and van der Laan MJ (2017). "ltmle: An R 
+#' Package Implementing Targeted Minimum Loss-Based Estimation for Longitudinal
+#' Data." _Journal of Statistical Software_, *81*(1), pp. # ' 1-21. 
+#' doi: 10.18637/jss.v081.i01  \url{http://doi.org/10.18637/jss.v081.i01}
 #' 
 #' Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum
 #' Likelihood Estimation of Marginal Structural Working Models for Dynamic

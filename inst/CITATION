@@ -1,0 +1,21 @@
+bibentry(bibtype = "Article",
+  title        = "{ltmle}: An {R} Package Implementing Targeted Minimum Loss-Based Estimation for Longitudinal Data",
+  author       = c(person(given = c("Samuel", "D."),
+                          family = "Lendle",
+                          email = "lendle@berkeley.edu"),
+                   person(given = "Joshua",
+                          family = "Schwab"),
+                   person(given = c("Maya", "L."),
+                          family = "Petersen"),
+                   person(given = c("Mark", "J."),
+                          family = "van der Laan")),
+  journal      = "Journal of Statistical Software",
+  year         = "2017",
+  volume       = "81",
+  number       = "1",
+  pages        = "1--21",
+  doi          = "10.18637/jss.v081.i01",
+
+  header       = "To cite ltmle in publications use:"
+)
+

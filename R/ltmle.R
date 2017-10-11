@@ -281,27 +281,12 @@
 #' \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 #' optimization if \code{glm} fails to solve the score equation) return objects
 #' from updating the Q fit }
-#' @author Joshua Schwab \email{joshuaschwab@@yahoo.com}, Samuel Lendle, Maya
+#' @author Joshua Schwab \email{jschwab77@berkeley.edu}, Samuel Lendle, Maya
 #' Petersen, and Mark van der Laan
 #' @seealso \code{\link{summary.ltmle}}, \code{\link{summary.ltmleMSM}},
 #' \code{\link[SuperLearner:SuperLearner]{SuperLearner}},
 #' \code{\link{deterministic.g.function_template}},
 #' \code{\link{deterministic.Q.function_template}}
-#' @references Lendle, Samuel, Schwab, Joshua, Petersen, Maya and and van der
-#' Laan, Mark J "ltmle: An R Package Implementing Targeted Minimum Loss-based
-#' Estimation for Longitudinal Data", Forthcoming
-#' 
-#' Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum
-#' Likelihood Estimation of Marginal Structural Working Models for Dynamic
-#' Treatments Time-Dependent Outcomes", Forthcoming
-#' 
-#' van der Laan, Mark J. and Gruber, Susan, "Targeted Minimum Loss Based
-#' Estimation of an Intervention Specific Mean Outcome" (August 2011). U.C.
-#' Berkeley Division of Biostatistics Working Paper Series. Working Paper 290.
-#' \url{http://biostats.bepress.com/ucbbiostat/paper290}
-#' 
-#' van der Laan, Mark J. and Rose, Sherri, "Targeted Learning: Causal Inference
-#' for Observational and Experimental Data" New York: Springer, 2011.
 #' @examples
 #' 
 #' rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))

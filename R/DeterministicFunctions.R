@@ -48,7 +48,7 @@
 #' 
 #' NOTE: The \code{Q.value} component is not used or required when
 #' \code{called.from.estimate.g} is \code{TRUE}
-#' @author Joshua Schwab \email{joshuaschwab@@yahoo.com}
+#' @author Joshua Schwab \email{jschwab77@berkeley.edu}
 #' @seealso \code{\link{ltmle}}, \code{\link{ltmleMSM}}
 #' @examples
 #' 

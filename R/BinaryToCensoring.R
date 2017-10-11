@@ -10,7 +10,7 @@
 #' @param is.uncensored binary vector: 0=censored, 1=uncensored
 #' @return an object of class "\code{factor}" with levels "censored" and
 #' "uncensored"
-#' @author Joshua Schwab \email{joshuaschwab@@yahoo.com}
+#' @author Joshua Schwab \email{jschwab77@berkeley.edu}
 #' @seealso \code{\link{factor}}
 #' @examples
 #' 

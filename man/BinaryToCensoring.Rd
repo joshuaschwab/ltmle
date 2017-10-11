@@ -37,5 +37,5 @@ or \code{NA}
 \code{\link{factor}}
 }
 \author{
-Joshua Schwab \email{joshuaschwab@yahoo.com}
+Joshua Schwab \email{jschwab77@berkeley.edu}
 }

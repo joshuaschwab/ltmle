@@ -1,3 +1,7 @@
+ltmle 1.0-0
+===========
+* Added CITATION file for newly published Journal of Statistical Software reference
+
 ltmle 0.9-10
 ===========
 * Speed and memory handling improved for large number of time periods

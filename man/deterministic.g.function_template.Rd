@@ -161,5 +161,5 @@ deterministic.Q.function_template <- function(data, current.node, nodes,
 \code{\link{ltmle}}, \code{\link{ltmleMSM}}
 }
 \author{
-Joshua Schwab \email{joshuaschwab@yahoo.com}
+Joshua Schwab \email{jschwab77@berkeley.edu}
 }
