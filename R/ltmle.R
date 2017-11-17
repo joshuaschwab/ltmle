@@ -2011,7 +2011,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   FitAndPredict <- function() {
     if (length(Y.subset) < 2) stop("Estimation failed because there are fewer than 2 observations to fit")
     Y.subset.range <- range(Y.subset)
-    if (anyNA(Y.subset.range[1])) stop("Internal error - NA in Y during Estimate")
+    if (anyNA(Y.subset.range)) stop("Internal error - NA in Y during Estimate")
     if (Y.subset.range[1] < -0.0001 || Y.subset.range[2] > 1.0001) stop("Internal error - Y negative or greater than 1 in Estimate")
     if (Y.subset.range[2] - Y.subset.range[1] < 0.0001) { 
       # all equal Y values causes errors in some SL libraries (and is a waste of time anyway)
@@ -2177,7 +2177,6 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   fit <- vector("list", num.regimes)
   predicted.values <- deterministic.Q <- matrix(NA, nrow(data), num.regimes)
   is.deterministic <- matrix(FALSE, nrow(data), num.regimes)
-  Qstar.index <- subs.index <- 1
   fit.and.predict <- NULL
   multiple.subs <- is.matrix(subs)
   multiple.Qstar <- is.matrix(Qstar.kplus1)
@@ -2211,10 +2210,10 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
       deterministic.g.list.newdata <- list(is.deterministic = rep(FALSE, nrow(data)), prob1 = NULL)
     }
     if (regime.index > first.regime && multiple.Qstar) {
-      Y <- Qstar.kplus1[, Qstar.index]
+      Y <- Qstar.kplus1[, regime.index]
     }
     if (regime.index == first.regime || multiple.subs) {
-      single.subs <- if (multiple.subs) subs[, subs.index] else subs
+      single.subs <- if (multiple.subs) subs[, regime.index] else subs
       X.subset <- X[single.subs, , drop=FALSE]
       id.subset <- inputs$id[single.subs]
       if (any(single.subs)) X.subset[, colAlls(X.subset == 0)] <- 1 #if there is a column of all zeros, speedglm may crash - replace with column of 1s [any(single.subs) is needed because X.subset==0 is dropped to NULL and causes an error if !any(single.subs)]
@@ -2257,8 +2256,6 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         fit[[regime.index]] <- print.m #only return print matrix to save space (unless return.fit attr)
       }
     } 
-    if (multiple.subs) subs.index <- subs.index + 1
-    if (multiple.Qstar) Qstar.index <- Qstar.index + 1
   }
   return(list(predicted.values=predicted.values, fit=fit, is.deterministic=is.deterministic, deterministic.Q=deterministic.Q, prob.A.is.1.meanL=prob.A.is.1.meanL))
 }

@@ -1,3 +1,7 @@
+ltmle 1.0-1
+===========
+* Bug fix: starting in 0.9-9, in ltmleMSM, if a regime has zero weight for all observations (either because msm.weights specifies zero weight or because msm.weights = "empirical" and the empirical weight is zero), final results can be incorrect or ltmle may exit with the error "NA in Estimate". The bug does not occur, however, if there are no regimes with positive weight after the regime(s) with zero weight (this is the case when msm.weights = "empirical" and zero weight is given to duplicate regimes).
+
 ltmle 1.0-0
 ===========
 * Added CITATION file for newly published Journal of Statistical Software reference
