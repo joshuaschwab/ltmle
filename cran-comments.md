@@ -4,7 +4,7 @@
 
 ## R CMD check results
 There were no ERRORs or WARNINGs or NOTEs.  
-  
+   
 ## Downstream dependencies
 I have run devtools::revdep_check on ltmle. There is 1 downstream dependency and no failures were reported.
 
