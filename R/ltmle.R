@@ -1461,7 +1461,7 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
       }
       init.e <- rnorm(num.betas) #if the first try didn't work, try a random initial estimate of epsilon 
     }
-    return(list(e=numeric(num.betas), solved=FALSE, m="score equation not solved!")) #nocov - return Q (not updated)
+    return(list(e=numeric(num.betas), solved=FALSE, m="score equation not solved!")) # return Q (not updated)
   }
   max.objective <- 0.0001 ^ 2
   num.betas <- ncol(X)
@@ -1829,7 +1829,7 @@ PrintSummary <- function(x) {
     } else if (x$long.name == "Odds Ratio") {
       param.abbrev <- "OR"
     } else {
-      stop("unexpected x$long.name") # nocov (should never occur - ignore in code coverage checks)
+      stop("unexpected x$long.name") # nocov
     }
     cat("  Est Std Err log(", param.abbrev, "):  ", sep="")
   } else {
@@ -2035,9 +2035,6 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         try.result <- try({
           SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
         })
-        if (!inherits(try.result, "try-error") && all(is.na(m$SL.predict))) { #there's a bug in SuperLearner - if a library returns NAs, it gets coef 0 but the final prediction is still all NA; predict(..., onlySL = TRUE) gets around this
-          m$SL.predict <- predict(m, newX.list$newX, X.subset, Y.subset, onlySL = TRUE)$pred
-        }
         predicted.values <- ProcessSLPrediction(m$SL.predict, newX.list$new.subs, try.result)
       }
     }
@@ -2052,7 +2049,7 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
       stop(paste("\n\nError occured during call to SuperLearner:\n", form, GetSLStopMsg(Y.subset), "\n The error reported is:\n", try.result)) 
     }
     if (all(is.na(pred))) {
-      stop(paste("\n\n Unexpected error: SuperLearner returned all NAs during regression:\n", form, GetSLStopMsg(Y.subset))) #nocovr
+      stop(paste("\n\n Unexpected error: SuperLearner returned all NAs during regression:\n", form, GetSLStopMsg(Y.subset))) # nocov
     }
     predicted.values <- rep(NA, nrow(newdata))
     predicted.values[new.subs] <- pred
@@ -2340,7 +2337,7 @@ IsDeterministic <- function(data, cur.node, deterministic.Q.function, nodes, cal
   Q.value.from.function[det.list$is.deterministic] <- det.list$Q.value
   set.by.function.and.death <- is.deterministic & det.list$is.deterministic
   if (any(Q.value.from.function[set.by.function.and.death] != 1)) {
-    stop(paste("inconsistent deterministic Q at node:", names(data)[cur.node])) 
+    stop(paste("inconsistent deterministic Q at node:", names(data)[cur.node])) # nocov 
   }
   finalY <- data[, max(nodes$Y)]
   inconsistent.rows <- (det.list$Q.value %in% c(0,1)) & (det.list$Q.value != finalY[det.list$is.deterministic]) & !is.na(finalY[det.list$is.deterministic])
