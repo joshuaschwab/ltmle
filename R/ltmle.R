@@ -595,6 +595,7 @@
 #' 
 #' @export ltmle
 ltmle <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, abar, rule=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, stratify=FALSE, SL.library="glm", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.method="tmle", observation.weights=NULL, id=NULL) {
+  data <- CheckData(data)
   msm.inputs <- GetMSMInputsForLtmle(data, abar, rule, gform)
   inputs <- CreateInputs(data=data, Anodes=Anodes, Cnodes=Cnodes, Lnodes=Lnodes, Ynodes=Ynodes, survivalOutcome=survivalOutcome, Qform=Qform, gform=msm.inputs$gform, Yrange=Yrange, gbounds=gbounds, deterministic.g.function=deterministic.g.function, SL.library=SL.library, regimes=msm.inputs$regimes, working.msm=msm.inputs$working.msm, summary.measures=msm.inputs$summary.measures, final.Ynodes=msm.inputs$final.Ynodes, stratify=stratify, msm.weights=msm.inputs$msm.weights, estimate.time=estimate.time, gcomp=gcomp, iptw.only=iptw.only, deterministic.Q.function=deterministic.Q.function, variance.method=variance.method, observation.weights=observation.weights, id=id) 
   result <- LtmleFromInputs(inputs)
@@ -726,6 +727,7 @@ LtmleFromInputs <- function(inputs) {
 #' @describeIn ltmle Longitudinal Targeted Maximum Likelihood Estimation for a Marginal Structural Model
 #' @export 
 ltmleMSM <- function(data, Anodes, Cnodes=NULL, Lnodes=NULL, Ynodes, survivalOutcome=NULL, Qform=NULL, gform=NULL, gbounds=c(0.01, 1), Yrange=NULL, deterministic.g.function=NULL, SL.library="glm", regimes, working.msm, summary.measures, final.Ynodes=NULL, stratify=FALSE, msm.weights="empirical", estimate.time=TRUE, gcomp=FALSE, iptw.only=FALSE, deterministic.Q.function=NULL, variance.method="tmle", observation.weights=NULL, id=NULL) {
+  data <- CheckData(data)
   inputs <- CreateInputs(data, Anodes, Cnodes, Lnodes, Ynodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, estimate.time, gcomp, iptw.only, deterministic.Q.function, variance.method, observation.weights, id)
   result <- LtmleMSMFromInputs(inputs)
   result$call <- match.call()
@@ -1485,6 +1487,7 @@ EstimateTime <- function(inputs) {
   sample.index <- sample(nrow(inputs$data), size=sample.size)
   small.inputs <- inputs
   small.inputs$data <- small.inputs$data[sample.index, ]
+  small.inputs$data <- droplevels(small.inputs$data) #drop any unused factor levels to avoid errors later
   small.inputs$regimes <- small.inputs$regimes[sample.index, , , drop=F]
   small.inputs$observation.weights <- small.inputs$observation.weights[sample.index]
   small.inputs$uncensored <- small.inputs$uncensored[sample.index, , drop=F]
@@ -1702,6 +1705,14 @@ GetSummaryLtmleMSMInfo <- function(object, estimator) {
   return(list(estimate=estimate, IC=IC, variance.estimate.ratio=variance.estimate.ratio, v=v))
 }
 
+GetPValue <- function(q, n) {
+  if (n < 100) {
+    return(pt(q, n - 1))
+  } else {
+    return(pnorm(q))
+  }
+}
+
 # Get summary measures for MSM parameters (standard errors, p-values, confidence intervals)
 #' @rdname summary.ltmle
 #' @export 
@@ -1711,8 +1722,8 @@ summary.ltmleMSM <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tm
   v <- info$v
   n <- nrow(info$IC)
   std.dev <- sqrt(v/n)
-  pval <- 2 * pnorm(-abs(estimate / std.dev))
-  CI <- GetCI(estimate, std.dev)  
+  pval <- 2 * GetPValue(-abs(estimate / std.dev), n)
+  CI <- GetCI(estimate, std.dev, n)  
   cmat <- cbind(estimate, std.dev, CI, pval)
   dimnames(cmat) <- list(names(estimate), c("Estimate", "Std. Error", "CI 2.5%", "CI 97.5%", "p-value"))
   ans <- list(cmat=cmat, estimator=estimator, transformOutcome=object$transformOutcome, variance.estimate.ratio=info$variance.estimate.ratio) 
@@ -1849,19 +1860,23 @@ GetSummary <- function(eff.list, cov.mat, n) {
   std.dev <- sqrt(v[1, 1] / n)
   
   if (eff.list$log.std.err) {
-    pvalue <- 2 * pnorm(-abs(log(estimate) / std.dev))
-    CI <- exp(GetCI(log(estimate), std.dev))
+    pvalue <- 2 * GetPValue(-abs(log(estimate) / std.dev), n)
+    CI <- exp(GetCI(log(estimate), std.dev, n))
   } else {
-    pvalue <- 2 * pnorm(-abs(estimate / std.dev))
-    CI <- GetCI(estimate, std.dev)
+    pvalue <- 2 * GetPValue(-abs(estimate / std.dev), n)
+    CI <- GetCI(estimate, std.dev, n)
   }
   CI <- Bound(CI, eff.list$CIBounds) 
   return(list(long.name=eff.list$long.name, estimate=estimate, std.dev=std.dev, pvalue=pvalue, CI=CI, log.std.err=eff.list$log.std.err))
 }
 
 # Calculate 95% confidence interval
-GetCI <- function(estimate, std.dev) {
-  x <- qnorm(0.975) * std.dev
+GetCI <- function(estimate, std.dev, n) {
+  if (n < 100) {
+    x <- qt(0.975, df = n - 1) * std.dev
+  } else {
+    x <- qnorm(0.975) * std.dev
+  }
   CI <- cbind("2.5%"=estimate - x, "97.5%"=estimate + x)
   return(CI)
 }
@@ -1991,7 +2006,6 @@ ReorderFits <- function(l1) {
 }
 # Convert named nodes to indicies of nodes
 NodeToIndex <- function(data, node) {
- # if (! is.data.frame(data)) stop("data must be a data frame")
   if (is.numeric(node) || is.null(node)) return(node)
   if (! is.character(node)) stop("nodes must be numeric, character, or NULL")
   index <- match(node, names(data))
@@ -2415,6 +2429,13 @@ RhsVars <- function(f) {
   return(all.vars(f[[3]]))
 }
 
+CheckData <- function(data) {
+  if (inherits(data, "data.frame")) {
+    return(as.data.frame(data)) #if (e.g. data.table), convert to data.frame to avoid problems later
+  } 
+  stop("data must be a data frame (or inherit data.frame)")
+}
+
 # Error checking for inputs
 CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yrange, deterministic.g.function, SL.library, regimes, working.msm, summary.measures, final.Ynodes, stratify, msm.weights, deterministic.Q.function, observation.weights, gcomp, variance.method, id) {
   stopifnot(length(dim(regimes)) == 3)
@@ -2558,7 +2579,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
     stop("msm.weights must be NULL, 'empirical', or an array with dim(msm.weights) = c(n, num.regimes, num.final.Ynodes) or c(num.regimes, num.final.Ynodes)") 
   }
   
-  if (!(is.null(id) || (is.vector(id) && length(id) == nrow(data)))) stop("id must be a vector with length nrow(data) or be NULL")
+  if (!(is.null(id) || ((is.factor(id) || is.vector(id)) && length(id) == nrow(data)))) stop("id must be a vector with length nrow(data) or be NULL")
   return(list(survivalOutcome=survivalOutcome, binaryOutcome=binaryOutcome, uncensored=uncensored.array))
 }
 
