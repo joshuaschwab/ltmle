@@ -2086,8 +2086,14 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   
   GetNewX <- function(newdata1) {
     new.mod.frame <- model.frame(f, data = newdata1, drop.unused.levels = TRUE, na.action = na.pass)
-    newX.temp <- model.matrix(terms(f), new.mod.frame)
+    tf <- terms(f)
+    newX.temp <- model.matrix(tf, new.mod.frame)
     if (!use.glm) {
+      # check for intercept
+      intercept <- attributes(tf)$intercept
+      if(intercept == 1){
+      	newX.temp <- newX.temp[ , -1, drop = FALSE]
+      }
       colnames(newX.temp) <- paste0("Xx.", 1:ncol(newX.temp)) #change to temp colnames to avoid problems in some SL libraries; SL.gam has problems with names like (Intercept) 
     }
     new.subs <- !rowAnyMissings(newX.temp) #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
@@ -2170,6 +2176,10 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   if (!use.glm) {
     if (is.equal(family, quasibinomial())) family <- binomial()
     if (!is.null(offst)) stop("offset in formula not supported with SuperLearner")
+    # check if intercept in formula, if so, drop that column from X 
+    if(intercept == 1){
+    	X <- X[ , -1, drop = FALSE]
+    }
     colnames(X) <- paste0("Xx.", 1:ncol(X)) #change to temp colnames to avoid problems in some SL libraries; SL.gam has problems with names like (Intercept) 
     X <- as.data.frame(X)
   }
