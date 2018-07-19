@@ -1642,8 +1642,13 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
     eff.list$RR <- eff.list$OR <- NULL #not valid if non-binary outcome
   }
   n <- nrow(IC)
-  
-  measures.IC <- lapply(eff.list, GetSummary, var(IC), n)
+  if (object$transformOutcome) {
+    #transform back to original scale
+    Yrange <- attr(object$transformOutcome, "Yrange")
+  }else{
+  	Yrange <- NULL
+  }
+  measures.IC <- lapply(eff.list, GetSummary, var(IC), n, Yrange)
   if (is.null(object$variance.estimate)) {
     measures.variance.estimate <- NULL #if variance.method="ic"
   } else {
@@ -1657,8 +1662,6 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
     }
   }
   if (object$transformOutcome) {
-    #transform back to original scale
-    Yrange <- attr(object$transformOutcome, "Yrange")
     measures.max <- lapply(measures.max, function (x) {
       x$estimate <- x$estimate * diff(Yrange)
       x$std.dev <- x$std.dev * diff(Yrange)
@@ -1842,17 +1845,21 @@ PrintSummary <- function(x) {
 }
 
 #Calculate estimate, standard deviation, p-value, confidence interval
-GetSummary <- function(eff.list, cov.mat, n) {
+GetSummary <- function(eff.list, cov.mat, n, Yrange) {
   estimate <- eff.list$est
   v <- t(eff.list$gradient) %*% cov.mat %*% eff.list$gradient
   stopifnot(length(v) == 1)
   std.dev <- sqrt(v[1, 1] / n)
-  
+  if(eff.list$long.name == "Treatment Estimate" | eff.list$long.name == "Control Estimate"){
+  	null_hyp <- -Yrange[1] / diff(Yrange)
+  }else{
+  	null_hyp <- 0
+  }
   if (eff.list$log.std.err) {
     pvalue <- 2 * pnorm(-abs(log(estimate) / std.dev))
     CI <- exp(GetCI(log(estimate), std.dev))
   } else {
-    pvalue <- 2 * pnorm(-abs(estimate / std.dev))
+    pvalue <- 2 * pnorm(-abs((estimate - null_hyp) / std.dev))
     CI <- GetCI(estimate, std.dev)
   }
   CI <- Bound(CI, eff.list$CIBounds) 
