@@ -1616,7 +1616,7 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
   } else {
     CIBounds <- c(-Inf, Inf)  #could truncate at Yrange, but it's not clear that's right
   }
-  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]))
+  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]), Yrange = NULL)
   ans <- list(treatment=treatment, call=object$call, estimator=estimator, variance.estimate.ratio=variance.estimate.ratio)
   class(ans) <- "summary.ltmle"
   return(ans)
@@ -1850,7 +1850,10 @@ GetSummary <- function(eff.list, cov.mat, n, Yrange) {
   v <- t(eff.list$gradient) %*% cov.mat %*% eff.list$gradient
   stopifnot(length(v) == 1)
   std.dev <- sqrt(v[1, 1] / n)
-  if(eff.list$long.name == "Treatment Estimate" | eff.list$long.name == "Control Estimate"){
+  if(is.null(eff.list$long.name)){
+  	# called from summary.ltmle
+  	null_hyp <- 0
+  }else if(eff.list$long.name == "Treatment Estimate" | eff.list$long.name == "Control Estimate"){
   	null_hyp <- -Yrange[1] / diff(Yrange)
   }else{
   	null_hyp <- 0
@@ -2039,8 +2042,27 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         #estimate using SuperLearner
         newX.list <- GetNewX(newdata)
         SetSeedIfRegressionTesting()
+        # default folds = 10
+        V <- 10
+        binaryOutcome <- all(Y.subset %in% c(0,1))
+        # if binary, then CV stratified by outcome
+        if(binaryOutcome){
+        	n1 <- sum(Y.subset)
+        	n0 <- sum(1 - Y.subset)
+        	if(n1 < V | n0 < V){
+        		# change to two-fold CV to attempt to gain 
+        		# some stability
+        		V <- 2
+        	}
+        	if(n1 == 1 | n0 == 1){
+        		# if only one event, no point in regressing, just use mean
+        		this.SL.library <- "SL.mean"
+        	}else{
+        		this.SL.library <- SL.library
+        	}
+        }
         try.result <- try({
-          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
+          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl = list(V = V, stratifyCV = ifelse(binaryOutcome,TRUE,FALSE)),verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
         })
         if (!inherits(try.result, "try-error") && all(is.na(m$SL.predict))) { #there's a bug in SuperLearner - if a library returns NAs, it gets coef 0 but the final prediction is still all NA; predict(..., onlySL = TRUE) gets around this
           m$SL.predict <- predict(m, newX.list$newX, X.subset, Y.subset, onlySL = TRUE)$pred
