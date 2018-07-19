@@ -2044,12 +2044,14 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         SetSeedIfRegressionTesting()
         # default folds = 10
         V <- 10
+        stratifyCV <- FALSE
         binaryOutcome <- all(Y.subset %in% c(0,1))
         # if binary, then CV stratified by outcome
         if(binaryOutcome){
+        	stratifyCV <- TRUE
         	n1 <- sum(Y.subset)
         	n0 <- sum(1 - Y.subset)
-        	if(n1 < V | n0 < V){
+        	if(n1 <= V | n0 <= V){
         		# change to two-fold CV to attempt to gain 
         		# some stability
         		V <- 2
@@ -2057,12 +2059,13 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         	if(n1 == 1 | n0 == 1){
         		# if only one event, no point in regressing, just use mean
         		this.SL.library <- "SL.mean"
+        		stratifyCV <- FALSE
         	}else{
         		this.SL.library <- SL.library
         	}
         }
         try.result <- try({
-          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl = list(V = V, stratifyCV = ifelse(binaryOutcome,TRUE,FALSE)),verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
+          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl = list(V = V, stratifyCV = stratifyCV),verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
         })
         if (!inherits(try.result, "try-error") && all(is.na(m$SL.predict))) { #there's a bug in SuperLearner - if a library returns NAs, it gets coef 0 but the final prediction is still all NA; predict(..., onlySL = TRUE) gets around this
           m$SL.predict <- predict(m, newX.list$newX, X.subset, Y.subset, onlySL = TRUE)$pred
