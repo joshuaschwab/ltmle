@@ -1616,7 +1616,7 @@ summary.ltmle <- function(object, estimator=ifelse(object$gcomp, "gcomp", "tmle"
   } else {
     CIBounds <- c(-Inf, Inf)  #could truncate at Yrange, but it's not clear that's right
   }
-  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]))
+  treatment <- GetSummary(list(long.name=NULL, est=object$estimates[estimator], gradient=1, log.std.err=FALSE, CIBounds=CIBounds), v, n=length(object$IC[[estimator]]), Yrange = NULL)
   ans <- list(treatment=treatment, call=object$call, estimator=estimator, variance.estimate.ratio=variance.estimate.ratio)
   class(ans) <- "summary.ltmle"
   return(ans)
@@ -1642,8 +1642,13 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
     eff.list$RR <- eff.list$OR <- NULL #not valid if non-binary outcome
   }
   n <- nrow(IC)
-  
-  measures.IC <- lapply(eff.list, GetSummary, var(IC), n)
+  if (object$transformOutcome) {
+    #transform back to original scale
+    Yrange <- attr(object$transformOutcome, "Yrange")
+  }else{
+  	Yrange <- NULL
+  }
+  measures.IC <- lapply(eff.list, GetSummary, var(IC), n, Yrange)
   if (is.null(object$variance.estimate)) {
     measures.variance.estimate <- NULL #if variance.method="ic"
   } else {
@@ -1657,8 +1662,6 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
     }
   }
   if (object$transformOutcome) {
-    #transform back to original scale
-    Yrange <- attr(object$transformOutcome, "Yrange")
     measures.max <- lapply(measures.max, function (x) {
       x$estimate <- x$estimate * diff(Yrange)
       x$std.dev <- x$std.dev * diff(Yrange)
@@ -1842,17 +1845,24 @@ PrintSummary <- function(x) {
 }
 
 #Calculate estimate, standard deviation, p-value, confidence interval
-GetSummary <- function(eff.list, cov.mat, n) {
+GetSummary <- function(eff.list, cov.mat, n, Yrange) {
   estimate <- eff.list$est
   v <- t(eff.list$gradient) %*% cov.mat %*% eff.list$gradient
   stopifnot(length(v) == 1)
   std.dev <- sqrt(v[1, 1] / n)
-  
+  if(is.null(eff.list$long.name)){
+  	# called from summary.ltmle
+  	null_hyp <- 0
+  }else if(eff.list$long.name == "Treatment Estimate" | eff.list$long.name == "Control Estimate"){
+  	null_hyp <- -Yrange[1] / diff(Yrange)
+  }else{
+  	null_hyp <- 0
+  }
   if (eff.list$log.std.err) {
     pvalue <- 2 * pnorm(-abs(log(estimate) / std.dev))
     CI <- exp(GetCI(log(estimate), std.dev))
   } else {
-    pvalue <- 2 * pnorm(-abs(estimate / std.dev))
+    pvalue <- 2 * pnorm(-abs((estimate - null_hyp) / std.dev))
     CI <- GetCI(estimate, std.dev)
   }
   CI <- Bound(CI, eff.list$CIBounds) 
@@ -2032,8 +2042,30 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
         #estimate using SuperLearner
         newX.list <- GetNewX(newdata)
         SetSeedIfRegressionTesting()
+        # default folds = 10
+        V <- 10
+        stratifyCV <- FALSE
+        binaryOutcome <- all(Y.subset %in% c(0,1))
+        # if binary, then CV stratified by outcome
+        if(binaryOutcome){
+        	stratifyCV <- TRUE
+        	n1 <- sum(Y.subset)
+        	n0 <- sum(1 - Y.subset)
+        	if(n1 <= V | n0 <= V){
+        		# change to two-fold CV to attempt to gain 
+        		# some stability
+        		V <- 2
+        	}
+        	if(n1 == 1 | n0 == 1){
+        		# if only one event, no point in regressing, just use mean
+        		this.SL.library <- "SL.mean"
+        		stratifyCV <- FALSE
+        	}else{
+        		this.SL.library <- SL.library
+        	}
+        }
         try.result <- try({
-          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
+          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl = list(V = V, stratifyCV = stratifyCV),verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading")) 
         })
         if (!inherits(try.result, "try-error") && all(is.na(m$SL.predict))) { #there's a bug in SuperLearner - if a library returns NAs, it gets coef 0 but the final prediction is still all NA; predict(..., onlySL = TRUE) gets around this
           m$SL.predict <- predict(m, newX.list$newX, X.subset, Y.subset, onlySL = TRUE)$pred
@@ -2086,8 +2118,14 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   
   GetNewX <- function(newdata1) {
     new.mod.frame <- model.frame(f, data = newdata1, drop.unused.levels = TRUE, na.action = na.pass)
-    newX.temp <- model.matrix(terms(f), new.mod.frame)
+    tf <- terms(f)
+    newX.temp <- model.matrix(tf, new.mod.frame)
     if (!use.glm) {
+      # check for intercept
+      intercept <- attributes(tf)$intercept
+      if(intercept == 1){
+      	newX.temp <- newX.temp[ , -1, drop = FALSE]
+      }
       colnames(newX.temp) <- paste0("Xx.", 1:ncol(newX.temp)) #change to temp colnames to avoid problems in some SL libraries; SL.gam has problems with names like (Intercept) 
     }
     new.subs <- !rowAnyMissings(newX.temp) #remove NA values from newdata - these will output to NA anyway and cause errors in SuperLearner
@@ -2170,6 +2208,10 @@ Estimate <- function(inputs, form, subs, family, type, nodes, Qstar.kplus1, cur.
   if (!use.glm) {
     if (is.equal(family, quasibinomial())) family <- binomial()
     if (!is.null(offst)) stop("offset in formula not supported with SuperLearner")
+    # check if intercept in formula, if so, drop that column from X 
+    if(intercept == 1){
+    	X <- X[ , -1, drop = FALSE]
+    }
     colnames(X) <- paste0("Xx.", 1:ncol(X)) #change to temp colnames to avoid problems in some SL libraries; SL.gam has problems with names like (Intercept) 
     X <- as.data.frame(X)
   }
