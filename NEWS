@@ -1,4 +1,4 @@
-ltmle 1.1
+ltmle 1.1-0
 ===========
 * Added SL.cvControl - optional list to be passed as cvControl to SuperLearner
 * confidence intervals and pvalues now use the t distribution if there are fewer than 100 observations (or fewer than 100 unique identifiers in id)
