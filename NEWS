@@ -1,3 +1,11 @@
+ltmle 1.1
+===========
+* Added SL.cvControl - optional list to be passed as cvControl to SuperLearner
+* confidence intervals and pvalues now use the t distribution if there are fewer than 100 observations (or fewer than 100 unique identifiers in id)
+* data can now be any class that inherits from data.frame
+* Bug fix: in previous versions, time estimate was sometimes unavailable if data contained factors
+* Added Suggests: tmle to DESCRIPTION - fixes a warning that caused ltmle to be temporarily removed from CRAN
+
 ltmle 1.0-1
 ===========
 * Bug fix: starting in 0.9-9, in ltmleMSM, if a regime has zero weight for all observations (either because msm.weights specifies zero weight or because msm.weights = "empirical" and the empirical weight is zero), final results can be incorrect or ltmle may exit with the error "NA in Estimate". The bug does not occur, however, if there are no regimes with positive weight after the regime(s) with zero weight (this is the case when msm.weights = "empirical" and zero weight is given to duplicate regimes).

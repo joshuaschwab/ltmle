@@ -1,8 +1,8 @@
 Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
-Version: 1.0-1
-Date: 2017-12-13
+Version: 1.1
+Date: 2018-5-22
 Maintainer: Joshua Schwab <jschwab77@berkeley.edu>
 Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
     email="jschwab77@berkeley.edu"), person("Samuel", "Lendle", role="aut"),
@@ -16,7 +16,8 @@ Imports:
     speedglm
 Suggests:
     SuperLearner,
-    testthat
+    testthat,
+    tmle
 Description: Targeted Maximum Likelihood Estimation (TMLE) of
     treatment/censoring specific mean outcome or marginal structural model for
     point-treatment and longitudinal data.

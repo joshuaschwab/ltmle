@@ -9,17 +9,19 @@
 ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   survivalOutcome = NULL, Qform = NULL, gform = NULL, abar, rule = NULL,
   gbounds = c(0.01, 1), Yrange = NULL, deterministic.g.function = NULL,
-  stratify = FALSE, SL.library = "glm", estimate.time = TRUE,
-  gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
-  variance.method = "tmle", observation.weights = NULL, id = NULL)
+  stratify = FALSE, SL.library = "glm", SL.cvControl = list(),
+  estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,
+  deterministic.Q.function = NULL, variance.method = "tmle",
+  observation.weights = NULL, id = NULL)
 
 ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   survivalOutcome = NULL, Qform = NULL, gform = NULL, gbounds = c(0.01,
   1), Yrange = NULL, deterministic.g.function = NULL, SL.library = "glm",
-  regimes, working.msm, summary.measures, final.Ynodes = NULL,
-  stratify = FALSE, msm.weights = "empirical", estimate.time = TRUE,
-  gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
-  variance.method = "tmle", observation.weights = NULL, id = NULL)
+  SL.cvControl = list(), regimes, working.msm, summary.measures,
+  final.Ynodes = NULL, stratify = FALSE, msm.weights = "empirical",
+  estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,
+  deterministic.Q.function = NULL, variance.method = "tmle",
+  observation.weights = NULL, id = NULL)
 }
 \arguments{
 \item{data}{data frame following the time-ordering of the nodes. See
@@ -70,6 +72,8 @@ estimating Q and g. If \code{FALSE}, pool over \code{abar}.}
 \code{\link[SuperLearner:SuperLearner]{SuperLearner}}. '\code{default}'
 indicates a standard set of libraries. May be separately specified for
 \eqn{Q} and \eqn{g}. See 'Details'.}
+
+\item{SL.cvControl}{optional list to be passed as \code{cvControl} to \code{\link[SuperLearner:SuperLearner]{SuperLearner}}}
 
 \item{estimate.time}{if \code{TRUE}, run an initial estimate using only 50
 observations and use this to print a very rough estimate of the total time

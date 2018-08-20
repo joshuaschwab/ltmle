@@ -121,3 +121,17 @@ test_that("survivalOutcome required if outcome is binary", {
     throws_error("All Ynodes are 0, 1, or NA; the outcome is treated as binary. The 'survivalOutcome' argument must be specified."))
   expect_error(ltmle(data, Anodes="A", Ynodes=c("Y1", "Y2"), abar=1, estimate.time = FALSE, Yrange = c(0, 0.5), survivalOutcome = TRUE), "All Ynodes are 0, 1, or NA, but Yrange is something other")
 })
+
+test_that("cvControl requires correct names and makes a difference", {
+  set.seed(1)
+  n <- 50
+  W <- rnorm(n)
+  A <- rbinom(n, 1, plogis(W))
+  Y <- rbinom(n, 1, plogis(W + A))
+  data <- data.frame(W, A, Y)
+  expect_error(ltmle(data, Anodes="A", Ynodes="Y", abar=1, estimate.time = FALSE, SL.library = "default", SL.cvControl = 5), "SL.cvControl must be a list")
+  expect_error(ltmle(data, Anodes="A", Ynodes="Y", abar=1, estimate.time = FALSE, SL.library = "default", SL.cvControl = list(validRows = 1)), "The valid names for SL.cvControl are V, stratifyCV, shuffle. validRows is not currently supported.")
+  r1 <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, estimate.time = FALSE, SL.library = c("SL.step", "SL.glm", "SL.mean", "SL.lm"))
+  r2 <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, estimate.time = FALSE, SL.library = c("SL.step", "SL.glm", "SL.mean", "SL.lm"), SL.cvControl = list(V = 5, shuffle = F, stratifyCV = T))
+  expect_gt(abs(r1$estimates["tmle"] - r2$estimates["tmle"]), 0.001)
+})
