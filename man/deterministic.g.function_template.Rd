@@ -5,7 +5,6 @@
 \alias{MaintainTreatment}
 \alias{MaintainControl}
 \alias{deterministic.Q.function_template}
-\alias{deterministic.Q.function_template}
 \title{Deterministic g/Q functions - examples and templates}
 \usage{
 deterministic.g.function_template(data, current.node, nodes)

@@ -3,20 +3,20 @@
 \name{ltmle}
 \alias{ltmle}
 \alias{ltmleMSM}
-\alias{ltmleMSM}
 \title{Longitudinal Targeted Maximum Likelihood Estimation}
 \usage{
 ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
-  survivalOutcome = NULL, Qform = NULL, gform = NULL, abar, rule = NULL,
-  gbounds = c(0.01, 1), Yrange = NULL, deterministic.g.function = NULL,
-  stratify = FALSE, SL.library = "glm", SL.cvControl = list(),
-  estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,
-  deterministic.Q.function = NULL, variance.method = "tmle",
-  observation.weights = NULL, id = NULL)
+  survivalOutcome = NULL, Qform = NULL, gform = NULL, abar,
+  rule = NULL, gbounds = c(0.01, 1), Yrange = NULL,
+  deterministic.g.function = NULL, stratify = FALSE,
+  SL.library = "glm", SL.cvControl = list(), estimate.time = TRUE,
+  gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
+  variance.method = "tmle", observation.weights = NULL, id = NULL)
 
 ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
-  survivalOutcome = NULL, Qform = NULL, gform = NULL, gbounds = c(0.01,
-  1), Yrange = NULL, deterministic.g.function = NULL, SL.library = "glm",
+  survivalOutcome = NULL, Qform = NULL, gform = NULL,
+  gbounds = c(0.01, 1), Yrange = NULL,
+  deterministic.g.function = NULL, SL.library = "glm",
   SL.cvControl = list(), regimes, working.msm, summary.measures,
   final.Ynodes = NULL, stratify = FALSE, msm.weights = "empirical",
   estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,

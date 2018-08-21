@@ -10,14 +10,6 @@
 \alias{summary.ltmleEffectMeasures}
 \alias{print.ltmleEffectMeasures}
 \alias{print.summary.ltmleEffectMeasures}
-\alias{summary.ltmleEffectMeasures}
-\alias{summary.ltmleMSM}
-\alias{print.summary.ltmleMSM}
-\alias{print.summary.ltmle}
-\alias{print.ltmleEffectMeasures}
-\alias{print.summary.ltmleEffectMeasures}
-\alias{print.ltmleMSM}
-\alias{print.ltmle}
 \title{Get standard error, p-value, and confidence interval for one ltmle object 
 Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation
 (ltmle)}
@@ -25,14 +17,14 @@ Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation
 \method{summary}{ltmle}(object, estimator = ifelse(object$gcomp, "gcomp",
   "tmle"), ...)
 
-\method{summary}{ltmleEffectMeasures}(object, estimator = ifelse(object$gcomp,
+\method{summary}{ltmleEffectMeasures}(object,
+  estimator = ifelse(object$gcomp, "gcomp", "tmle"), ...)
+
+\method{summary}{ltmleMSM}(object, estimator = ifelse(object$gcomp,
   "gcomp", "tmle"), ...)
 
-\method{summary}{ltmleMSM}(object, estimator = ifelse(object$gcomp, "gcomp",
-  "tmle"), ...)
-
-\method{print}{summary.ltmleMSM}(x, digits = max(3, getOption("digits") - 3),
-  signif.stars = getOption("show.signif.stars"), ...)
+\method{print}{summary.ltmleMSM}(x, digits = max(3, getOption("digits") -
+  3), signif.stars = getOption("show.signif.stars"), ...)
 
 \method{print}{summary.ltmle}(x, ...)
 
