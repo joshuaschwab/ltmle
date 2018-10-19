@@ -17,13 +17,51 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Minimal Example
+Consider the observed data with time ordering W -> A -> Y.
 
+W ~ N(0, 1)
+
+A ~ binomial with P(A = 1) = expit(W)
+
+Y ~ binomial with P(Y = 1) = expit(W + A)
+
+where $expit(z) = \frac{1}{1 + e^{-z}}$
+
+We want to know $E[Y_1]$ the expected value of Y, intervening to set A to 1.
+```{r}
+set.seed(1234)
+rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
+n <- 10000
+W <- rnorm(n)
+A <- rexpit(W)
+Y <- rexpit(W + A)
+data <- data.frame(W, A, Y)
+```
+
+We could try to use the simple mean of Y or the mean of Y when A = 1, but these will be biased.
+```{r}
+mean(Y)
+mean(Y[A == 1])
+```
+
+Now we use ltmle().
+```{r}
+result <- ltmle(data, Anodes = "A", Ynodes = "Y", abar = 1)
+result
+```
+Because we're using simulated data, we can calculate the true value of $E[Y_1]$
+```{r}
+n.large <- 1e6
+W <- rnorm(n.large)
+A <- 1
+Y <- rexpit(W + A)
+mean(Y)
+```
 
 ## Single time point 
-Time ordering of data is W1 W2 W3 A Y
+Time ordering of data is W1 -> W2 -> W3 -> A -> Y
 ```{r}
-set.seed(123)
-rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
 n <- 1000
 W1 <- rnorm(n)
 W2 <- rbinom(n, size=1, prob=0.3)   
@@ -32,7 +70,7 @@ A <- rexpit(-1 + 2 * W1 + W3)
 Y <- rexpit(-0.5 + 2 * W1^2 + 0.5 * W2 - 0.5 * A + 0.2 * W3 * A - 1.1 * W3)
 data <- data.frame(W1, W2, W3, A, Y)
 ```
-True value of $E[Y_1]$ (expected value of Y setting A to 1) is approximately 0.5939.
+True value of $E[Y_1]$ is approximately 0.5939.
 
 SuperLearner semiparametric estimation using all parents as regressors 
 ``` {r}
