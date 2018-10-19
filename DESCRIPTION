@@ -17,7 +17,9 @@ Imports:
 Suggests:
     SuperLearner,
     testthat,
-    tmle
+    tmle,
+    knitr,
+    rmarkdown
 Description: Targeted Maximum Likelihood Estimation (TMLE) of
     treatment/censoring specific mean outcome or marginal structural model for
     point-treatment and longitudinal data.
@@ -33,3 +35,4 @@ Collate:
 URL: https://github.com/joshuaschwab/ltmle
 BugReports: https://github.com/joshuaschwab/ltmle/issues
 RoxygenNote: 6.1.0
+VignetteBuilder: knitr

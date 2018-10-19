@@ -5,12 +5,9 @@ inst/ignore
 .Rproj.user
 
 .Rbuildignore
-
 .Rhistory
-
 data/PreviousReleaseTests copy.RData
-
 ltmle-dev.Rproj
 =======
-inst/ignore
 >>>>>>> 4010af7c7bf7ea3f1a3a40dedadd282fab4ad2ed
+inst/doc

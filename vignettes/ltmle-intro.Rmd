@@ -1,0 +1,259 @@
+---
+title: "Introduction to ltmle()"
+author: "Joshua Schwab"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(ltmle)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+
+## Single time point 
+Time ordering of data is W1 W2 W3 A Y
+```{r}
+set.seed(123)
+rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
+n <- 1000
+W1 <- rnorm(n)
+W2 <- rbinom(n, size=1, prob=0.3)   
+W3 <- rnorm(n)
+A <- rexpit(-1 + 2 * W1 + W3)
+Y <- rexpit(-0.5 + 2 * W1^2 + 0.5 * W2 - 0.5 * A + 0.2 * W3 * A - 1.1 * W3)
+data <- data.frame(W1, W2, W3, A, Y)
+```
+True value of $E[Y_1]$ (expected value of Y setting A to 1) is approximately 0.5939.
+
+SuperLearner semiparametric estimation using all parents as regressors 
+``` {r}
+result <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", abar=1, SL.library="default")
+```
+
+TMLE estimate:
+```{r}
+summary(result)
+```
+IPTW estimate:
+```{r}
+summary(result, estimator="iptw")
+```
+
+SuperLearner semiparametric estimation using correctly specified regressors
+```{r}
+result <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ W1 + W3", abar=1, SL.library="default")
+summary(result)
+```
+
+glm using correctly specified Qform and gform
+```{r}
+result <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
+ Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform="A ~ W1 + W3", 
+ abar=1, SL.library=NULL)
+summary(result)
+```
+
+
+Get summary measures (additive treatment effect, odds ratio, relative risk) for abar=1 vs abar=0
+```{r}
+result <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
+                      abar=list(1, 0), SL.library="default")
+summary(result)
+```
+
+## Censoring
+W -> C -> Y
+```{r}
+n <- 100000
+W <- rnorm(n)
+C <- BinaryToCensoring(is.censored = rexpit(W))
+summary(C)
+Y <- rep(NA, n)
+Y[C == "uncensored"] <- rexpit(W[C == "uncensored"])
+data <- data.frame(W, C, Y)
+head(data, 20)
+result <- ltmle(data, Anodes = NULL, Cnodes = "C", Ynodes = "Y", abar = NULL)
+summary(result)
+```
+The naive estimate is biased:
+```{r}
+mean(data$Y)
+mean(data$Y, na.rm = T)
+```
+
+## Longitudinal data
+W -> A1 -> L -> A2 -> Y
+
+```{r}
+n <- 1000
+W <- rnorm(n)
+A1 <- rexpit(W)
+L <- 0.3 * W + 0.2 * A1 + rnorm(n)
+A2 <- rexpit(W + A1 + L)
+Y <- rexpit(W - 0.6 * A1 + L - 0.8 * A2)
+data <- data.frame(W, A1, L, A2, Y)
+```
+
+
+Treatment regime of interest: set all A1 to 1, set all A2 to 0:
+```{r}
+result.1.0 <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", abar=c(1, 0))
+result.1.0
+```
+
+## Dynamic treatment
+Treatment regime of interest is: 
+ Always treat at time 1 (A1 = 1), treat at at time 2 (A2 = 1) if L > 0
+```{r}
+abar <- matrix(nrow=n, ncol=2)
+abar[, 1] <- 1
+abar[, 2] <- L > 0
+
+result.abar <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", abar=abar)
+result.abar
+```
+
+The regime can also be specified as a rule function
+```{r}
+rule <- function(row) c(1, row["L"] > 0)
+
+result.rule <- ltmle(data, Anodes=c("A1", "A2"), Lnodes="L", Ynodes="Y", rule=rule)
+result.rule
+```
+
+Specfifying the regime using abar and using rule give the same result:
+```{r}
+summary(result.abar)
+summary(result.rule)
+```
+
+
+
+
+
+## Variance estimation
+A simple point treatment problem W, A, Y. But there is a positivity problem - for small values of W, Prob(A = 1) is very small.
+
+The true parameter value, $E[Y_1]$ is approximately 0.697.
+
+The true TMLE standard deviation is approximately 0.064. 
+
+The true IPTW standard deviation is approximately 0.058.
+
+```{r}
+n <- 1000
+W <- rnorm(n)
+A <- rexpit(8 * W)
+Y <- rexpit(W + A)
+r1 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE)
+r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
+ variance.method="ic")
+r3 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
+ variance.method="iptw")
+print(summary(r1))
+print(summary(r2))
+print(summary(r3))
+print(summary(r1, estimator="iptw"))
+print(summary(r2, estimator="iptw")) #the same - variance.method only affects TMLE
+print(summary(r3, estimator="iptw")) #the same - variance.method only affects TMLE
+```
+
+We can see that the values of g are very small.
+```{r}
+summary(r1$cum.g)
+summary(r1$cum.g.unbounded)
+head(data.frame(data, g = r1$cum.g, g.unbounded = r1$cum.g.unbounded), 20)
+```
+
+## Hierachical data and the id variable
+```{r}
+num.households <- 500
+people.in.household <- round(runif(num.households, min = 1, max = 10))
+length(people.in.household)
+n <- sum(people.in.household) 
+n
+W.household <- rnorm(num.households)
+length(W.household)
+W.household.expanded <- rep(W.household, times = people.in.household)
+W.indiv <- rnorm(n)
+length(W.indiv)
+A <- rexpit(1.5 * W.household.expanded + 0.4 * W.indiv)
+Y <- rexpit(-1 + 2.3 * W.household.expanded - 0.6 * W.indiv + 1.2 * A)
+```
+id can be an integer, factor, or character (or any type that can be coerced to factor)
+```{r}
+id <- 1:num.households 
+id.expanded <- rep(id, times = people.in.household)
+data <- data.frame(W.household.expanded, W.indiv, A, Y)
+head(cbind(id.expanded, data), 20)
+```
+```{r}
+result.without.id <- ltmle(data, Anodes = "A", Ynodes = "Y", abar = 0)
+result.with.id <- ltmle(data, Anodes = "A", Ynodes = "Y", abar = 0, id = id.expanded)
+```
+Omitting the id variable makes the individuals seem more independent than they are, which gives artificially low variance estimates.
+```{r}
+summary(result.without.id)
+summary(result.with.id)
+```
+The influence curve is a vector with length equal to the number of independent units.
+```{r}
+length(result.without.id$IC$tmle)
+length(result.with.id$IC$tmle)
+```
+
+## Multiple time-dependent covariates and treatments at each time point, continuous Y values
+age -> gender -> A1 -> L1a -> L1b -> Y1 -> A2 -> L2a -> L2b -> Y2
+``` {r}
+set.seed(2)
+n <- 1000
+age <- rbinom(n, 1, 0.5)
+gender <- rbinom(n, 1, 0.5)
+A1 <- rexpit(age + gender)
+L1a <- 2*age - 3*gender + 2*A1 + rnorm(n)
+L1b <- rexpit(age + 1.5*gender - A1)
+Y1 <- plogis(age - gender + L1a + 0.7*L1b + A1 + rnorm(n))
+A2 <- rexpit(age + gender + A1 - L1a - L1b)
+L2a <- 2*age - 3*gender + 2*A1 + A2 + rnorm(n)
+L2b <- rexpit(age + 1.5*gender - A1 - A2)
+Y2 <- plogis(age - gender + L1a + L1b + A1 + 1.8*A2 + rnorm(n))
+data <- data.frame(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)
+```
+
+Also show some different ways of specifying the nodes:
+
+```{r}
+result5a <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
+ Ynodes=grep("^Y", names(data)), abar=c(1, 0)) 
+summary(result5a)
+```
+
+Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case L1a, L1b, Y1 is a "block" of L/Y nodes not separated by Anodes or Cnodes (the same is true for L2a, L2b, Y2). Only one regression is required at the first L/Y node in a block. You can pass regression formulas for the other L/Y nodes, but they'll be ignored.
+```{r}
+result5b <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
+ Ynodes=grep("^Y", names(data)), abar=c(1, 0), 
+ Qform=c(L1a="Q.kplus1 ~ 1", L2a="Q.kplus1 ~ 1"))
+summary(result5b)
+```
+
+Gives the same result but prints a message saying some regression formulas will be dropped:
+```{r}
+result5c <- ltmle(data, Anodes=c(3, 7), Lnodes=c("L1a", "L1b", "L2a", "L2b"), 
+ Ynodes=grep("^Y", names(data)), abar=c(1, 0), 
+ Qform=c(L1a="Q.kplus1 ~ 1", L1b="Q.klus1~A1", 
+ Y1="Q.kplus1~L1a", L2a="Q.kplus1 ~ 1", L2b="Q.klus1~A1", Y2="Q.kplus1~A2 + gender"))
+summary(result5c)
+```
+
+If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula.
+
+

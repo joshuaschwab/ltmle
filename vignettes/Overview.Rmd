@@ -1,0 +1,106 @@
+---
+title: "ltmle package overview"
+author: "Joshua Schwab"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## ltmle()
+ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
+  survivalOutcome = NULL, Qform = NULL, gform = NULL, abar,
+  rule = NULL, gbounds = c(0.01, 1), Yrange = NULL,
+  deterministic.g.function = NULL, stratify = FALSE,
+  SL.library = "glm", SL.cvControl = list(), estimate.time = TRUE,
+  gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
+  variance.method = "tmle", observation.weights = NULL, id = NULL)
+
+  
+* Required:
+    * data
+    * Anodes
+    * Ynodes
+    * abar
+
+* Often needed:
+    * Cnodes
+    * Lnodes
+    * SL.library
+    * survivalOutcome
+
+* Rarely needed (simple):
+    * gbounds
+    * Yrange
+    * stratify
+    * SL.cvControl
+    * estimate.time
+    * gcomp
+    * iptw.only
+    * variance.method
+    * observation.weights
+    * id
+
+* Rarely needed (complicated):
+    * Qform
+    * gform
+    * rule
+    * deterministic.g.function
+    * deterministic.Q.function
+
+## ltmleMSM()
+ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
+  survivalOutcome = NULL, Qform = NULL, gform = NULL,
+  gbounds = c(0.01, 1), Yrange = NULL,
+  deterministic.g.function = NULL, SL.library = "glm",
+  SL.cvControl = list(), regimes, working.msm, summary.measures,
+  final.Ynodes = NULL, stratify = FALSE, msm.weights = "empirical",
+  estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,
+  deterministic.Q.function = NULL, variance.method = "tmle",
+  observation.weights = NULL, id = NULL)
+  
+* Required:
+    * data
+    * Anodes
+    * Ynodes
+    * regimes
+    * working.msm
+    * summary.measures
+
+* Often needed:
+    * Cnodes
+    * Lnodes
+    * SL.library
+    * survivalOutcome
+    * final.Ynodes
+
+* Rarely needed (simple):
+    * msm.weights
+    * gbounds
+    * Yrange
+    * stratify
+    * SL.cvControl
+    * estimate.time
+    * gcomp
+    * iptw.only
+    * variance.method
+    * observation.weights
+    * id
+
+* Rarely needed (complicated):
+    * Qform
+    * gform
+    * rule
+    * deterministic.g.function
+    * deterministic.Q.function
+
+

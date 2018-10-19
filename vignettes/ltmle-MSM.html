@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Joshua Schwab" />
+
+<meta name="date" content="2018-10-19" />
+
+<title>Marginal Structural Models - ltmleMSM()</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Marginal Structural Models - ltmleMSM()</h1>
+<h4 class="author"><em>Joshua Schwab</em></h4>
+<h4 class="date"><em>2018-10-19</em></h4>
+
+
+
+<div id="marginal-structural-models-msms---multiple-regimes-with-a-single-outcome" class="section level2">
+<h2>Marginal Structural Models (MSMs) - Multiple regimes with a single outcome</h2>
+<p>In this example there are 5 time points with a treatment and time varying covariate. At each, treatment can be 0 or 1. There is a single outcome Y.</p>
+<p>L_0 L_1 A_1 L_2 A_2 … L_5 A_5 Y</p>
+<p>There are 2^5 = 32 regimes of interest. Some of these may have limited support because there are few patients that follow a particular regime. We pool over all regimes using a working marginal structural model. In this example we want to know the effect of time on treatment on Y. We include time.on.treatment and time.on.treatment^2.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+rexpit &lt;-<span class="st"> </span><span class="cf">function</span>(x) <span class="kw">rbinom</span>(<span class="dt">n=</span><span class="kw">length</span>(x), <span class="dt">size=</span><span class="dv">1</span>, <span class="dt">prob=</span><span class="kw">plogis</span>(x))
+n &lt;-<span class="st"> </span><span class="dv">5000</span>
+time.points &lt;-<span class="st"> </span><span class="dv">5</span>
+prev.L &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+prev.A &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="dv">0</span>, n)
+sum.A &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="dv">0</span>, n)
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">L_0 =</span> prev.L)
+<span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>time.points) {
+  L &lt;-<span class="st"> </span><span class="fl">0.1</span> <span class="op">*</span><span class="st"> </span>prev.L <span class="op">+</span><span class="st"> </span><span class="fl">0.3</span> <span class="op">*</span><span class="st"> </span>prev.A <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n)
+  A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(L)
+  
+  data1 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(L, A)
+  <span class="kw">names</span>(data1) &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="kw">c</span>(<span class="st">&quot;L_&quot;</span>, <span class="st">&quot;A_&quot;</span>), t)
+  data &lt;-<span class="st"> </span><span class="kw">cbind</span>(data, data1)
+  
+  prev.A &lt;-<span class="st"> </span>A
+  prev.L &lt;-<span class="st"> </span>L
+  
+  sum.A &lt;-<span class="st"> </span>sum.A <span class="op">+</span><span class="st"> </span>A
+}
+data<span class="op">$</span>Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(sum.A <span class="op">/</span><span class="st"> </span>time.points <span class="op">+</span><span class="st"> </span>L)
+<span class="kw">head</span>(data)
+<span class="co">#&gt;           L_0        L_1 A_1        L_2 A_2        L_3 A_3        L_4 A_4</span>
+<span class="co">#&gt; 1 -0.56047565 -0.5502214   1  0.2551257   1 -0.5107842   0 -1.2211678   0</span>
+<span class="co">#&gt; 2 -0.23017749  1.1045757   1  1.9725957   1  0.2766866   1  0.3537758   1</span>
+<span class="co">#&gt; 3  1.55870831 -0.9910787   0  0.3137382   1 -1.7721409   0  1.3728695   1</span>
+<span class="co">#&gt; 4  0.07050839  1.4880694   1 -0.7400552   1 -1.4418131   0  1.8788417   0</span>
+<span class="co">#&gt; 5  0.12928774  0.9291200   0  0.8074619   0 -1.0172167   0 -1.4615713   0</span>
+<span class="co">#&gt; 6  1.71506499  0.5066375   1  0.9357399   1 -1.2720472   1  0.7949053   0</span>
+<span class="co">#&gt;           L_5 A_5 Y</span>
+<span class="co">#&gt; 1 -1.01016962   0 1</span>
+<span class="co">#&gt; 2  0.69564196   1 1</span>
+<span class="co">#&gt; 3  0.85937688   0 1</span>
+<span class="co">#&gt; 4 -0.55534676   1 0</span>
+<span class="co">#&gt; 5  0.03406417   1 0</span>
+<span class="co">#&gt; 6  1.04524722   0 1</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">regime.matrix &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">expand.grid</span>(<span class="kw">rep</span>(<span class="kw">list</span>(<span class="dv">0</span><span class="op">:</span><span class="dv">1</span>), time.points)))
+<span class="kw">dim</span>(regime.matrix)
+<span class="co">#&gt; [1] 32  5</span>
+<span class="kw">head</span>(regime.matrix, <span class="dv">20</span>)
+<span class="co">#&gt;       Var1 Var2 Var3 Var4 Var5</span>
+<span class="co">#&gt;  [1,]    0    0    0    0    0</span>
+<span class="co">#&gt;  [2,]    1    0    0    0    0</span>
+<span class="co">#&gt;  [3,]    0    1    0    0    0</span>
+<span class="co">#&gt;  [4,]    1    1    0    0    0</span>
+<span class="co">#&gt;  [5,]    0    0    1    0    0</span>
+<span class="co">#&gt;  [6,]    1    0    1    0    0</span>
+<span class="co">#&gt;  [7,]    0    1    1    0    0</span>
+<span class="co">#&gt;  [8,]    1    1    1    0    0</span>
+<span class="co">#&gt;  [9,]    0    0    0    1    0</span>
+<span class="co">#&gt; [10,]    1    0    0    1    0</span>
+<span class="co">#&gt; [11,]    0    1    0    1    0</span>
+<span class="co">#&gt; [12,]    1    1    0    1    0</span>
+<span class="co">#&gt; [13,]    0    0    1    1    0</span>
+<span class="co">#&gt; [14,]    1    0    1    1    0</span>
+<span class="co">#&gt; [15,]    0    1    1    1    0</span>
+<span class="co">#&gt; [16,]    1    1    1    1    0</span>
+<span class="co">#&gt; [17,]    0    0    0    0    1</span>
+<span class="co">#&gt; [18,]    1    0    0    0    1</span>
+<span class="co">#&gt; [19,]    0    1    0    0    1</span>
+<span class="co">#&gt; [20,]    1    1    0    0    1</span>
+num.regimes &lt;-<span class="st"> </span><span class="dv">2</span><span class="op">^</span>time.points
+regimes &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim =</span> <span class="kw">c</span>(n, time.points, num.regimes)) <span class="co">#n x numAnodes x numRegimes = n x time.points x 2^time.points</span>
+summary.measures &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim =</span> <span class="kw">c</span>(num.regimes, <span class="dv">1</span>, <span class="dv">1</span>)) <span class="co">#numRegimes x num.summary.measures x num.final.Ynodes = 2^time.points x 1 x 1</span>
+<span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>num.regimes) {
+  regimes[, , i] &lt;-<span class="st"> </span><span class="kw">matrix</span>(regime.matrix[i, ], <span class="dt">byrow =</span> <span class="ot">TRUE</span>, <span class="dt">nrow =</span> n, <span class="dt">ncol =</span> time.points)
+  summary.measures[i, <span class="dv">1</span>, <span class="dv">1</span>] &lt;-<span class="st"> </span><span class="kw">sum</span>(regime.matrix[i, ])
+}
+<span class="kw">colnames</span>(summary.measures) &lt;-<span class="st"> &quot;time.on.treatment&quot;</span>
+regimes[<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, , <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>]
+<span class="co">#&gt; , , 1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span>
+<span class="co">#&gt; [1,]    0    0    0    0    0</span>
+<span class="co">#&gt; [2,]    0    0    0    0    0</span>
+<span class="co">#&gt; [3,]    0    0    0    0    0</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span>
+<span class="co">#&gt; [1,]    1    0    0    0    0</span>
+<span class="co">#&gt; [2,]    1    0    0    0    0</span>
+<span class="co">#&gt; [3,]    1    0    0    0    0</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 3</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span>
+<span class="co">#&gt; [1,]    0    1    0    0    0</span>
+<span class="co">#&gt; [2,]    0    1    0    0    0</span>
+<span class="co">#&gt; [3,]    0    1    0    0    0</span>
+summary.measures
+<span class="co">#&gt; , , 1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;       time.on.treatment</span>
+<span class="co">#&gt;  [1,]                 0</span>
+<span class="co">#&gt;  [2,]                 1</span>
+<span class="co">#&gt;  [3,]                 1</span>
+<span class="co">#&gt;  [4,]                 2</span>
+<span class="co">#&gt;  [5,]                 1</span>
+<span class="co">#&gt;  [6,]                 2</span>
+<span class="co">#&gt;  [7,]                 2</span>
+<span class="co">#&gt;  [8,]                 3</span>
+<span class="co">#&gt;  [9,]                 1</span>
+<span class="co">#&gt; [10,]                 2</span>
+<span class="co">#&gt; [11,]                 2</span>
+<span class="co">#&gt; [12,]                 3</span>
+<span class="co">#&gt; [13,]                 2</span>
+<span class="co">#&gt; [14,]                 3</span>
+<span class="co">#&gt; [15,]                 3</span>
+<span class="co">#&gt; [16,]                 4</span>
+<span class="co">#&gt; [17,]                 1</span>
+<span class="co">#&gt; [18,]                 2</span>
+<span class="co">#&gt; [19,]                 2</span>
+<span class="co">#&gt; [20,]                 3</span>
+<span class="co">#&gt; [21,]                 2</span>
+<span class="co">#&gt; [22,]                 3</span>
+<span class="co">#&gt; [23,]                 3</span>
+<span class="co">#&gt; [24,]                 4</span>
+<span class="co">#&gt; [25,]                 2</span>
+<span class="co">#&gt; [26,]                 3</span>
+<span class="co">#&gt; [27,]                 3</span>
+<span class="co">#&gt; [28,]                 4</span>
+<span class="co">#&gt; [29,]                 3</span>
+<span class="co">#&gt; [30,]                 4</span>
+<span class="co">#&gt; [31,]                 4</span>
+<span class="co">#&gt; [32,]                 5</span></code></pre></div>
+<p>For large numbers of regimes, variance.method = “ic” is much faster, but may give anticonservative confidence intervals. You may want to use variance.method = “ic” first to make sure the MSM coefficients look reasonable and then use variance.method = “tmle” (the default) for your final estimates.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result1 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;A_&quot;</span>, <span class="dv">1</span><span class="op">:</span>time.points), <span class="dt">Lnodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;L_&quot;</span>, <span class="dv">0</span><span class="op">:</span>time.points), <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">regimes =</span> regimes, <span class="dt">summary.measures =</span> summary.measures, <span class="dt">working.msm =</span> <span class="st">&quot;Y ~ time.on.treatment + I(time.on.treatment^2)&quot;</span>, <span class="dt">variance.method =</span> <span class="st">&quot;ic&quot;</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L_2:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1</span>
+<span class="co">#&gt; formula for L_3:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2</span>
+<span class="co">#&gt; formula for L_4:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3</span>
+<span class="co">#&gt; formula for L_5:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 +     L_5 + A_5</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A_1:</span>
+<span class="co">#&gt; A_1 ~ L_0 + L_1</span>
+<span class="co">#&gt; formula for A_2:</span>
+<span class="co">#&gt; A_2 ~ L_0 + L_1 + A_1 + L_2</span>
+<span class="co">#&gt; formula for A_3:</span>
+<span class="co">#&gt; A_3 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3</span>
+<span class="co">#&gt; formula for A_4:</span>
+<span class="co">#&gt; A_4 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4</span>
+<span class="co">#&gt; formula for A_5:</span>
+<span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: 2 to 3 minutes</span>
+<span class="co">#&gt; Warning in CheckForVarianceWarning(inputs, g.ratio): Variance estimate is</span>
+<span class="co">#&gt; based on influence curve only, which may be significantly anticonservative</span>
+<span class="co">#&gt; because your data appears to contain positivity violations. It is</span>
+<span class="co">#&gt; recommended to use variance.method='tmle' or variance.method='iptw' to</span>
+<span class="co">#&gt; obtain a more robust variance estimate (but run time may be significantly</span>
+<span class="co">#&gt; longer). See variance.method details in ?ltmle</span>
+result2 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;A_&quot;</span>, <span class="dv">1</span><span class="op">:</span>time.points), <span class="dt">Lnodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;L_&quot;</span>, <span class="dv">0</span><span class="op">:</span>time.points), <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">regimes =</span> regimes, <span class="dt">summary.measures =</span> summary.measures, <span class="dt">working.msm =</span> <span class="st">&quot;Y ~ time.on.treatment + I(time.on.treatment^2)&quot;</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L_2:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1</span>
+<span class="co">#&gt; formula for L_3:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2</span>
+<span class="co">#&gt; formula for L_4:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3</span>
+<span class="co">#&gt; formula for L_5:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 +     L_5 + A_5</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A_1:</span>
+<span class="co">#&gt; A_1 ~ L_0 + L_1</span>
+<span class="co">#&gt; formula for A_2:</span>
+<span class="co">#&gt; A_2 ~ L_0 + L_1 + A_1 + L_2</span>
+<span class="co">#&gt; formula for A_3:</span>
+<span class="co">#&gt; A_3 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3</span>
+<span class="co">#&gt; formula for A_4:</span>
+<span class="co">#&gt; A_4 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4</span>
+<span class="co">#&gt; formula for A_5:</span>
+<span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: 6 to 39 minutes</span>
+<span class="kw">summary</span>(result1)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;                        Estimate Std. Error  CI 2.5% CI 97.5% p-value</span>
+<span class="co">#&gt; (Intercept)             0.11411    0.13156 -0.14374    0.372   0.386</span>
+<span class="co">#&gt; time.on.treatment       0.09611    0.11043 -0.12032    0.313   0.384</span>
+<span class="co">#&gt; I(time.on.treatment^2)  0.02176    0.02160 -0.02057    0.064   0.314</span>
+<span class="kw">summary</span>(result2)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;                        Estimate Std. Error  CI 2.5% CI 97.5% p-value</span>
+<span class="co">#&gt; (Intercept)             0.11411    0.18041 -0.23948    0.468   0.527</span>
+<span class="co">#&gt; time.on.treatment       0.09611    0.14335 -0.18485    0.377   0.503</span>
+<span class="co">#&gt; I(time.on.treatment^2)  0.02176    0.02697 -0.03109    0.075   0.420</span></code></pre></div>
+<p>Suppose we are only interested in the effect of time on treatment on Y considering regimes that include at least 3 periods on treatment.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">at.least.<span class="dv">3</span> &lt;-<span class="st"> </span>summary.measures[, <span class="st">&quot;time.on.treatment&quot;</span>, <span class="dv">1</span>] <span class="op">&gt;=</span><span class="st"> </span><span class="dv">3</span>
+regimes.<span class="dv">3</span> &lt;-<span class="st"> </span>regimes[, , at.least.<span class="dv">3</span>]
+summary.measures.<span class="dv">3</span> &lt;-<span class="st"> </span>summary.measures[at.least.<span class="dv">3</span>, , , drop =<span class="st"> </span>F]
+<span class="kw">dim</span>(regimes.<span class="dv">3</span>)
+<span class="co">#&gt; [1] 5000    5   16</span>
+summary.measures.<span class="dv">3</span>
+<span class="co">#&gt; , , 1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;       time.on.treatment</span>
+<span class="co">#&gt;  [1,]                 3</span>
+<span class="co">#&gt;  [2,]                 3</span>
+<span class="co">#&gt;  [3,]                 3</span>
+<span class="co">#&gt;  [4,]                 3</span>
+<span class="co">#&gt;  [5,]                 4</span>
+<span class="co">#&gt;  [6,]                 3</span>
+<span class="co">#&gt;  [7,]                 3</span>
+<span class="co">#&gt;  [8,]                 3</span>
+<span class="co">#&gt;  [9,]                 4</span>
+<span class="co">#&gt; [10,]                 3</span>
+<span class="co">#&gt; [11,]                 3</span>
+<span class="co">#&gt; [12,]                 4</span>
+<span class="co">#&gt; [13,]                 3</span>
+<span class="co">#&gt; [14,]                 4</span>
+<span class="co">#&gt; [15,]                 4</span>
+<span class="co">#&gt; [16,]                 5</span>
+
+result &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;A_&quot;</span>, <span class="dv">1</span><span class="op">:</span>time.points), <span class="dt">Lnodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;L_&quot;</span>, <span class="dv">0</span><span class="op">:</span>time.points), <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">regimes =</span> regimes.<span class="dv">3</span>, <span class="dt">summary.measures =</span> summary.measures.<span class="dv">3</span>, <span class="dt">working.msm =</span> <span class="st">&quot;Y ~ time.on.treatment + I(time.on.treatment^2)&quot;</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L_2:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1</span>
+<span class="co">#&gt; formula for L_3:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2</span>
+<span class="co">#&gt; formula for L_4:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3</span>
+<span class="co">#&gt; formula for L_5:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 +     L_5 + A_5</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A_1:</span>
+<span class="co">#&gt; A_1 ~ L_0 + L_1</span>
+<span class="co">#&gt; formula for A_2:</span>
+<span class="co">#&gt; A_2 ~ L_0 + L_1 + A_1 + L_2</span>
+<span class="co">#&gt; formula for A_3:</span>
+<span class="co">#&gt; A_3 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3</span>
+<span class="co">#&gt; formula for A_4:</span>
+<span class="co">#&gt; A_4 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4</span>
+<span class="co">#&gt; formula for A_5:</span>
+<span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.</span>
+<span class="co">#&gt; Estimate of time to completion: 4 to 16 minutes</span>
+<span class="kw">summary</span>(result)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;                        Estimate Std. Error CI 2.5% CI 97.5% p-value</span>
+<span class="co">#&gt; (Intercept)             -2.5740     2.1042 -6.6981    1.550   0.221</span>
+<span class="co">#&gt; time.on.treatment        1.4323     1.1473 -0.8164    3.681   0.212</span>
+<span class="co">#&gt; I(time.on.treatment^2)  -0.1383     0.1518 -0.4358    0.159   0.362</span></code></pre></div>
+</div>
+<div id="marginal-structural-models-msms---switching-time-example---multiple-regimes-and-outcomes" class="section level2">
+<h2>Marginal Structural Models (MSMs) - Switching time example - Multiple regimes and outcomes</h2>
+<p>Given data over 3 time points where A switches to 1 once and then stays 1. We want to know how death varies as a function of gender, time and an indicator of whether a patient’s intended regime was to switch before time. Note that working.msm includes time and switch.time, which are columns of summary.measures; working.msm also includes male, which is ok because it is a baseline covariate (it comes before any A/C/L/Y nodes).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(sampleDataForLtmleMSM)
+<span class="kw">head</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dv">20</span>)
+<span class="co">#&gt;    male age CD4_0 A0 Y1 CD4_1 A1 Y2 CD4_2 A2 Y3</span>
+<span class="co">#&gt; 1     1  33   347  0  0   349  0  0   315  0  0</span>
+<span class="co">#&gt; 2     0  18   277  0  0   302  0  0   300  0  0</span>
+<span class="co">#&gt; 3     1  33   419  0  0   423  0  0   462  0  0</span>
+<span class="co">#&gt; 4     1  35   318  1  0   358  1  0   413  1  0</span>
+<span class="co">#&gt; 5     0  27   145  0  0   134  1  1    NA NA  1</span>
+<span class="co">#&gt; 6     1  27   320  0  0   332  0  0   347  1  0</span>
+<span class="co">#&gt; 7     1  35   220  0  0   241  0  0   216  1  0</span>
+<span class="co">#&gt; 8     0  31   184  0  0   202  1  0   230  1  0</span>
+<span class="co">#&gt; 9     0  35   289  0  0   302  0  0   290  0  0</span>
+<span class="co">#&gt; 10    0  30   295  1  0   312  1  0   340  1  0</span>
+<span class="co">#&gt; 11    0  31   300  1  0   394  1  0   467  1  0</span>
+<span class="co">#&gt; 12    0  30   300  0  0   331  0  0   320  0  0</span>
+<span class="co">#&gt; 13    0  25   276  0  1    NA NA  1    NA NA  1</span>
+<span class="co">#&gt; 14    1  26   242  1  0   280  1  0   307  1  0</span>
+<span class="co">#&gt; 15    0  21   238  1  0   345  1  0   379  1  0</span>
+<span class="co">#&gt; 16    1  30   304  0  0   258  0  0   287  0  0</span>
+<span class="co">#&gt; 17    0  30   271  1  0   297  1  0   324  1  0</span>
+<span class="co">#&gt; 18    1  27   296  0  0   305  0  0   306  0  0</span>
+<span class="co">#&gt; 19    1  33   217  1  0   242  1  0   267  1  0</span>
+<span class="co">#&gt; 20    1  25   337  0  0   360  0  0   390  0  0</span>
+<span class="kw">dim</span>(sampleDataForLtmleMSM<span class="op">$</span>regimes)
+<span class="co">#&gt; [1] 200   3   4</span>
+sampleDataForLtmleMSM<span class="op">$</span>regimes[<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, , ]
+<span class="co">#&gt; , , 1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3]</span>
+<span class="co">#&gt; [1,]    1    1    1</span>
+<span class="co">#&gt; [2,]    1    1    1</span>
+<span class="co">#&gt; [3,]    1    1    1</span>
+<span class="co">#&gt; [4,]    1    1    1</span>
+<span class="co">#&gt; [5,]    1    1    1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3]</span>
+<span class="co">#&gt; [1,]    0    1    1</span>
+<span class="co">#&gt; [2,]    0    1    1</span>
+<span class="co">#&gt; [3,]    0    1    1</span>
+<span class="co">#&gt; [4,]    0    1    1</span>
+<span class="co">#&gt; [5,]    0    1    1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 3</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3]</span>
+<span class="co">#&gt; [1,]    0    0    1</span>
+<span class="co">#&gt; [2,]    0    0    1</span>
+<span class="co">#&gt; [3,]    0    0    1</span>
+<span class="co">#&gt; [4,]    0    0    1</span>
+<span class="co">#&gt; [5,]    0    0    1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 4</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      [,1] [,2] [,3]</span>
+<span class="co">#&gt; [1,]    0    0    0</span>
+<span class="co">#&gt; [2,]    0    0    0</span>
+<span class="co">#&gt; [3,]    0    0    0</span>
+<span class="co">#&gt; [4,]    0    0    0</span>
+<span class="co">#&gt; [5,]    0    0    0</span>
+sampleDataForLtmleMSM<span class="op">$</span>summary.measures
+<span class="co">#&gt; , , 1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      switch.time time</span>
+<span class="co">#&gt; [1,]           0    1</span>
+<span class="co">#&gt; [2,]           1    1</span>
+<span class="co">#&gt; [3,]           2    1</span>
+<span class="co">#&gt; [4,]           3    1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      switch.time time</span>
+<span class="co">#&gt; [1,]           0    2</span>
+<span class="co">#&gt; [2,]           1    2</span>
+<span class="co">#&gt; [3,]           2    2</span>
+<span class="co">#&gt; [4,]           3    2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; , , 3</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;      switch.time time</span>
+<span class="co">#&gt; [1,]           0    3</span>
+<span class="co">#&gt; [2,]           1    3</span>
+<span class="co">#&gt; [3,]           2    3</span>
+<span class="co">#&gt; [4,]           3    3</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">Anodes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;A0&quot;</span>, <span class="st">&quot;A1&quot;</span>, <span class="st">&quot;A2&quot;</span>)
+Lnodes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;CD4_1&quot;</span>, <span class="st">&quot;CD4_2&quot;</span>)
+Ynodes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Y1&quot;</span>, <span class="st">&quot;Y2&quot;</span>, <span class="st">&quot;Y3&quot;</span>)</code></pre></div>
+<p>Here msm.weights is just an example. It could also be a 200x3x4 array or NULL (for no weights), or “empirical” (the default).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">msm.weights &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>, <span class="dt">nrow=</span><span class="dv">4</span>, <span class="dt">ncol=</span><span class="dv">3</span>)  </code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result6 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, 
+                   <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>,
+                   <span class="dt">regimes=</span>sampleDataForLtmleMSM<span class="op">$</span>regimes, 
+                   <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures,
+                   <span class="dt">final.Ynodes=</span>Ynodes, 
+                   <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + time + pmax(time - switch.time, 0)&quot;</span>, 
+                   <span class="dt">msm.weights=</span>msm.weights, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y1:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span>
+<span class="co">#&gt; formula for Y2:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span>
+<span class="co">#&gt; formula for Y3:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A0:</span>
+<span class="co">#&gt; A0 ~ male + age + CD4_0</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span>
+<span class="co">#&gt; </span>
+<span class="kw">print</span>(<span class="kw">summary</span>(result6))
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;                             Estimate Std. Error CI 2.5% CI 97.5%  p-value</span>
+<span class="co">#&gt; (Intercept)                  -3.4059     0.6545 -4.6886   -2.123 1.95e-07</span>
+<span class="co">#&gt; male                         -0.3802     0.5305 -1.4198    0.660  0.47359</span>
+<span class="co">#&gt; time                          0.7241     0.2602  0.2141    1.234  0.00539</span>
+<span class="co">#&gt; pmax(time - switch.time, 0)  -0.4717     0.2019 -0.8675   -0.076  0.01948</span>
+<span class="co">#&gt;                                </span>
+<span class="co">#&gt; (Intercept)                 ***</span>
+<span class="co">#&gt; male                           </span>
+<span class="co">#&gt; time                        ** </span>
+<span class="co">#&gt; pmax(time - switch.time, 0) *  </span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></code></pre></div>
+<p>Regimes can also be specified as a list of rule functions</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">regimesList &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>),
+                     <span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>),
+                     <span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>),
+                     <span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>))
+result.regList &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, 
+                   <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>, <span class="dt">regimes=</span>regimesList, 
+                   <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures,
+                   <span class="dt">final.Ynodes=</span>Ynodes, 
+                   <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + time + pmax(time - switch.time, 0)&quot;</span>, 
+                   <span class="dt">msm.weights=</span>msm.weights, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y1:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span>
+<span class="co">#&gt; formula for Y2:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span>
+<span class="co">#&gt; formula for Y3:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A0:</span>
+<span class="co">#&gt; A0 ~ male + age + CD4_0</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span>
+<span class="co">#&gt; </span></code></pre></div>
+<p>This should be the same as result6</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(<span class="kw">summary</span>(result.regList))         
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;                             Estimate Std. Error CI 2.5% CI 97.5%  p-value</span>
+<span class="co">#&gt; (Intercept)                  -3.4059     0.6545 -4.6886   -2.123 1.95e-07</span>
+<span class="co">#&gt; male                         -0.3802     0.5305 -1.4198    0.660  0.47359</span>
+<span class="co">#&gt; time                          0.7241     0.2602  0.2141    1.234  0.00539</span>
+<span class="co">#&gt; pmax(time - switch.time, 0)  -0.4717     0.2019 -0.8675   -0.076  0.01948</span>
+<span class="co">#&gt;                                </span>
+<span class="co">#&gt; (Intercept)                 ***</span>
+<span class="co">#&gt; male                           </span>
+<span class="co">#&gt; time                        ** </span>
+<span class="co">#&gt; pmax(time - switch.time, 0) *  </span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></code></pre></div>
+<p>Suppose we are only interested in pooling over the result at Y1 and Y3.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result6 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, 
+                   <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>,
+                   <span class="dt">regimes=</span>sampleDataForLtmleMSM<span class="op">$</span>regimes, 
+                   <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures[, , <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>)],
+                   <span class="dt">final.Ynodes=</span><span class="kw">c</span>(<span class="st">&quot;Y1&quot;</span>, <span class="st">&quot;Y3&quot;</span>), 
+                   <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + time + pmax(time - switch.time, 0)&quot;</span>, 
+                   <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y1:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span>
+<span class="co">#&gt; formula for Y2:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span>
+<span class="co">#&gt; formula for Y3:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A0:</span>
+<span class="co">#&gt; A0 ~ male + age + CD4_0</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.</span>
+<span class="kw">summary</span>(result6)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;                             Estimate Std. Error CI 2.5% CI 97.5%  p-value</span>
+<span class="co">#&gt; (Intercept)                  -3.8891     0.5533 -4.9736   -2.805 2.08e-12</span>
+<span class="co">#&gt; male                          0.2256     0.5152 -0.7842    1.235 0.661472</span>
+<span class="co">#&gt; time                          0.7826     0.2318  0.3282    1.237 0.000737</span>
+<span class="co">#&gt; pmax(time - switch.time, 0)  -0.4331     0.2023 -0.8296   -0.037 0.032262</span>
+<span class="co">#&gt;                                </span>
+<span class="co">#&gt; (Intercept)                 ***</span>
+<span class="co">#&gt; male                           </span>
+<span class="co">#&gt; time                        ***</span>
+<span class="co">#&gt; pmax(time - switch.time, 0) *  </span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></code></pre></div>
+<p>We could be only interested in the result at Y3. time is now a constant in working.msm, so let’s remove it.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result6 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, 
+                    <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>,
+                    <span class="dt">regimes=</span>sampleDataForLtmleMSM<span class="op">$</span>regimes, 
+                    <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures[, , <span class="dv">3</span>],
+                    <span class="dt">final.Ynodes=</span><span class="st">&quot;Y3&quot;</span>, 
+                    <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + switch.time&quot;</span>, 
+                    <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y1:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span>
+<span class="co">#&gt; formula for Y2:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span>
+<span class="co">#&gt; formula for Y3:</span>
+<span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A0:</span>
+<span class="co">#&gt; A0 ~ male + age + CD4_0</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.</span>
+<span class="kw">summary</span>(result6)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt;             Estimate Std. Error  CI 2.5% CI 97.5%  p-value    </span>
+<span class="co">#&gt; (Intercept) -2.81063    0.46551 -3.72301   -1.898 1.56e-09 ***</span>
+<span class="co">#&gt; male         0.07357    0.53775 -0.98039    1.128   0.8912    </span>
+<span class="co">#&gt; switch.time  0.45362    0.19436  0.07268    0.835   0.0196 *  </span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></code></pre></div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

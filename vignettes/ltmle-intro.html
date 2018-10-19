@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Joshua Schwab" />
+
+<meta name="date" content="2018-10-19" />
+
+<title>Introduction to ltmle()</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction to ltmle()</h1>
+<h4 class="author"><em>Joshua Schwab</em></h4>
+<h4 class="date"><em>2018-10-19</em></h4>
+
+
+
+<div id="single-time-point" class="section level2">
+<h2>Single time point</h2>
+<p>Time ordering of data is W1 W2 W3 A Y</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+rexpit &lt;-<span class="st"> </span><span class="cf">function</span>(x) <span class="kw">rbinom</span>(<span class="dt">n=</span><span class="kw">length</span>(x), <span class="dt">size=</span><span class="dv">1</span>, <span class="dt">prob=</span><span class="kw">plogis</span>(x))
+n &lt;-<span class="st"> </span><span class="dv">1000</span>
+W1 &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+W2 &lt;-<span class="st"> </span><span class="kw">rbinom</span>(n, <span class="dt">size=</span><span class="dv">1</span>, <span class="dt">prob=</span><span class="fl">0.3</span>)   
+W3 &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="op">-</span><span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>W1 <span class="op">+</span><span class="st"> </span>W3)
+Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="op">-</span><span class="fl">0.5</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>W1<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span><span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>W2 <span class="op">-</span><span class="st"> </span><span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>A <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span> <span class="op">*</span><span class="st"> </span>W3 <span class="op">*</span><span class="st"> </span>A <span class="op">-</span><span class="st"> </span><span class="fl">1.1</span> <span class="op">*</span><span class="st"> </span>W3)
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W1, W2, W3, A, Y)</code></pre></div>
+<p>True value of <span class="math inline">\(E[Y_1]\)</span> (expected value of Y setting A to 1) is approximately 0.5939.</p>
+<p>SuperLearner semiparametric estimation using all parents as regressors</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Lnodes=</span><span class="ot">NULL</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar=</span><span class="dv">1</span>, <span class="dt">SL.library=</span><span class="st">&quot;default&quot;</span>)
+<span class="co">#&gt; Loading required namespace: SuperLearner</span>
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W1 + W2 + W3 + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W1 + W2 + W3</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Loading required package: nnls</span>
+<span class="co">#&gt; Loading required package: arm</span>
+<span class="co">#&gt; Loading required package: MASS</span>
+<span class="co">#&gt; Loading required package: Matrix</span>
+<span class="co">#&gt; Loading required package: lme4</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; arm (Version 1.10-1, built: 2018-4-12)</span>
+<span class="co">#&gt; Working directory is /Users/joshua/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/ltmle-dev/vignettes</span>
+<span class="co">#&gt; Estimate of time to completion: 1 minute</span></code></pre></div>
+<p>TMLE estimate:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(result)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Lnodes = NULL, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, SL.library = &quot;default&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.6008 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.049543 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.5037, 0.6979)</span></code></pre></div>
+<p>IPTW estimate:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(result, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>)
+<span class="co">#&gt; Estimator:  iptw </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Lnodes = NULL, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, SL.library = &quot;default&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.58882 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.049944 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.49093, 0.68671)</span></code></pre></div>
+<p>SuperLearner semiparametric estimation using correctly specified regressors</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Lnodes=</span><span class="ot">NULL</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">Qform=</span><span class="kw">c</span>(<span class="dt">Y=</span><span class="st">&quot;Q.kplus1 ~ I(W1^2) + W2 + W3*A&quot;</span>), <span class="dt">gform=</span><span class="st">&quot;A ~ W1 + W3&quot;</span>, <span class="dt">abar=</span><span class="dv">1</span>, <span class="dt">SL.library=</span><span class="st">&quot;default&quot;</span>)
+<span class="co">#&gt; Estimate of time to completion: 1 minute</span>
+<span class="kw">summary</span>(result)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Lnodes = NULL, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     Qform = c(Y = &quot;Q.kplus1 ~ I(W1^2) + W2 + W3*A&quot;), gform = &quot;A ~ W1 + W3&quot;, </span>
+<span class="co">#&gt;     abar = 1, SL.library = &quot;default&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.5868 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.035524 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.51717, 0.65642)</span></code></pre></div>
+<p>glm using correctly specified Qform and gform</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Lnodes=</span><span class="ot">NULL</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, 
+ <span class="dt">Qform=</span><span class="kw">c</span>(<span class="dt">Y=</span><span class="st">&quot;Q.kplus1 ~ I(W1^2) + W2 + W3*A&quot;</span>), <span class="dt">gform=</span><span class="st">&quot;A ~ W1 + W3&quot;</span>, 
+ <span class="dt">abar=</span><span class="dv">1</span>, <span class="dt">SL.library=</span><span class="ot">NULL</span>)
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+<span class="kw">summary</span>(result)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Lnodes = NULL, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     Qform = c(Y = &quot;Q.kplus1 ~ I(W1^2) + W2 + W3*A&quot;), gform = &quot;A ~ W1 + W3&quot;, </span>
+<span class="co">#&gt;     abar = 1, SL.library = NULL)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.58724 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.035677 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.51731, 0.65716)</span></code></pre></div>
+<p>Get summary measures (additive treatment effect, odds ratio, relative risk) for abar=1 vs abar=0</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Lnodes=</span><span class="ot">NULL</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, 
+                      <span class="dt">abar=</span><span class="kw">list</span>(<span class="dv">1</span>, <span class="dv">0</span>), <span class="dt">SL.library=</span><span class="st">&quot;default&quot;</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W1 + W2 + W3 + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W1 + W2 + W3</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: 1 minute</span>
+<span class="kw">summary</span>(result)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Lnodes = NULL, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = list(1, 0), SL.library = &quot;default&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Treatment Estimate:</span>
+<span class="co">#&gt;    Parameter Estimate:  0.60116 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.048334 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.50643, 0.6959) </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Control Estimate:</span>
+<span class="co">#&gt;    Parameter Estimate:  0.6908 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.030512 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.631, 0.7506) </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Additive Treatment Effect:</span>
+<span class="co">#&gt;    Parameter Estimate:  -0.089636 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.057159 </span>
+<span class="co">#&gt;               p-value:  0.11684 </span>
+<span class="co">#&gt;     95% Conf Interval: (-0.20167, 0.022394) </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Relative Risk:</span>
+<span class="co">#&gt;    Parameter Estimate:  0.87024 </span>
+<span class="co">#&gt;   Est Std Err log(RR):  0.091735 </span>
+<span class="co">#&gt;               p-value:  0.12976 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.72704, 1.0417) </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Odds Ratio:</span>
+<span class="co">#&gt;    Parameter Estimate:  0.67466 </span>
+<span class="co">#&gt;   Est Std Err log(OR):  0.24707 </span>
+<span class="co">#&gt;               p-value:  0.11119 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.4157, 1.0949)</span></code></pre></div>
+</div>
+<div id="censoring" class="section level2">
+<h2>Censoring</h2>
+<p>W -&gt; C -&gt; Y</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n &lt;-<span class="st"> </span><span class="dv">100000</span>
+W &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+C &lt;-<span class="st"> </span><span class="kw">BinaryToCensoring</span>(<span class="dt">is.censored =</span> <span class="kw">rexpit</span>(W))
+<span class="kw">summary</span>(C)
+<span class="co">#&gt;   censored uncensored </span>
+<span class="co">#&gt;      50184      49816</span>
+Y &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>, n)
+Y[C <span class="op">==</span><span class="st"> &quot;uncensored&quot;</span>] &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W[C <span class="op">==</span><span class="st"> &quot;uncensored&quot;</span>])
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W, C, Y)
+<span class="kw">head</span>(data, <span class="dv">20</span>)
+<span class="co">#&gt;             W          C  Y</span>
+<span class="co">#&gt; 1   0.3896976   censored NA</span>
+<span class="co">#&gt; 2  -1.4864062 uncensored  1</span>
+<span class="co">#&gt; 3  -0.6310219   censored NA</span>
+<span class="co">#&gt; 4   0.7271246   censored NA</span>
+<span class="co">#&gt; 5   2.1494500   censored NA</span>
+<span class="co">#&gt; 6   1.7129175   censored NA</span>
+<span class="co">#&gt; 7   1.9541580   censored NA</span>
+<span class="co">#&gt; 8   1.1416553   censored NA</span>
+<span class="co">#&gt; 9   0.4858645 uncensored  1</span>
+<span class="co">#&gt; 10 -0.2781099   censored NA</span>
+<span class="co">#&gt; 11  0.6736277   censored NA</span>
+<span class="co">#&gt; 12 -0.6137202   censored NA</span>
+<span class="co">#&gt; 13 -2.0031559   censored NA</span>
+<span class="co">#&gt; 14  1.2122810   censored NA</span>
+<span class="co">#&gt; 15 -0.5161699   censored NA</span>
+<span class="co">#&gt; 16  0.7268216   censored NA</span>
+<span class="co">#&gt; 17 -1.7253030 uncensored  0</span>
+<span class="co">#&gt; 18 -3.4674901 uncensored  0</span>
+<span class="co">#&gt; 19 -0.1133662   censored NA</span>
+<span class="co">#&gt; 20 -1.4471719 uncensored  0</span>
+result &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes =</span> <span class="ot">NULL</span>, <span class="dt">Cnodes =</span> <span class="st">&quot;C&quot;</span>, <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="ot">NULL</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for C:</span>
+<span class="co">#&gt; C ~ W</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: 1 minute</span>
+<span class="kw">summary</span>(result)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = NULL, Cnodes = &quot;C&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = NULL)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.49924 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.0023395 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.49465, 0.50382)</span></code></pre></div>
+<p>The naive estimate is biased:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">mean</span>(data<span class="op">$</span>Y)
+<span class="co">#&gt; [1] NA</span>
+<span class="kw">mean</span>(data<span class="op">$</span>Y, <span class="dt">na.rm =</span> T)
+<span class="co">#&gt; [1] 0.4136422</span></code></pre></div>
+</div>
+<div id="longitudinal-data" class="section level2">
+<h2>Longitudinal data</h2>
+<p>W -&gt; A1 -&gt; L -&gt; A2 -&gt; Y</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n &lt;-<span class="st"> </span><span class="dv">1000</span>
+W &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+A1 &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W)
+L &lt;-<span class="st"> </span><span class="fl">0.3</span> <span class="op">*</span><span class="st"> </span>W <span class="op">+</span><span class="st"> </span><span class="fl">0.2</span> <span class="op">*</span><span class="st"> </span>A1 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n)
+A2 &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W <span class="op">+</span><span class="st"> </span>A1 <span class="op">+</span><span class="st"> </span>L)
+Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span> <span class="op">*</span><span class="st"> </span>A1 <span class="op">+</span><span class="st"> </span>L <span class="op">-</span><span class="st"> </span><span class="fl">0.8</span> <span class="op">*</span><span class="st"> </span>A2)
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W, A1, L, A2, Y)</code></pre></div>
+<p>Treatment regime of interest: set all A1 to 1, set all A2 to 0:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result.<span class="fl">1.0</span> &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="kw">c</span>(<span class="st">&quot;A1&quot;</span>, <span class="st">&quot;A2&quot;</span>), <span class="dt">Lnodes=</span><span class="st">&quot;L&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar=</span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">0</span>))
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A1</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A1 + L + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ W</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ W + A1 + L</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+result.<span class="fl">1.0</span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(&quot;A1&quot;, &quot;A2&quot;), Lnodes = &quot;L&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = c(1, 0))</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; TMLE Estimate:  0.4560565</span></code></pre></div>
+</div>
+<div id="dynamic-treatment" class="section level2">
+<h2>Dynamic treatment</h2>
+<p>Treatment regime of interest is: Always treat at time 1 (A1 = 1), treat at at time 2 (A2 = 1) if L &gt; 0</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">abar &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="dt">nrow=</span>n, <span class="dt">ncol=</span><span class="dv">2</span>)
+abar[, <span class="dv">1</span>] &lt;-<span class="st"> </span><span class="dv">1</span>
+abar[, <span class="dv">2</span>] &lt;-<span class="st"> </span>L <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>
+
+result.abar &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="kw">c</span>(<span class="st">&quot;A1&quot;</span>, <span class="st">&quot;A2&quot;</span>), <span class="dt">Lnodes=</span><span class="st">&quot;L&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar=</span>abar)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A1</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A1 + L + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ W</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ W + A1 + L</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+result.abar
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(&quot;A1&quot;, &quot;A2&quot;), Lnodes = &quot;L&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = abar)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; TMLE Estimate:  0.3205985</span></code></pre></div>
+<p>The regime can also be specified as a rule function</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rule &lt;-<span class="st"> </span><span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">1</span>, row[<span class="st">&quot;L&quot;</span>] <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>)
+
+result.rule &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="kw">c</span>(<span class="st">&quot;A1&quot;</span>, <span class="st">&quot;A2&quot;</span>), <span class="dt">Lnodes=</span><span class="st">&quot;L&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">rule=</span>rule)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A1</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A1 + L + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ W</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ W + A1 + L</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+result.rule
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(&quot;A1&quot;, &quot;A2&quot;), Lnodes = &quot;L&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     rule = rule)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; TMLE Estimate:  0.3205985</span></code></pre></div>
+<p>Specfifying the regime using abar and using rule give the same result:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(result.abar)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(&quot;A1&quot;, &quot;A2&quot;), Lnodes = &quot;L&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = abar)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.3206 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.026567 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.26853, 0.37267)</span>
+<span class="kw">summary</span>(result.rule)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(&quot;A1&quot;, &quot;A2&quot;), Lnodes = &quot;L&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     rule = rule)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.3206 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.026567 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.26853, 0.37267)</span></code></pre></div>
+</div>
+<div id="variance-estimation" class="section level2">
+<h2>Variance estimation</h2>
+<p>A simple point treatment problem W, A, Y. But there is a positivity problem - for small values of W, Prob(A = 1) is very small.</p>
+<p>The true parameter value, <span class="math inline">\(E[Y_1]\)</span> is approximately 0.697.</p>
+<p>The true TMLE standard deviation is approximately 0.064.</p>
+<p>The true IPTW standard deviation is approximately 0.058.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n &lt;-<span class="st"> </span><span class="dv">1000</span>
+W &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="dv">8</span> <span class="op">*</span><span class="st"> </span>W)
+Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W <span class="op">+</span><span class="st"> </span>A)
+r1 &lt;-<span class="st"> </span><span class="kw">ltmle</span>(<span class="kw">data.frame</span>(W, A, Y), <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="dv">1</span>, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W</span>
+<span class="co">#&gt; </span>
+r2 &lt;-<span class="st"> </span><span class="kw">ltmle</span>(<span class="kw">data.frame</span>(W, A, Y), <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="dv">1</span>, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>, 
+ <span class="dt">variance.method=</span><span class="st">&quot;ic&quot;</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Warning in CheckForVarianceWarning(inputs, g.ratio): Variance estimate is</span>
+<span class="co">#&gt; based on influence curve only, which may be significantly anticonservative</span>
+<span class="co">#&gt; because your data appears to contain positivity violations. It is</span>
+<span class="co">#&gt; recommended to use variance.method='tmle' or variance.method='iptw' to</span>
+<span class="co">#&gt; obtain a more robust variance estimate (but run time may be significantly</span>
+<span class="co">#&gt; longer). See variance.method details in ?ltmle</span>
+r3 &lt;-<span class="st"> </span><span class="kw">ltmle</span>(<span class="kw">data.frame</span>(W, A, Y), <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="dv">1</span>, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>, 
+ <span class="dt">variance.method=</span><span class="st">&quot;iptw&quot;</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W</span>
+<span class="co">#&gt; </span>
+<span class="kw">print</span>(<span class="kw">summary</span>(r1))
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, estimate.time = FALSE)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.66983 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.064914 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.5426, 0.79706)</span>
+<span class="kw">print</span>(<span class="kw">summary</span>(r2))
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;ic&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.66983 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.03233 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.60646, 0.7332)</span>
+<span class="kw">print</span>(<span class="kw">summary</span>(r3))
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;iptw&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.66983 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.050727 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.57041, 0.76925)</span>
+<span class="kw">print</span>(<span class="kw">summary</span>(r1, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>))
+<span class="co">#&gt; Estimator:  iptw </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, estimate.time = FALSE)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.77079 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.030037 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.71191, 0.82966)</span>
+<span class="kw">print</span>(<span class="kw">summary</span>(r2, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>)) <span class="co">#the same - variance.method only affects TMLE</span>
+<span class="co">#&gt; Estimator:  iptw </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;ic&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.77079 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.030037 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.71191, 0.82966)</span>
+<span class="kw">print</span>(<span class="kw">summary</span>(r3, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>)) <span class="co">#the same - variance.method only affects TMLE</span>
+<span class="co">#&gt; Estimator:  iptw </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
+<span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;iptw&quot;)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.77079 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.030037 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.71191, 0.82966)</span></code></pre></div>
+<p>We can see that the values of g are very small.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(r1<span class="op">$</span>cum.g)
+<span class="co">#&gt;        V1        </span>
+<span class="co">#&gt;  Min.   :0.0100  </span>
+<span class="co">#&gt;  1st Qu.:0.0100  </span>
+<span class="co">#&gt;  Median :0.4076  </span>
+<span class="co">#&gt;  Mean   :0.4852  </span>
+<span class="co">#&gt;  3rd Qu.:0.9898  </span>
+<span class="co">#&gt;  Max.   :1.0000</span>
+<span class="kw">summary</span>(r1<span class="op">$</span>cum.g.unbounded)
+<span class="co">#&gt;        V1        </span>
+<span class="co">#&gt;  Min.   :0.0000  </span>
+<span class="co">#&gt;  1st Qu.:0.0075  </span>
+<span class="co">#&gt;  Median :0.4076  </span>
+<span class="co">#&gt;  Mean   :0.4830  </span>
+<span class="co">#&gt;  3rd Qu.:0.9898  </span>
+<span class="co">#&gt;  Max.   :1.0000</span>
+<span class="kw">head</span>(<span class="kw">data.frame</span>(data, <span class="dt">g =</span> r1<span class="op">$</span>cum.g, <span class="dt">g.unbounded =</span> r1<span class="op">$</span>cum.g.unbounded), <span class="dv">20</span>)
+<span class="co">#&gt;              W A1          L A2 Y          g  g.unbounded</span>
+<span class="co">#&gt; 1   0.01841364  1  1.5462514  1 1 0.08420372 8.420372e-02</span>
+<span class="co">#&gt; 2   0.28046912  0  0.9329607  1 0 0.98270518 9.827052e-01</span>
+<span class="co">#&gt; 3  -0.16611238  0 -0.5745270  0 0 0.02242178 2.242178e-02</span>
+<span class="co">#&gt; 4  -0.82111047  1  0.6720630  1 0 0.01000000 3.157548e-03</span>
+<span class="co">#&gt; 5   0.86714725  0 -1.4928255  1 1 0.01000000 4.115767e-03</span>
+<span class="co">#&gt; 6   1.11526021  1 -0.2356060  1 0 0.99994120 9.999412e-01</span>
+<span class="co">#&gt; 7   0.29562080  0 -1.3254363  0 0 0.01000000 1.981095e-03</span>
+<span class="co">#&gt; 8  -1.23373457  0  1.0284871  1 0 0.01000000 9.972112e-05</span>
+<span class="co">#&gt; 9  -1.60017830  0  1.0423754  1 0 0.01000000 1.217195e-03</span>
+<span class="co">#&gt; 10  0.87560520  1  0.5920921  1 1 0.01000000 5.286031e-03</span>
+<span class="co">#&gt; 11  1.29966146  1  0.3238452  1 0 0.84979736 8.497974e-01</span>
+<span class="co">#&gt; 12  0.78757187  1  0.6297437  1 0 0.99362385 9.936238e-01</span>
+<span class="co">#&gt; 13  0.44550684  1 -0.2997083  1 0 0.89589061 8.958906e-01</span>
+<span class="co">#&gt; 14  0.43223618  1 -0.1746478  1 1 0.01000000 7.821296e-05</span>
+<span class="co">#&gt; 15  0.59788015  1 -1.0442749  0 0 0.01000000 4.232508e-04</span>
+<span class="co">#&gt; 16  1.80301032  1  0.5996323  1 1 0.45244138 4.524414e-01</span>
+<span class="co">#&gt; 17  0.95064688  1  0.4077425  1 0 0.01000000 6.900715e-03</span>
+<span class="co">#&gt; 18 -0.44670494  1 -0.1752575  1 0 0.99665947 9.966595e-01</span>
+<span class="co">#&gt; 19 -0.63660850  1  0.5851232  1 0 0.99954087 9.995409e-01</span>
+<span class="co">#&gt; 20 -0.16339536  1  1.0738663  1 0 0.99938054 9.993805e-01</span></code></pre></div>
+</div>
+<div id="hierachical-data-and-the-id-variable" class="section level2">
+<h2>Hierachical data and the id variable</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">num.households &lt;-<span class="st"> </span><span class="dv">500</span>
+people.in.household &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">runif</span>(num.households, <span class="dt">min =</span> <span class="dv">1</span>, <span class="dt">max =</span> <span class="dv">10</span>))
+<span class="kw">length</span>(people.in.household)
+<span class="co">#&gt; [1] 500</span>
+n &lt;-<span class="st"> </span><span class="kw">sum</span>(people.in.household) 
+n
+<span class="co">#&gt; [1] 2862</span>
+W.household &lt;-<span class="st"> </span><span class="kw">rnorm</span>(num.households)
+<span class="kw">length</span>(W.household)
+<span class="co">#&gt; [1] 500</span>
+W.household.expanded &lt;-<span class="st"> </span><span class="kw">rep</span>(W.household, <span class="dt">times =</span> people.in.household)
+W.indiv &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
+<span class="kw">length</span>(W.indiv)
+<span class="co">#&gt; [1] 2862</span>
+A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="fl">1.5</span> <span class="op">*</span><span class="st"> </span>W.household.expanded <span class="op">+</span><span class="st"> </span><span class="fl">0.4</span> <span class="op">*</span><span class="st"> </span>W.indiv)
+Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="op">-</span><span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="fl">2.3</span> <span class="op">*</span><span class="st"> </span>W.household.expanded <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span> <span class="op">*</span><span class="st"> </span>W.indiv <span class="op">+</span><span class="st"> </span><span class="fl">1.2</span> <span class="op">*</span><span class="st"> </span>A)</code></pre></div>
+<p>id can be an integer, factor, or character (or any type that can be coerced to factor)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">id &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">:</span>num.households 
+id.expanded &lt;-<span class="st"> </span><span class="kw">rep</span>(id, <span class="dt">times =</span> people.in.household)
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W.household.expanded, W.indiv, A, Y)
+<span class="kw">head</span>(<span class="kw">cbind</span>(id.expanded, data), <span class="dv">20</span>)
+<span class="co">#&gt;    id.expanded W.household.expanded     W.indiv A Y</span>
+<span class="co">#&gt; 1            1         -1.175719836 -0.40988721 0 0</span>
+<span class="co">#&gt; 2            2         -0.000456334 -1.04849912 0 0</span>
+<span class="co">#&gt; 3            2         -0.000456334 -0.94869364 0 0</span>
+<span class="co">#&gt; 4            2         -0.000456334 -0.52805584 1 1</span>
+<span class="co">#&gt; 5            3         -0.126663237  0.69617824 0 0</span>
+<span class="co">#&gt; 6            3         -0.126663237  0.41701850 0 0</span>
+<span class="co">#&gt; 7            3         -0.126663237 -1.01635331 0 0</span>
+<span class="co">#&gt; 8            3         -0.126663237 -0.78030962 0 1</span>
+<span class="co">#&gt; 9            3         -0.126663237  0.31260962 0 0</span>
+<span class="co">#&gt; 10           3         -0.126663237 -1.35648966 0 0</span>
+<span class="co">#&gt; 11           3         -0.126663237  0.65678615 0 0</span>
+<span class="co">#&gt; 12           4         -1.433117347  0.52256331 0 0</span>
+<span class="co">#&gt; 13           4         -1.433117347 -0.32138313 0 0</span>
+<span class="co">#&gt; 14           4         -1.433117347 -1.37871807 0 0</span>
+<span class="co">#&gt; 15           5         -1.775613968  0.04698651 0 0</span>
+<span class="co">#&gt; 16           6         -1.289409002 -0.69007219 0 0</span>
+<span class="co">#&gt; 17           6         -1.289409002  0.93107872 0 0</span>
+<span class="co">#&gt; 18           6         -1.289409002 -1.73028360 0 0</span>
+<span class="co">#&gt; 19           6         -1.289409002 -0.41061166 1 0</span>
+<span class="co">#&gt; 20           6         -1.289409002  1.60692415 1 0</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result.without.id &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes =</span> <span class="st">&quot;A&quot;</span>, <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="dv">0</span>)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W.household.expanded + W.indiv + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W.household.expanded + W.indiv</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+result.with.id &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes =</span> <span class="st">&quot;A&quot;</span>, <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="dv">0</span>, <span class="dt">id =</span> id.expanded)
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for Y:</span>
+<span class="co">#&gt; Q.kplus1 ~ W.household.expanded + W.indiv + A</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A:</span>
+<span class="co">#&gt; A ~ W.household.expanded + W.indiv</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span></code></pre></div>
+<p>Omitting the id variable makes the individuals seem more independent than they are, which gives artificially low variance estimates.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(result.without.id)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, abar = 0)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.3247 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.01343 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.29837, 0.35102)</span>
+<span class="kw">summary</span>(result.with.id)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, abar = 0, id = id.expanded)</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.3247 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.018975 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.28751, 0.36189)</span></code></pre></div>
+<p>The influence curve is a vector with length equal to the number of independent units.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(result.without.id<span class="op">$</span>IC<span class="op">$</span>tmle)
+<span class="co">#&gt; [1] 2862</span>
+<span class="kw">length</span>(result.with.id<span class="op">$</span>IC<span class="op">$</span>tmle)
+<span class="co">#&gt; [1] 500</span></code></pre></div>
+</div>
+<div id="multiple-time-dependent-covariates-and-treatments-at-each-time-point-continuous-y-values" class="section level2">
+<h2>Multiple time-dependent covariates and treatments at each time point, continuous Y values</h2>
+<p>age -&gt; gender -&gt; A1 -&gt; L1a -&gt; L1b -&gt; Y1 -&gt; A2 -&gt; L2a -&gt; L2b -&gt; Y2</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">2</span>)
+n &lt;-<span class="st"> </span><span class="dv">1000</span>
+age &lt;-<span class="st"> </span><span class="kw">rbinom</span>(n, <span class="dv">1</span>, <span class="fl">0.5</span>)
+gender &lt;-<span class="st"> </span><span class="kw">rbinom</span>(n, <span class="dv">1</span>, <span class="fl">0.5</span>)
+A1 &lt;-<span class="st"> </span><span class="kw">rexpit</span>(age <span class="op">+</span><span class="st"> </span>gender)
+L1a &lt;-<span class="st"> </span><span class="dv">2</span><span class="op">*</span>age <span class="op">-</span><span class="st"> </span><span class="dv">3</span><span class="op">*</span>gender <span class="op">+</span><span class="st"> </span><span class="dv">2</span><span class="op">*</span>A1 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n)
+L1b &lt;-<span class="st"> </span><span class="kw">rexpit</span>(age <span class="op">+</span><span class="st"> </span><span class="fl">1.5</span><span class="op">*</span>gender <span class="op">-</span><span class="st"> </span>A1)
+Y1 &lt;-<span class="st"> </span><span class="kw">plogis</span>(age <span class="op">-</span><span class="st"> </span>gender <span class="op">+</span><span class="st"> </span>L1a <span class="op">+</span><span class="st"> </span><span class="fl">0.7</span><span class="op">*</span>L1b <span class="op">+</span><span class="st"> </span>A1 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n))
+A2 &lt;-<span class="st"> </span><span class="kw">rexpit</span>(age <span class="op">+</span><span class="st"> </span>gender <span class="op">+</span><span class="st"> </span>A1 <span class="op">-</span><span class="st"> </span>L1a <span class="op">-</span><span class="st"> </span>L1b)
+L2a &lt;-<span class="st"> </span><span class="dv">2</span><span class="op">*</span>age <span class="op">-</span><span class="st"> </span><span class="dv">3</span><span class="op">*</span>gender <span class="op">+</span><span class="st"> </span><span class="dv">2</span><span class="op">*</span>A1 <span class="op">+</span><span class="st"> </span>A2 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n)
+L2b &lt;-<span class="st"> </span><span class="kw">rexpit</span>(age <span class="op">+</span><span class="st"> </span><span class="fl">1.5</span><span class="op">*</span>gender <span class="op">-</span><span class="st"> </span>A1 <span class="op">-</span><span class="st"> </span>A2)
+Y2 &lt;-<span class="st"> </span><span class="kw">plogis</span>(age <span class="op">-</span><span class="st"> </span>gender <span class="op">+</span><span class="st"> </span>L1a <span class="op">+</span><span class="st"> </span>L1b <span class="op">+</span><span class="st"> </span>A1 <span class="op">+</span><span class="st"> </span><span class="fl">1.8</span><span class="op">*</span>A2 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n))
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(age, gender, A1, L1a, L1b, Y1, A2, L2a, L2b, Y2)</code></pre></div>
+<p>Also show some different ways of specifying the nodes:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result5a &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="kw">c</span>(<span class="dv">3</span>, <span class="dv">7</span>), <span class="dt">Lnodes=</span><span class="kw">c</span>(<span class="st">&quot;L1a&quot;</span>, <span class="st">&quot;L1b&quot;</span>, <span class="st">&quot;L2a&quot;</span>, <span class="st">&quot;L2b&quot;</span>), 
+ <span class="dt">Ynodes=</span><span class="kw">grep</span>(<span class="st">&quot;^Y&quot;</span>, <span class="kw">names</span>(data)), <span class="dt">abar=</span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">0</span>)) 
+<span class="co">#&gt; Qform not specified, using defaults:</span>
+<span class="co">#&gt; formula for L1a:</span>
+<span class="co">#&gt; Q.kplus1 ~ age + gender + A1</span>
+<span class="co">#&gt; formula for L2a:</span>
+<span class="co">#&gt; Q.kplus1 ~ age + gender + A1 + L1a + L1b + Y1 + A2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ age + gender</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ age + gender + A1 + L1a + L1b + Y1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+<span class="co">#&gt; Warning in CheckForVarianceWarning(inputs, g.ratio): Variance estimate is</span>
+<span class="co">#&gt; based on influence curve only, which may be significantly anticonservative</span>
+<span class="co">#&gt; because your data appears to contain positivity violations. Robust variance</span>
+<span class="co">#&gt; estimate is not currently available with non binary outcomes but this will</span>
+<span class="co">#&gt; be addressed in a future release.</span>
+<span class="kw">summary</span>(result5a)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(3, 7), Lnodes = c(&quot;L1a&quot;, &quot;L1b&quot;, </span>
+<span class="co">#&gt;     &quot;L2a&quot;, &quot;L2b&quot;), Ynodes = grep(&quot;^Y&quot;, names(data)), abar = c(1, </span>
+<span class="co">#&gt;     0))</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.82598 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.012481 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.80152, 0.85044)</span></code></pre></div>
+<p>Usually you would specify a Qform for all of the Lnodes and Ynodes but in this case L1a, L1b, Y1 is a “block” of L/Y nodes not separated by Anodes or Cnodes (the same is true for L2a, L2b, Y2). Only one regression is required at the first L/Y node in a block. You can pass regression formulas for the other L/Y nodes, but they’ll be ignored.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result5b &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="kw">c</span>(<span class="dv">3</span>, <span class="dv">7</span>), <span class="dt">Lnodes=</span><span class="kw">c</span>(<span class="st">&quot;L1a&quot;</span>, <span class="st">&quot;L1b&quot;</span>, <span class="st">&quot;L2a&quot;</span>, <span class="st">&quot;L2b&quot;</span>), 
+ <span class="dt">Ynodes=</span><span class="kw">grep</span>(<span class="st">&quot;^Y&quot;</span>, <span class="kw">names</span>(data)), <span class="dt">abar=</span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">0</span>), 
+ <span class="dt">Qform=</span><span class="kw">c</span>(<span class="dt">L1a=</span><span class="st">&quot;Q.kplus1 ~ 1&quot;</span>, <span class="dt">L2a=</span><span class="st">&quot;Q.kplus1 ~ 1&quot;</span>))
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ age + gender</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ age + gender + A1 + L1a + L1b + Y1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+<span class="co">#&gt; Warning in CheckForVarianceWarning(inputs, g.ratio): Variance estimate is</span>
+<span class="co">#&gt; based on influence curve only, which may be significantly anticonservative</span>
+<span class="co">#&gt; because your data appears to contain positivity violations. Robust variance</span>
+<span class="co">#&gt; estimate is not currently available with non binary outcomes but this will</span>
+<span class="co">#&gt; be addressed in a future release.</span>
+<span class="kw">summary</span>(result5b)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(3, 7), Lnodes = c(&quot;L1a&quot;, &quot;L1b&quot;, </span>
+<span class="co">#&gt;     &quot;L2a&quot;, &quot;L2b&quot;), Ynodes = grep(&quot;^Y&quot;, names(data)), Qform = c(L1a = &quot;Q.kplus1 ~ 1&quot;, </span>
+<span class="co">#&gt;     L2a = &quot;Q.kplus1 ~ 1&quot;), abar = c(1, 0))</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.90247 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.011971 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.87901, 0.92594)</span></code></pre></div>
+<p>Gives the same result but prints a message saying some regression formulas will be dropped:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result5c &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="kw">c</span>(<span class="dv">3</span>, <span class="dv">7</span>), <span class="dt">Lnodes=</span><span class="kw">c</span>(<span class="st">&quot;L1a&quot;</span>, <span class="st">&quot;L1b&quot;</span>, <span class="st">&quot;L2a&quot;</span>, <span class="st">&quot;L2b&quot;</span>), 
+ <span class="dt">Ynodes=</span><span class="kw">grep</span>(<span class="st">&quot;^Y&quot;</span>, <span class="kw">names</span>(data)), <span class="dt">abar=</span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">0</span>), 
+ <span class="dt">Qform=</span><span class="kw">c</span>(<span class="dt">L1a=</span><span class="st">&quot;Q.kplus1 ~ 1&quot;</span>, <span class="dt">L1b=</span><span class="st">&quot;Q.klus1~A1&quot;</span>, 
+ <span class="dt">Y1=</span><span class="st">&quot;Q.kplus1~L1a&quot;</span>, <span class="dt">L2a=</span><span class="st">&quot;Q.kplus1 ~ 1&quot;</span>, <span class="dt">L2b=</span><span class="st">&quot;Q.klus1~A1&quot;</span>, <span class="dt">Y2=</span><span class="st">&quot;Q.kplus1~A2 + gender&quot;</span>))
+<span class="co">#&gt; L/Y nodes (after removing blocks)  : L1aL2a</span>
+<span class="co">#&gt; Qform names                        : L1aL1bY1L2aL2bY2</span>
+<span class="co">#&gt; The following nodes are not being considered as L/Y nodes because they are part of a block of L/Y nodes. They are being dropped from Qform:</span>
+<span class="co">#&gt; L1b </span>
+<span class="co">#&gt;  Y1 </span>
+<span class="co">#&gt;  L2b </span>
+<span class="co">#&gt;  Y2</span>
+<span class="co">#&gt; gform not specified, using defaults:</span>
+<span class="co">#&gt; formula for A1:</span>
+<span class="co">#&gt; A1 ~ age + gender</span>
+<span class="co">#&gt; formula for A2:</span>
+<span class="co">#&gt; A2 ~ age + gender + A1 + L1a + L1b + Y1</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Estimate of time to completion: &lt; 1 minute</span>
+<span class="co">#&gt; Warning in CheckForVarianceWarning(inputs, g.ratio): Variance estimate is</span>
+<span class="co">#&gt; based on influence curve only, which may be significantly anticonservative</span>
+<span class="co">#&gt; because your data appears to contain positivity violations. Robust variance</span>
+<span class="co">#&gt; estimate is not currently available with non binary outcomes but this will</span>
+<span class="co">#&gt; be addressed in a future release.</span>
+<span class="kw">summary</span>(result5c)
+<span class="co">#&gt; Estimator:  tmle </span>
+<span class="co">#&gt; Call:</span>
+<span class="co">#&gt; ltmle(data = data, Anodes = c(3, 7), Lnodes = c(&quot;L1a&quot;, &quot;L1b&quot;, </span>
+<span class="co">#&gt;     &quot;L2a&quot;, &quot;L2b&quot;), Ynodes = grep(&quot;^Y&quot;, names(data)), Qform = c(L1a = &quot;Q.kplus1 ~ 1&quot;, </span>
+<span class="co">#&gt;     L1b = &quot;Q.klus1~A1&quot;, Y1 = &quot;Q.kplus1~L1a&quot;, L2a = &quot;Q.kplus1 ~ 1&quot;, </span>
+<span class="co">#&gt;     L2b = &quot;Q.klus1~A1&quot;, Y2 = &quot;Q.kplus1~A2 + gender&quot;), abar = c(1, </span>
+<span class="co">#&gt;     0))</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;    Parameter Estimate:  0.90247 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.011971 </span>
+<span class="co">#&gt;               p-value:  &lt;2e-16 </span>
+<span class="co">#&gt;     95% Conf Interval: (0.87901, 0.92594)</span></code></pre></div>
+<p>If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula.</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
