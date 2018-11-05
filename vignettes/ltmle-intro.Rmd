@@ -183,14 +183,14 @@ A simple point treatment problem W, A, Y. But there is a positivity problem - fo
 
 The true parameter value, $E[Y_1]$ is approximately 0.697.
 
-The true TMLE standard deviation is approximately 0.064. 
+The true TMLE standard deviation is approximately 0.056. 
 
-The true IPTW standard deviation is approximately 0.058.
+The true IPTW standard deviation is approximately 0.059.
 
 ```{r}
 n <- 1000
 W <- rnorm(n)
-A <- rexpit(8 * W)
+A <- rexpit(4 * W)
 Y <- rexpit(W + A)
 r1 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE)
 r2 <- ltmle(data.frame(W, A, Y), Anodes="A", Ynodes="Y", abar = 1, estimate.time=FALSE, 
