@@ -37,6 +37,7 @@ W <- rnorm(n)
 A <- rexpit(W)
 Y <- rexpit(W + A)
 data <- data.frame(W, A, Y)
+head(data, 3)
 ```
 
 We could try to use the simple mean of Y or the mean of Y when A = 1, but these will be biased.

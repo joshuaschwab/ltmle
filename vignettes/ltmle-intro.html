@@ -12,7 +12,7 @@
 
 <meta name="author" content="Joshua Schwab" />
 
-<meta name="date" content="2018-10-19" />
+<meta name="date" content="2019-02-25" />
 
 <title>Introduction to ltmle()</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Introduction to ltmle()</h1>
 <h4 class="author"><em>Joshua Schwab</em></h4>
-<h4 class="date"><em>2018-10-19</em></h4>
+<h4 class="date"><em>2019-02-25</em></h4>
 
 
 
@@ -88,7 +88,12 @@ n &lt;-<span class="st"> </span><span class="dv">10000</span>
 W &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
 A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W)
 Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W <span class="op">+</span><span class="st"> </span>A)
-data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W, A, Y)</code></pre></div>
+data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W, A, Y)
+<span class="kw">head</span>(data, <span class="dv">3</span>)
+<span class="co">#&gt;            W A Y</span>
+<span class="co">#&gt; 1 -1.2070657 0 1</span>
+<span class="co">#&gt; 2  0.2774292 0 0</span>
+<span class="co">#&gt; 3  1.0844412 1 1</span></code></pre></div>
 <p>We could try to use the simple mean of Y or the mean of Y when A = 1, but these will be biased.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">mean</span>(Y)
 <span class="co">#&gt; [1] 0.5992</span>
@@ -104,7 +109,7 @@ data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W, A, Y)</
 <span class="co">#&gt; formula for A:</span>
 <span class="co">#&gt; A ~ W</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt; Estimate of time to completion: 2 to 6 minutes</span>
+<span class="co">#&gt; Estimate of time to completion: 2 to 4 minutes</span>
 result
 <span class="co">#&gt; Call:</span>
 <span class="co">#&gt; ltmle(data = data, Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, abar = 1)</span>
@@ -148,7 +153,7 @@ data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W1, W2, W3
 <span class="co">#&gt; </span>
 <span class="co">#&gt; arm (Version 1.10-1, built: 2018-4-12)</span>
 <span class="co">#&gt; Working directory is /Users/joshua/Dropbox (UC Berkeley Biostat)/Josh-Berkeley/ltmle-dev/vignettes</span>
-<span class="co">#&gt; Estimate of time to completion: 1 to 2 minutes</span></code></pre></div>
+<span class="co">#&gt; Estimate of time to completion: 1 minute</span></code></pre></div>
 <p>TMLE estimate:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(result)
 <span class="co">#&gt; Estimator:  tmle </span>
@@ -173,7 +178,7 @@ data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(W1, W2, W3
 <span class="co">#&gt;     95% Conf Interval: (0.48204, 0.64423)</span></code></pre></div>
 <p>SuperLearner semiparametric estimation using correctly specified regressors</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">result &lt;-<span class="st"> </span><span class="kw">ltmle</span>(data, <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Lnodes=</span><span class="ot">NULL</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">Qform=</span><span class="kw">c</span>(<span class="dt">Y=</span><span class="st">&quot;Q.kplus1 ~ I(W1^2) + W2 + W3*A&quot;</span>), <span class="dt">gform=</span><span class="st">&quot;A ~ W1 + W3&quot;</span>, <span class="dt">abar=</span><span class="dv">1</span>, <span class="dt">SL.library=</span><span class="st">&quot;default&quot;</span>)
-<span class="co">#&gt; Estimate of time to completion: 1 to 2 minutes</span>
+<span class="co">#&gt; Estimate of time to completion: 1 minute</span>
 <span class="kw">summary</span>(result)
 <span class="co">#&gt; Estimator:  tmle </span>
 <span class="co">#&gt; Call:</span>
@@ -417,11 +422,11 @@ result.rule
 <h2>Variance estimation</h2>
 <p>A simple point treatment problem W, A, Y. But there is a positivity problem - for small values of W, Prob(A = 1) is very small.</p>
 <p>The true parameter value, <span class="math inline">\(E[Y_1]\)</span> is approximately 0.697.</p>
-<p>The true TMLE standard deviation is approximately 0.064.</p>
-<p>The true IPTW standard deviation is approximately 0.058.</p>
+<p>The true TMLE standard deviation is approximately 0.056.</p>
+<p>The true IPTW standard deviation is approximately 0.059.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n &lt;-<span class="st"> </span><span class="dv">1000</span>
 W &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)
-A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="dv">8</span> <span class="op">*</span><span class="st"> </span>W)
+A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="dv">4</span> <span class="op">*</span><span class="st"> </span>W)
 Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W <span class="op">+</span><span class="st"> </span>A)
 r1 &lt;-<span class="st"> </span><span class="kw">ltmle</span>(<span class="kw">data.frame</span>(W, A, Y), <span class="dt">Anodes=</span><span class="st">&quot;A&quot;</span>, <span class="dt">Ynodes=</span><span class="st">&quot;Y&quot;</span>, <span class="dt">abar =</span> <span class="dv">1</span>, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)
 <span class="co">#&gt; Qform not specified, using defaults:</span>
@@ -464,99 +469,99 @@ r3 &lt;-<span class="st"> </span><span class="kw">ltmle</span>(<span class="kw">
 <span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
 <span class="co">#&gt;     abar = 1, estimate.time = FALSE)</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt;    Parameter Estimate:  0.70559 </span>
-<span class="co">#&gt;     Estimated Std Err:  0.061902 </span>
+<span class="co">#&gt;    Parameter Estimate:  0.78882 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.05464 </span>
 <span class="co">#&gt;               p-value:  &lt;2e-16 </span>
-<span class="co">#&gt;     95% Conf Interval: (0.58427, 0.82692)</span>
+<span class="co">#&gt;     95% Conf Interval: (0.68173, 0.89591)</span>
 <span class="kw">print</span>(<span class="kw">summary</span>(r2))
 <span class="co">#&gt; Estimator:  tmle </span>
 <span class="co">#&gt; Call:</span>
 <span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
 <span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;ic&quot;)</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt;    Parameter Estimate:  0.70559 </span>
-<span class="co">#&gt;     Estimated Std Err:  0.021569 </span>
+<span class="co">#&gt;    Parameter Estimate:  0.78882 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.045359 </span>
 <span class="co">#&gt;               p-value:  &lt;2e-16 </span>
-<span class="co">#&gt;     95% Conf Interval: (0.66332, 0.74787)</span>
+<span class="co">#&gt;     95% Conf Interval: (0.69992, 0.87772)</span>
 <span class="kw">print</span>(<span class="kw">summary</span>(r3))
 <span class="co">#&gt; Estimator:  tmle </span>
 <span class="co">#&gt; Call:</span>
 <span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
 <span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;iptw&quot;)</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt;    Parameter Estimate:  0.70559 </span>
-<span class="co">#&gt;     Estimated Std Err:  0.033384 </span>
+<span class="co">#&gt;    Parameter Estimate:  0.78882 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.060841 </span>
 <span class="co">#&gt;               p-value:  &lt;2e-16 </span>
-<span class="co">#&gt;     95% Conf Interval: (0.64016, 0.77103)</span>
+<span class="co">#&gt;     95% Conf Interval: (0.66957, 0.90807)</span>
 <span class="kw">print</span>(<span class="kw">summary</span>(r1, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>))
 <span class="co">#&gt; Estimator:  iptw </span>
 <span class="co">#&gt; Call:</span>
 <span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
 <span class="co">#&gt;     abar = 1, estimate.time = FALSE)</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt;    Parameter Estimate:  0.79957 </span>
-<span class="co">#&gt;     Estimated Std Err:  0.022348 </span>
+<span class="co">#&gt;    Parameter Estimate:  0.8237 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.034312 </span>
 <span class="co">#&gt;               p-value:  &lt;2e-16 </span>
-<span class="co">#&gt;     95% Conf Interval: (0.75577, 0.84337)</span>
+<span class="co">#&gt;     95% Conf Interval: (0.75645, 0.89095)</span>
 <span class="kw">print</span>(<span class="kw">summary</span>(r2, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>)) <span class="co">#the same - variance.method only affects TMLE</span>
 <span class="co">#&gt; Estimator:  iptw </span>
 <span class="co">#&gt; Call:</span>
 <span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
 <span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;ic&quot;)</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt;    Parameter Estimate:  0.79957 </span>
-<span class="co">#&gt;     Estimated Std Err:  0.022348 </span>
+<span class="co">#&gt;    Parameter Estimate:  0.8237 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.034312 </span>
 <span class="co">#&gt;               p-value:  &lt;2e-16 </span>
-<span class="co">#&gt;     95% Conf Interval: (0.75577, 0.84337)</span>
+<span class="co">#&gt;     95% Conf Interval: (0.75645, 0.89095)</span>
 <span class="kw">print</span>(<span class="kw">summary</span>(r3, <span class="dt">estimator=</span><span class="st">&quot;iptw&quot;</span>)) <span class="co">#the same - variance.method only affects TMLE</span>
 <span class="co">#&gt; Estimator:  iptw </span>
 <span class="co">#&gt; Call:</span>
 <span class="co">#&gt; ltmle(data = data.frame(W, A, Y), Anodes = &quot;A&quot;, Ynodes = &quot;Y&quot;, </span>
 <span class="co">#&gt;     abar = 1, estimate.time = FALSE, variance.method = &quot;iptw&quot;)</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt;    Parameter Estimate:  0.79957 </span>
-<span class="co">#&gt;     Estimated Std Err:  0.022348 </span>
+<span class="co">#&gt;    Parameter Estimate:  0.8237 </span>
+<span class="co">#&gt;     Estimated Std Err:  0.034312 </span>
 <span class="co">#&gt;               p-value:  &lt;2e-16 </span>
-<span class="co">#&gt;     95% Conf Interval: (0.75577, 0.84337)</span></code></pre></div>
+<span class="co">#&gt;     95% Conf Interval: (0.75645, 0.89095)</span></code></pre></div>
 <p>We can see that the values of g are very small.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(r1<span class="op">$</span>cum.g)
-<span class="co">#&gt;        V1        </span>
-<span class="co">#&gt;  Min.   :0.0100  </span>
-<span class="co">#&gt;  1st Qu.:0.0100  </span>
-<span class="co">#&gt;  Median :0.5003  </span>
-<span class="co">#&gt;  Mean   :0.5035  </span>
-<span class="co">#&gt;  3rd Qu.:0.9967  </span>
-<span class="co">#&gt;  Max.   :1.0000</span>
+<span class="co">#&gt;        V1         </span>
+<span class="co">#&gt;  Min.   :0.01000  </span>
+<span class="co">#&gt;  1st Qu.:0.05264  </span>
+<span class="co">#&gt;  Median :0.52296  </span>
+<span class="co">#&gt;  Mean   :0.51014  </span>
+<span class="co">#&gt;  3rd Qu.:0.96142  </span>
+<span class="co">#&gt;  Max.   :1.00000</span>
 <span class="kw">summary</span>(r1<span class="op">$</span>cum.g.unbounded)
-<span class="co">#&gt;        V1          </span>
-<span class="co">#&gt;  Min.   :0.000000  </span>
-<span class="co">#&gt;  1st Qu.:0.004268  </span>
-<span class="co">#&gt;  Median :0.500255  </span>
-<span class="co">#&gt;  Mean   :0.501000  </span>
-<span class="co">#&gt;  3rd Qu.:0.996708  </span>
-<span class="co">#&gt;  Max.   :1.000000</span>
+<span class="co">#&gt;        V1           </span>
+<span class="co">#&gt;  Min.   :0.0000031  </span>
+<span class="co">#&gt;  1st Qu.:0.0526352  </span>
+<span class="co">#&gt;  Median :0.5229563  </span>
+<span class="co">#&gt;  Mean   :0.5090000  </span>
+<span class="co">#&gt;  3rd Qu.:0.9614173  </span>
+<span class="co">#&gt;  Max.   :0.9999991</span>
 <span class="kw">head</span>(<span class="kw">data.frame</span>(data, <span class="dt">g =</span> r1<span class="op">$</span>cum.g, <span class="dt">g.unbounded =</span> r1<span class="op">$</span>cum.g.unbounded), <span class="dv">20</span>)
-<span class="co">#&gt;              W A1           L A2 Y          g  g.unbounded</span>
-<span class="co">#&gt; 1  -1.20573542  0  0.39581728  1 0 0.97946069 9.794607e-01</span>
-<span class="co">#&gt; 2  -0.11847809  0 -1.85463574  0 0 0.98262162 9.826216e-01</span>
-<span class="co">#&gt; 3  -1.07449828  0 -0.60210049  0 0 0.89928578 8.992858e-01</span>
-<span class="co">#&gt; 4   0.14959645  0 -2.15612928  0 0 0.99919151 9.991915e-01</span>
-<span class="co">#&gt; 5  -0.09924607  1  0.37076323  0 0 0.41828112 4.182811e-01</span>
-<span class="co">#&gt; 6  -0.21997262  0  0.29511068  0 1 0.02056625 2.056625e-02</span>
-<span class="co">#&gt; 7  -0.40776705  1 -1.22315579  0 1 0.99999214 9.999921e-01</span>
-<span class="co">#&gt; 8  -1.04285658  0  0.09105349  0 0 0.09265989 9.265989e-02</span>
-<span class="co">#&gt; 9   0.40278767  0  0.02907726  1 1 0.99991550 9.999155e-01</span>
-<span class="co">#&gt; 10  0.90752206  1  0.65232435  1 1 0.94925366 9.492537e-01</span>
-<span class="co">#&gt; 11 -0.48329380  1 -0.25679883  0 1 0.01967918 1.967918e-02</span>
-<span class="co">#&gt; 12  0.49421470  1  0.38044406  1 0 0.01000000 1.779752e-04</span>
-<span class="co">#&gt; 13 -0.89599532  1 -0.83443405  0 0 0.01000000 2.081218e-05</span>
-<span class="co">#&gt; 14 -0.56313947  1  0.53727874  0 0 0.99941902 9.994190e-01</span>
-<span class="co">#&gt; 15 -0.71826032  0  0.76740665  1 0 0.68918104 6.891810e-01</span>
-<span class="co">#&gt; 16 -0.06871387  1  1.38592910  1 1 0.03380278 3.380278e-02</span>
-<span class="co">#&gt; 17  0.27635264  1  0.08097210  1 0 0.01612997 1.612997e-02</span>
-<span class="co">#&gt; 18  0.91849604  1 -0.87734697  1 0 0.99915165 9.991516e-01</span>
-<span class="co">#&gt; 19 -1.72830919  0 -1.78502844  0 0 0.01000000 2.334893e-06</span>
-<span class="co">#&gt; 20 -0.32355003  0 -1.41524273  0 0 0.99904235 9.990424e-01</span></code></pre></div>
+<span class="co">#&gt;              W A1           L A2 Y         g  g.unbounded</span>
+<span class="co">#&gt; 1  -1.20573542  0  0.39581728  1 0 0.9006785 0.9006785084</span>
+<span class="co">#&gt; 2  -0.11847809  0 -1.85463574  0 0 0.9087061 0.9087060562</span>
+<span class="co">#&gt; 3  -1.07449828  0 -0.60210049  0 0 0.7839094 0.7839093738</span>
+<span class="co">#&gt; 4   0.14959645  0 -2.15612928  0 0 0.9817427 0.9817427367</span>
+<span class="co">#&gt; 5  -0.09924607  1  0.37076323  0 0 0.4777545 0.4777544553</span>
+<span class="co">#&gt; 6  -0.21997262  0  0.29511068  0 1 0.1169757 0.1169756544</span>
+<span class="co">#&gt; 7  -0.40776705  1 -1.22315579  0 1 0.9985276 0.9985275727</span>
+<span class="co">#&gt; 8  -1.04285658  0  0.09105349  0 0 0.2393246 0.2393246014</span>
+<span class="co">#&gt; 9   0.40278767  0  0.02907726  1 1 0.9946230 0.9946229607</span>
+<span class="co">#&gt; 10  0.90752206  1  0.65232435  1 1 0.8446203 0.8446203136</span>
+<span class="co">#&gt; 11 -0.48329380  1 -0.25679883  0 1 0.1144578 0.1144578470</span>
+<span class="co">#&gt; 12  0.49421470  1  0.38044406  1 0 0.0100000 0.0096592006</span>
+<span class="co">#&gt; 13 -0.89599532  1 -0.83443405  0 0 0.0100000 0.0030068329</span>
+<span class="co">#&gt; 14 -0.56313947  1  0.53727874  0 0 0.9847169 0.9847169210</span>
+<span class="co">#&gt; 15 -0.71826032  0  0.76740665  1 0 0.6287364 0.6287363962</span>
+<span class="co">#&gt; 16 -0.06871387  1  1.38592910  1 1 0.1490321 0.1490321039</span>
+<span class="co">#&gt; 17  0.27635264  1  0.08097210  1 0 0.1037038 0.1037038375</span>
+<span class="co">#&gt; 18  0.91849604  1 -0.87734697  1 0 0.9812646 0.9812645670</span>
+<span class="co">#&gt; 19 -1.72830919  0 -1.78502844  0 0 0.0100000 0.0009108909</span>
+<span class="co">#&gt; 20 -0.32355003  0 -1.41524273  0 0 0.9800053 0.9800053294</span></code></pre></div>
 </div>
 <div id="hierachical-data-and-the-id-variable" class="section level2">
 <h2>Hierachical data and the id variable</h2>
