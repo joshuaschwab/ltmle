@@ -1,3 +1,8 @@
+ltmle 1.2-0
+===========
+* Added initial draft of vignette
+* Fixed some tests to address change to stringsAsFactors
+
 ltmle 1.1-0
 ===========
 * Added SL.cvControl - optional list to be passed as cvControl to SuperLearner

@@ -46,7 +46,7 @@ test_that("invalid inputs throw errors 3", {
 
   expect_error(ltmle(data.frame(W, C=rep("uncensored", n), A, Y, stringsAsFactors = F), abar=1, Anodes="A", Cnodes="C", Ynodes="Y"), "in data, all Cnodes should be factors with two levels")
   
-  expect_error(ltmle(data.frame(W, C=rep("???", n), A, Y), abar=1, Anodes="A", Cnodes="C", Ynodes="Y"), "all levels of data")
+  expect_error(ltmle(data.frame(W, C=rep("???", n), A, Y, stringsAsFactors = T), abar=1, Anodes="A", Cnodes="C", Ynodes="Y"), "all levels of data")
 })
 
 test_that("rarely used lines run", {

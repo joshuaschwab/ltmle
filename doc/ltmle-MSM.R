@@ -1,31 +1,11 @@
----
-title: "Marginal Structural Models - ltmleMSM()"
-author: "Joshua Schwab"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Marginal Structural Models - ltmleMSM()}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
-```{r setup, include = FALSE}
+## ----setup, include = FALSE---------------------------------------------------
 library(ltmle)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-```
 
-## Marginal Structural Models (MSMs) - Multiple regimes with a single outcome
-
-In this example there are 5 time points with a treatment and time varying covariate. At each, treatment can be 0 or 1. There is a single outcome Y.
-
-L_0 L_1 A_1 L_2 A_2 ... L_5 A_5 Y
-
-There are 2^5 = 32 regimes of interest. Some of these may have limited support because there are few patients who follow a particular regime. We pool over all regimes using a working marginal structural model. In this example we want to know the effect of time on treatment on Y. We include time.on.treatment and time.on.treatment^2.
-
-```{r}
+## -----------------------------------------------------------------------------
 rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
 n <- 5000
 time.points <- 5
@@ -48,9 +28,8 @@ for (t in 1:time.points) {
 }
 data$Y <- rexpit(sum.A / time.points + L)
 head(data)
-```
 
-```{r}
+## -----------------------------------------------------------------------------
 regime.matrix <- as.matrix(expand.grid(rep(list(0:1), time.points)))
 dim(regime.matrix)
 head(regime.matrix, 20)
@@ -64,10 +43,8 @@ for (i in 1:num.regimes) {
 colnames(summary.measures) <- "time.on.treatment"
 regimes[1:3, , 1:3]
 summary.measures
-```
 
-For large numbers of regimes, `variance.method = "ic"` is much faster, but may give anticonservative confidence intervals. You may want to use `variance.method = "ic"` first to make sure the MSM coefficients look reasonable and then use `variance.method = "tmle"` (the default) for your final estimates.
-```{r}
+## -----------------------------------------------------------------------------
 result1 <- ltmleMSM(data, Anodes = paste0("A_", 1:time.points), 
                     Lnodes = paste0("L_", 0:time.points), Ynodes = "Y", 
                     regimes = regimes, summary.measures = summary.measures, 
@@ -79,11 +56,8 @@ result2 <- ltmleMSM(data, Anodes = paste0("A_", 1:time.points),
                     working.msm = "Y ~ time.on.treatment + I(time.on.treatment^2)")
 summary(result1)
 summary(result2)
-```
 
-Suppose we are only interested in the effect of time on treatment on Y considering regimes that include at least 3 periods on treatment.
-
-```{r}
+## -----------------------------------------------------------------------------
 at.least.3 <- summary.measures[, "time.on.treatment", 1] >= 3
 regimes.3 <- regimes[, , at.least.3]
 summary.measures.3 <- summary.measures[at.least.3, , , drop = F]
@@ -96,34 +70,23 @@ result <- ltmleMSM(data, Anodes = paste0("A_", 1:time.points),
                    summary.measures = summary.measures.3, 
                    working.msm = "Y ~ time.on.treatment + I(time.on.treatment^2)")
 summary(result)
-```
 
-
-## Marginal Structural Models (MSMs) - Switching time example - Multiple regimes and outcomes
-Given data over 3 time points where A switches to 1 once and then stays 1. We want to know how death varies as a function of gender, time and an indicator of whether a patient's intended regime was to switch before time.
-Note that `working.msm` includes `time` and `switch.time`, which are columns of summary.measures; `working.msm` also includes `male`, which is ok because it is a baseline covariate (it comes before any A/C/L/Y nodes).
-
-```{r}
+## -----------------------------------------------------------------------------
 data(sampleDataForLtmleMSM)
 head(sampleDataForLtmleMSM$data, 20)
 dim(sampleDataForLtmleMSM$regimes)
 sampleDataForLtmleMSM$regimes[1:5, , ]
 sampleDataForLtmleMSM$summary.measures
-```
 
-
-```{r}
+## -----------------------------------------------------------------------------
 Anodes <- c("A0", "A1", "A2")
 Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- c("Y1", "Y2", "Y3")
-```
 
-Here `msm.weights` is just an example. It could also be a 200x3x4 array or NULL (for no weights), or `"empirical"` (the default).
-```{r}
+## -----------------------------------------------------------------------------
 msm.weights <- matrix(1:12, nrow=4, ncol=3)  
-```
 
-```{r}
+## -----------------------------------------------------------------------------
 result.regimes <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, 
                    Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE,
@@ -133,10 +96,8 @@ result.regimes <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes,
                    working.msm="Y ~ male + time + pmax(time - switch.time, 0)", 
                    msm.weights=msm.weights, estimate.time=FALSE)
 print(summary(result.regimes))
-```
 
-`regimes` can also be specified as a list of rule functions where each rule is a function applied to each row of `data` which returns a numeric vector of the same length as `Anodes`.
-```{r}
+## -----------------------------------------------------------------------------
 regimesList <- list(function(row) c(1,1,1),
                      function(row) c(0,1,1),
                      function(row) c(0,0,1),
@@ -148,15 +109,11 @@ result.regList <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes,
                    final.Ynodes=Ynodes, 
                    working.msm="Y ~ male + time + pmax(time - switch.time, 0)", 
                    msm.weights=msm.weights, estimate.time=FALSE)
-```
 
-This should be the same as `result.regimes`:
-```{r}
+## -----------------------------------------------------------------------------
 print(summary(result.regList))         
-```
 
-Suppose we are only interested in pooling over the result at Y1 and Y3.
-```{r}
+## -----------------------------------------------------------------------------
 result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, 
                    Lnodes=Lnodes, Ynodes=Ynodes, 
                    survivalOutcome=TRUE,
@@ -166,10 +123,8 @@ result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes,
                    working.msm="Y ~ male + time + pmax(time - switch.time, 0)", 
                    estimate.time=FALSE)
 summary(result)
-``` 
 
-We could be only interested in the result at Y3. `time` is now a constant in `working.msm`, so let's remove it.
-```{r}
+## -----------------------------------------------------------------------------
 result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, 
                     Lnodes=Lnodes, Ynodes=Ynodes, 
                     survivalOutcome=TRUE,
@@ -179,16 +134,8 @@ result <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes,
                     working.msm="Y ~ male + switch.time", 
                     estimate.time=FALSE)
 summary(result)
-```
 
-## Marginal Structural Models (MSMs) - Dynamic Treatment
-In this example there are two treatment nodes and one outcome:
-W A1 L A2 Y
-W is normally distributed and L is continuous in (0, 1).
-We are interested in treatments where A1 is set to either 0 or 1 and A2 is set dynamically. The treatment for A2 is indexed by theta between 0 and 1. If $L > theta$, set A2 to 1, otherwise set A2 to 0.  
-Here is a function that can be used to generate observed data (if `abar = NULL`) or generate counterfactual truth (if `abar` is a list with a1 and theta):
-
-```{r}
+## -----------------------------------------------------------------------------
 GenerateData <- function(n, abar = NULL) {
   W <- rnorm(n)
   if (is.null(abar)) {
@@ -209,10 +156,8 @@ GenerateData <- function(n, abar = NULL) {
     return(mean(Y))
   }
 }
-```
 
-Set up `regimes` and `summary.measures`:
-```{r}
+## -----------------------------------------------------------------------------
 set.seed(11)
 n <- 10000
 data <- GenerateData(n)
@@ -232,17 +177,14 @@ for (a1 in 0:1) {
 summary.measures
 head(data, 3)
 regimes[1:3, , ]
-```
 
-```{r}
+## -----------------------------------------------------------------------------
 working.msm <- "Y ~ a1*theta"
 summary(ltmleMSM(data, Anodes = c("A1", "A2"), Lnodes = "L", Ynodes = "Y", 
               regimes = regimes, summary.measures = summary.measures, 
               working.msm = working.msm))
-```
 
-Let's compare to the true coefficents of the MSM. First we find the true value of $E[Y_{a1, theta}]$ for 5 values of theta.
-```{r}
+## -----------------------------------------------------------------------------
 truth <- rep(NA_real_, 10)
 cnt <- 0
 for (a1 in 0:1) {
@@ -252,14 +194,10 @@ for (a1 in 0:1) {
                     abar = list(a1 = a1, theta = theta.set[theta.index]))
   }
 }
-```
 
-Fit a working MSM to the true values of $E[Y_{a1, theta}]$.
-```{r}
+## -----------------------------------------------------------------------------
 m.true <- glm(working.msm, 
               data = data.frame(Y = truth, summary.measures[, , 1]), 
               family = "quasibinomial")
 m.true
-```
-The estimated MSM coefficients are close to the true MSM coefficients.
 

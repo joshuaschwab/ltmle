@@ -10,17 +10,18 @@ test_that("treatment specific mean point treatment matches Susan Gruber tmle pac
     tmle.outputs <- ltmle.outputs <- matrix(NA, niter, 7)
     for (i in 1:niter) {
       n <- 1000
-      W <- matrix(rnorm(n), ncol=1)
-      A <- rbinom(n, 1, plogis(W))
-      Y <- rbinom(n, 1, plogis(A + W))
-      Qform <- c("Y ~ A + W")
-      gform <- "A ~ W"
+      w <- cbind(matrix(rnorm(n), ncol=1), -999) #-999 doesn't do anything, but this is a hack to make sure w stays a matrix (there's a weird bug with environments in tmle)
+      colnames(w) <- c("W1", "W2")
+      A <- rbinom(n, 1, plogis(w[, 1]))
+      Y <- rbinom(n, 1, plogis(A + w[, 1]))
+      Qform <- c("Y ~ A + W1")
+      gform <- "A ~ W1"
       lgbound <- 0.01
       gbounds <- c(lgbound, 1)
-      r1 <- tmle::tmle(Y, A, W, Qform = Qform, gform = gform, family = "binomial", Qbounds=c(0,1), alpha=0.9999, gbound=lgbound)
+      r1 <- tmle::tmle(Y, A, w, Qform = Qform, gform = gform, family = "binomial", Qbounds=c(0,1), alpha=0.9999, gbound=lgbound)
       
-      data <- data.frame(W, A, Y)
-      r2 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform=gform, abar=list(1, 0), gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE, variance.method="ic")
+      data <- data.frame(W = w[, 1], A, Y)
+      r2 <- ltmle(data, Anodes="A", Ynodes="Y", Qform=c(Y="Q.kplus1 ~ A + W"), gform="A ~ W", abar=list(1, 0), gbounds=gbounds, survivalOutcome=TRUE, estimate.time=FALSE, variance.method="ic")
       s <- summary(r2)
       tmle.outputs[i, ] <- c(r1$estimates$ATE$psi, sqrt(r1$estimates$ATE$var.psi), r1$estimates$ATE$pvalue, r1$estimates$RR$psi, r1$estimates$RR$pvalue, r1$estimates$OR$psi, r1$estimates$OR$pvalue)
       ltmle.outputs[i, ] <- c(s$effect.measures$ATE$estimate, s$effect.measures$ATE$std.dev, s$effect.measures$ATE$pvalue, s$effect.measures$RR$estimate, s$effect.measures$RR$pvalue, s$effect.measures$OR$estimate, s$effect.measures$OR$pvalue)
@@ -31,6 +32,7 @@ test_that("treatment specific mean point treatment matches Susan Gruber tmle pac
     print("skipping tmle check because tmle namespace is not available")
   }
 })
+
 
 test_that("simple longitudinal data matches code from Susan Gruber paper", {
   niter <- 10

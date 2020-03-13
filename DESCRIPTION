@@ -1,8 +1,8 @@
 Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
-Version: 1.1-1
-Date: 2018-8-20
+Version: 1.2-0
+Date: 2020-3-13
 Maintainer: Joshua Schwab <jschwab77@berkeley.edu>
 Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
     email="jschwab77@berkeley.edu"), person("Samuel", "Lendle", role="aut"),
@@ -19,7 +19,9 @@ Suggests:
     testthat,
     tmle,
     knitr,
-    rmarkdown
+    rmarkdown,
+    nnls,
+    arm
 Description: Targeted Maximum Likelihood Estimation (TMLE) of
     treatment/censoring specific mean outcome or marginal structural model for
     point-treatment and longitudinal data.
@@ -34,5 +36,5 @@ Collate:
     'zzz.R'
 URL: https://github.com/joshuaschwab/ltmle
 BugReports: https://github.com/joshuaschwab/ltmle/issues
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 VignetteBuilder: knitr

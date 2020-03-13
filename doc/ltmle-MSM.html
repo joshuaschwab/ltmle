@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Joshua Schwab" />
+
+<meta name="date" content="2020-03-11" />
+
+<title>Marginal Structural Models - ltmleMSM()</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Marginal Structural Models - ltmleMSM()</h1>
+<h4 class="author">Joshua Schwab</h4>
+<h4 class="date">2020-03-11</h4>
+
+
+
+<div id="marginal-structural-models-msms---multiple-regimes-with-a-single-outcome" class="section level2">
+<h2>Marginal Structural Models (MSMs) - Multiple regimes with a single outcome</h2>
+<p>In this example there are 5 time points with a treatment and time varying covariate. At each, treatment can be 0 or 1. There is a single outcome Y.</p>
+<p>L_0 L_1 A_1 L_2 A_2 … L_5 A_5 Y</p>
+<p>There are 2^5 = 32 regimes of interest. Some of these may have limited support because there are few patients who follow a particular regime. We pool over all regimes using a working marginal structural model. In this example we want to know the effect of time on treatment on Y. We include time.on.treatment and time.on.treatment^2.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">rexpit &lt;-<span class="st"> </span><span class="cf">function</span>(x) <span class="kw">rbinom</span>(<span class="dt">n=</span><span class="kw">length</span>(x), <span class="dt">size=</span><span class="dv">1</span>, <span class="dt">prob=</span><span class="kw">plogis</span>(x))</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">n &lt;-<span class="st"> </span><span class="dv">5000</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">time.points &lt;-<span class="st"> </span><span class="dv">5</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">prev.L &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">prev.A &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="dv">0</span>, n)</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">sum.A &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="dv">0</span>, n)</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">data &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">L_0 =</span> prev.L)</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>time.points) {</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">  L &lt;-<span class="st"> </span><span class="fl">0.1</span> <span class="op">*</span><span class="st"> </span>prev.L <span class="op">+</span><span class="st"> </span><span class="fl">0.3</span> <span class="op">*</span><span class="st"> </span>prev.A <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n)</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">  A &lt;-<span class="st"> </span><span class="kw">rexpit</span>(L)</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">  </a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">  data1 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(L, A)</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">  <span class="kw">names</span>(data1) &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="kw">c</span>(<span class="st">&quot;L_&quot;</span>, <span class="st">&quot;A_&quot;</span>), t)</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">  data &lt;-<span class="st"> </span><span class="kw">cbind</span>(data, data1)</a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">  </a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">  prev.A &lt;-<span class="st"> </span>A</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">  prev.L &lt;-<span class="st"> </span>L</a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">  </a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">  sum.A &lt;-<span class="st"> </span>sum.A <span class="op">+</span><span class="st"> </span>A</a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">}</a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">data<span class="op">$</span>Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(sum.A <span class="op">/</span><span class="st"> </span>time.points <span class="op">+</span><span class="st"> </span>L)</a>
+<a class="sourceLine" id="cb1-22" data-line-number="22"><span class="kw">head</span>(data)</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23"><span class="co">#&gt;          L_0        L_1 A_1        L_2 A_2       L_3 A_3        L_4 A_4</span></a>
+<a class="sourceLine" id="cb1-24" data-line-number="24"><span class="co">#&gt; 1 -0.4898530 -0.8352510   1 -0.2531107   1 1.4355624   1 -0.2414319   1</span></a>
+<a class="sourceLine" id="cb1-25" data-line-number="25"><span class="co">#&gt; 2  0.7416653  2.2047999   1  1.7483011   1 2.0869889   1 -0.4593308   1</span></a>
+<a class="sourceLine" id="cb1-26" data-line-number="26"><span class="co">#&gt; 3 -0.8070839 -0.8513587   1  3.3529196   1 0.2746166   0 -0.2047300   0</span></a>
+<a class="sourceLine" id="cb1-27" data-line-number="27"><span class="co">#&gt; 4  0.1865635 -0.9173049   1  1.0959311   1 0.6909898   1 -1.6402897   0</span></a>
+<a class="sourceLine" id="cb1-28" data-line-number="28"><span class="co">#&gt; 5 -0.2942114 -1.1156868   0  1.2119282   1 2.1062869   1  0.2067086   1</span></a>
+<a class="sourceLine" id="cb1-29" data-line-number="29"><span class="co">#&gt; 6 -1.1537656  0.4381574   1  0.9430106   1 0.5450147   1  1.1051631   1</span></a>
+<a class="sourceLine" id="cb1-30" data-line-number="30"><span class="co">#&gt;          L_5 A_5 Y</span></a>
+<a class="sourceLine" id="cb1-31" data-line-number="31"><span class="co">#&gt; 1 -1.7269241   0 0</span></a>
+<a class="sourceLine" id="cb1-32" data-line-number="32"><span class="co">#&gt; 2 -0.8248470   0 1</span></a>
+<a class="sourceLine" id="cb1-33" data-line-number="33"><span class="co">#&gt; 3 -0.7832436   1 0</span></a>
+<a class="sourceLine" id="cb1-34" data-line-number="34"><span class="co">#&gt; 4  0.5354870   0 1</span></a>
+<a class="sourceLine" id="cb1-35" data-line-number="35"><span class="co">#&gt; 5  0.9088617   1 1</span></a>
+<a class="sourceLine" id="cb1-36" data-line-number="36"><span class="co">#&gt; 6  0.6538022   1 0</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">regime.matrix &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">expand.grid</span>(<span class="kw">rep</span>(<span class="kw">list</span>(<span class="dv">0</span><span class="op">:</span><span class="dv">1</span>), time.points)))</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="kw">dim</span>(regime.matrix)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co">#&gt; [1] 32  5</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="kw">head</span>(regime.matrix, <span class="dv">20</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="co">#&gt;       Var1 Var2 Var3 Var4 Var5</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt;  [1,]    0    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">#&gt;  [2,]    1    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="co">#&gt;  [3,]    0    1    0    0    0</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">#&gt;  [4,]    1    1    0    0    0</span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">#&gt;  [5,]    0    0    1    0    0</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt;  [6,]    1    0    1    0    0</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt;  [7,]    0    1    1    0    0</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="co">#&gt;  [8,]    1    1    1    0    0</span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="co">#&gt;  [9,]    0    0    0    1    0</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="co">#&gt; [10,]    1    0    0    1    0</span></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="co">#&gt; [11,]    0    1    0    1    0</span></a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="co">#&gt; [12,]    1    1    0    1    0</span></a>
+<a class="sourceLine" id="cb2-18" data-line-number="18"><span class="co">#&gt; [13,]    0    0    1    1    0</span></a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="co">#&gt; [14,]    1    0    1    1    0</span></a>
+<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">#&gt; [15,]    0    1    1    1    0</span></a>
+<a class="sourceLine" id="cb2-21" data-line-number="21"><span class="co">#&gt; [16,]    1    1    1    1    0</span></a>
+<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="co">#&gt; [17,]    0    0    0    0    1</span></a>
+<a class="sourceLine" id="cb2-23" data-line-number="23"><span class="co">#&gt; [18,]    1    0    0    0    1</span></a>
+<a class="sourceLine" id="cb2-24" data-line-number="24"><span class="co">#&gt; [19,]    0    1    0    0    1</span></a>
+<a class="sourceLine" id="cb2-25" data-line-number="25"><span class="co">#&gt; [20,]    1    1    0    0    1</span></a>
+<a class="sourceLine" id="cb2-26" data-line-number="26">num.regimes &lt;-<span class="st"> </span><span class="dv">2</span><span class="op">^</span>time.points</a>
+<a class="sourceLine" id="cb2-27" data-line-number="27">regimes &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim =</span> <span class="kw">c</span>(n, time.points, num.regimes)) <span class="co">#n x numAnodes x numRegimes = n x time.points x 2^time.points</span></a>
+<a class="sourceLine" id="cb2-28" data-line-number="28">summary.measures &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim =</span> <span class="kw">c</span>(num.regimes, <span class="dv">1</span>, <span class="dv">1</span>)) <span class="co">#numRegimes x num.summary.measures x num.final.Ynodes = 2^time.points x 1 x 1</span></a>
+<a class="sourceLine" id="cb2-29" data-line-number="29"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>num.regimes) {</a>
+<a class="sourceLine" id="cb2-30" data-line-number="30">  regimes[, , i] &lt;-<span class="st"> </span><span class="kw">matrix</span>(regime.matrix[i, ], <span class="dt">byrow =</span> <span class="ot">TRUE</span>, <span class="dt">nrow =</span> n, <span class="dt">ncol =</span> time.points)</a>
+<a class="sourceLine" id="cb2-31" data-line-number="31">  summary.measures[i, <span class="dv">1</span>, <span class="dv">1</span>] &lt;-<span class="st"> </span><span class="kw">sum</span>(regime.matrix[i, ])</a>
+<a class="sourceLine" id="cb2-32" data-line-number="32">}</a>
+<a class="sourceLine" id="cb2-33" data-line-number="33"><span class="kw">colnames</span>(summary.measures) &lt;-<span class="st"> &quot;time.on.treatment&quot;</span></a>
+<a class="sourceLine" id="cb2-34" data-line-number="34">regimes[<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, , <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>]</a>
+<a class="sourceLine" id="cb2-35" data-line-number="35"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb2-36" data-line-number="36"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-37" data-line-number="37"><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></a>
+<a class="sourceLine" id="cb2-38" data-line-number="38"><span class="co">#&gt; [1,]    0    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-39" data-line-number="39"><span class="co">#&gt; [2,]    0    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-40" data-line-number="40"><span class="co">#&gt; [3,]    0    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-41" data-line-number="41"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-42" data-line-number="42"><span class="co">#&gt; , , 2</span></a>
+<a class="sourceLine" id="cb2-43" data-line-number="43"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-44" data-line-number="44"><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></a>
+<a class="sourceLine" id="cb2-45" data-line-number="45"><span class="co">#&gt; [1,]    1    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-46" data-line-number="46"><span class="co">#&gt; [2,]    1    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-47" data-line-number="47"><span class="co">#&gt; [3,]    1    0    0    0    0</span></a>
+<a class="sourceLine" id="cb2-48" data-line-number="48"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-49" data-line-number="49"><span class="co">#&gt; , , 3</span></a>
+<a class="sourceLine" id="cb2-50" data-line-number="50"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-51" data-line-number="51"><span class="co">#&gt;      [,1] [,2] [,3] [,4] [,5]</span></a>
+<a class="sourceLine" id="cb2-52" data-line-number="52"><span class="co">#&gt; [1,]    0    1    0    0    0</span></a>
+<a class="sourceLine" id="cb2-53" data-line-number="53"><span class="co">#&gt; [2,]    0    1    0    0    0</span></a>
+<a class="sourceLine" id="cb2-54" data-line-number="54"><span class="co">#&gt; [3,]    0    1    0    0    0</span></a>
+<a class="sourceLine" id="cb2-55" data-line-number="55">summary.measures</a>
+<a class="sourceLine" id="cb2-56" data-line-number="56"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb2-57" data-line-number="57"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-58" data-line-number="58"><span class="co">#&gt;       time.on.treatment</span></a>
+<a class="sourceLine" id="cb2-59" data-line-number="59"><span class="co">#&gt;  [1,]                 0</span></a>
+<a class="sourceLine" id="cb2-60" data-line-number="60"><span class="co">#&gt;  [2,]                 1</span></a>
+<a class="sourceLine" id="cb2-61" data-line-number="61"><span class="co">#&gt;  [3,]                 1</span></a>
+<a class="sourceLine" id="cb2-62" data-line-number="62"><span class="co">#&gt;  [4,]                 2</span></a>
+<a class="sourceLine" id="cb2-63" data-line-number="63"><span class="co">#&gt;  [5,]                 1</span></a>
+<a class="sourceLine" id="cb2-64" data-line-number="64"><span class="co">#&gt;  [6,]                 2</span></a>
+<a class="sourceLine" id="cb2-65" data-line-number="65"><span class="co">#&gt;  [7,]                 2</span></a>
+<a class="sourceLine" id="cb2-66" data-line-number="66"><span class="co">#&gt;  [8,]                 3</span></a>
+<a class="sourceLine" id="cb2-67" data-line-number="67"><span class="co">#&gt;  [9,]                 1</span></a>
+<a class="sourceLine" id="cb2-68" data-line-number="68"><span class="co">#&gt; [10,]                 2</span></a>
+<a class="sourceLine" id="cb2-69" data-line-number="69"><span class="co">#&gt; [11,]                 2</span></a>
+<a class="sourceLine" id="cb2-70" data-line-number="70"><span class="co">#&gt; [12,]                 3</span></a>
+<a class="sourceLine" id="cb2-71" data-line-number="71"><span class="co">#&gt; [13,]                 2</span></a>
+<a class="sourceLine" id="cb2-72" data-line-number="72"><span class="co">#&gt; [14,]                 3</span></a>
+<a class="sourceLine" id="cb2-73" data-line-number="73"><span class="co">#&gt; [15,]                 3</span></a>
+<a class="sourceLine" id="cb2-74" data-line-number="74"><span class="co">#&gt; [16,]                 4</span></a>
+<a class="sourceLine" id="cb2-75" data-line-number="75"><span class="co">#&gt; [17,]                 1</span></a>
+<a class="sourceLine" id="cb2-76" data-line-number="76"><span class="co">#&gt; [18,]                 2</span></a>
+<a class="sourceLine" id="cb2-77" data-line-number="77"><span class="co">#&gt; [19,]                 2</span></a>
+<a class="sourceLine" id="cb2-78" data-line-number="78"><span class="co">#&gt; [20,]                 3</span></a>
+<a class="sourceLine" id="cb2-79" data-line-number="79"><span class="co">#&gt; [21,]                 2</span></a>
+<a class="sourceLine" id="cb2-80" data-line-number="80"><span class="co">#&gt; [22,]                 3</span></a>
+<a class="sourceLine" id="cb2-81" data-line-number="81"><span class="co">#&gt; [23,]                 3</span></a>
+<a class="sourceLine" id="cb2-82" data-line-number="82"><span class="co">#&gt; [24,]                 4</span></a>
+<a class="sourceLine" id="cb2-83" data-line-number="83"><span class="co">#&gt; [25,]                 2</span></a>
+<a class="sourceLine" id="cb2-84" data-line-number="84"><span class="co">#&gt; [26,]                 3</span></a>
+<a class="sourceLine" id="cb2-85" data-line-number="85"><span class="co">#&gt; [27,]                 3</span></a>
+<a class="sourceLine" id="cb2-86" data-line-number="86"><span class="co">#&gt; [28,]                 4</span></a>
+<a class="sourceLine" id="cb2-87" data-line-number="87"><span class="co">#&gt; [29,]                 3</span></a>
+<a class="sourceLine" id="cb2-88" data-line-number="88"><span class="co">#&gt; [30,]                 4</span></a>
+<a class="sourceLine" id="cb2-89" data-line-number="89"><span class="co">#&gt; [31,]                 4</span></a>
+<a class="sourceLine" id="cb2-90" data-line-number="90"><span class="co">#&gt; [32,]                 5</span></a></code></pre></div>
+<p>For large numbers of regimes, <code>variance.method = &quot;ic&quot;</code> is much faster, but may give anticonservative confidence intervals. You may want to use <code>variance.method = &quot;ic&quot;</code> first to make sure the MSM coefficients look reasonable and then use <code>variance.method = &quot;tmle&quot;</code> (the default) for your final estimates.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">result1 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;A_&quot;</span>, <span class="dv">1</span><span class="op">:</span>time.points), </a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">                    <span class="dt">Lnodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;L_&quot;</span>, <span class="dv">0</span><span class="op">:</span>time.points), <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, </a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">                    <span class="dt">regimes =</span> regimes, <span class="dt">summary.measures =</span> summary.measures, </a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">                    <span class="dt">working.msm =</span> <span class="st">&quot;Y ~ time.on.treatment + I(time.on.treatment^2)&quot;</span>,</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">                    <span class="dt">variance.method =</span> <span class="st">&quot;ic&quot;</span>)</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt; formula for L_2:</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="co">#&gt; formula for L_3:</span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2</span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="co">#&gt; formula for L_4:</span></a>
+<a class="sourceLine" id="cb3-12" data-line-number="12"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3</span></a>
+<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="co">#&gt; formula for L_5:</span></a>
+<a class="sourceLine" id="cb3-14" data-line-number="14"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4</span></a>
+<a class="sourceLine" id="cb3-15" data-line-number="15"><span class="co">#&gt; formula for Y:</span></a>
+<a class="sourceLine" id="cb3-16" data-line-number="16"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 +     L_5 + A_5</span></a>
+<a class="sourceLine" id="cb3-17" data-line-number="17"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb3-18" data-line-number="18"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb3-19" data-line-number="19"><span class="co">#&gt; formula for A_1:</span></a>
+<a class="sourceLine" id="cb3-20" data-line-number="20"><span class="co">#&gt; A_1 ~ L_0 + L_1</span></a>
+<a class="sourceLine" id="cb3-21" data-line-number="21"><span class="co">#&gt; formula for A_2:</span></a>
+<a class="sourceLine" id="cb3-22" data-line-number="22"><span class="co">#&gt; A_2 ~ L_0 + L_1 + A_1 + L_2</span></a>
+<a class="sourceLine" id="cb3-23" data-line-number="23"><span class="co">#&gt; formula for A_3:</span></a>
+<a class="sourceLine" id="cb3-24" data-line-number="24"><span class="co">#&gt; A_3 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3</span></a>
+<a class="sourceLine" id="cb3-25" data-line-number="25"><span class="co">#&gt; formula for A_4:</span></a>
+<a class="sourceLine" id="cb3-26" data-line-number="26"><span class="co">#&gt; A_4 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4</span></a>
+<a class="sourceLine" id="cb3-27" data-line-number="27"><span class="co">#&gt; formula for A_5:</span></a>
+<a class="sourceLine" id="cb3-28" data-line-number="28"><span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span></a>
+<a class="sourceLine" id="cb3-29" data-line-number="29"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb3-30" data-line-number="30"><span class="co">#&gt; Estimate of time to completion: 1 minute</span></a>
+<a class="sourceLine" id="cb3-31" data-line-number="31"><span class="co">#&gt; Warning in CheckForVarianceWarning(inputs, g.ratio): Variance estimate is</span></a>
+<a class="sourceLine" id="cb3-32" data-line-number="32"><span class="co">#&gt; based on influence curve only, which may be significantly anticonservative</span></a>
+<a class="sourceLine" id="cb3-33" data-line-number="33"><span class="co">#&gt; because your data appears to contain positivity violations. It is recommended</span></a>
+<a class="sourceLine" id="cb3-34" data-line-number="34"><span class="co">#&gt; to use variance.method='tmle' or variance.method='iptw' to obtain a more</span></a>
+<a class="sourceLine" id="cb3-35" data-line-number="35"><span class="co">#&gt; robust variance estimate (but run time may be significantly longer). See</span></a>
+<a class="sourceLine" id="cb3-36" data-line-number="36"><span class="co">#&gt; variance.method details in ?ltmle</span></a>
+<a class="sourceLine" id="cb3-37" data-line-number="37">result2 &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;A_&quot;</span>, <span class="dv">1</span><span class="op">:</span>time.points), </a>
+<a class="sourceLine" id="cb3-38" data-line-number="38">                    <span class="dt">Lnodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;L_&quot;</span>, <span class="dv">0</span><span class="op">:</span>time.points), <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, </a>
+<a class="sourceLine" id="cb3-39" data-line-number="39">                    <span class="dt">regimes =</span> regimes, <span class="dt">summary.measures =</span> summary.measures, </a>
+<a class="sourceLine" id="cb3-40" data-line-number="40">                    <span class="dt">working.msm =</span> <span class="st">&quot;Y ~ time.on.treatment + I(time.on.treatment^2)&quot;</span>)</a>
+<a class="sourceLine" id="cb3-41" data-line-number="41"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb3-42" data-line-number="42"><span class="co">#&gt; formula for L_2:</span></a>
+<a class="sourceLine" id="cb3-43" data-line-number="43"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1</span></a>
+<a class="sourceLine" id="cb3-44" data-line-number="44"><span class="co">#&gt; formula for L_3:</span></a>
+<a class="sourceLine" id="cb3-45" data-line-number="45"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2</span></a>
+<a class="sourceLine" id="cb3-46" data-line-number="46"><span class="co">#&gt; formula for L_4:</span></a>
+<a class="sourceLine" id="cb3-47" data-line-number="47"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3</span></a>
+<a class="sourceLine" id="cb3-48" data-line-number="48"><span class="co">#&gt; formula for L_5:</span></a>
+<a class="sourceLine" id="cb3-49" data-line-number="49"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4</span></a>
+<a class="sourceLine" id="cb3-50" data-line-number="50"><span class="co">#&gt; formula for Y:</span></a>
+<a class="sourceLine" id="cb3-51" data-line-number="51"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 +     L_5 + A_5</span></a>
+<a class="sourceLine" id="cb3-52" data-line-number="52"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb3-53" data-line-number="53"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb3-54" data-line-number="54"><span class="co">#&gt; formula for A_1:</span></a>
+<a class="sourceLine" id="cb3-55" data-line-number="55"><span class="co">#&gt; A_1 ~ L_0 + L_1</span></a>
+<a class="sourceLine" id="cb3-56" data-line-number="56"><span class="co">#&gt; formula for A_2:</span></a>
+<a class="sourceLine" id="cb3-57" data-line-number="57"><span class="co">#&gt; A_2 ~ L_0 + L_1 + A_1 + L_2</span></a>
+<a class="sourceLine" id="cb3-58" data-line-number="58"><span class="co">#&gt; formula for A_3:</span></a>
+<a class="sourceLine" id="cb3-59" data-line-number="59"><span class="co">#&gt; A_3 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3</span></a>
+<a class="sourceLine" id="cb3-60" data-line-number="60"><span class="co">#&gt; formula for A_4:</span></a>
+<a class="sourceLine" id="cb3-61" data-line-number="61"><span class="co">#&gt; A_4 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4</span></a>
+<a class="sourceLine" id="cb3-62" data-line-number="62"><span class="co">#&gt; formula for A_5:</span></a>
+<a class="sourceLine" id="cb3-63" data-line-number="63"><span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span></a>
+<a class="sourceLine" id="cb3-64" data-line-number="64"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb3-65" data-line-number="65"><span class="co">#&gt; Estimate of time to completion: 6 to 32 minutes</span></a>
+<a class="sourceLine" id="cb3-66" data-line-number="66"><span class="kw">summary</span>(result1)</a>
+<a class="sourceLine" id="cb3-67" data-line-number="67"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb3-68" data-line-number="68"><span class="co">#&gt;                         Estimate Std. Error   CI 2.5% CI 97.5% p-value  </span></a>
+<a class="sourceLine" id="cb3-69" data-line-number="69"><span class="co">#&gt; (Intercept)            -0.006468   0.123575 -0.248671    0.236  0.9583  </span></a>
+<a class="sourceLine" id="cb3-70" data-line-number="70"><span class="co">#&gt; time.on.treatment       0.244737   0.102858  0.043139    0.446  0.0173 *</span></a>
+<a class="sourceLine" id="cb3-71" data-line-number="71"><span class="co">#&gt; I(time.on.treatment^2) -0.004724   0.020208 -0.044330    0.035  0.8152  </span></a>
+<a class="sourceLine" id="cb3-72" data-line-number="72"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb3-73" data-line-number="73"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a>
+<a class="sourceLine" id="cb3-74" data-line-number="74"><span class="kw">summary</span>(result2)</a>
+<a class="sourceLine" id="cb3-75" data-line-number="75"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb3-76" data-line-number="76"><span class="co">#&gt;                         Estimate Std. Error   CI 2.5% CI 97.5% p-value  </span></a>
+<a class="sourceLine" id="cb3-77" data-line-number="77"><span class="co">#&gt; (Intercept)            -0.006468   0.179996 -0.359253    0.346   0.971  </span></a>
+<a class="sourceLine" id="cb3-78" data-line-number="78"><span class="co">#&gt; time.on.treatment       0.244737   0.143469 -0.036458    0.526   0.088 .</span></a>
+<a class="sourceLine" id="cb3-79" data-line-number="79"><span class="co">#&gt; I(time.on.treatment^2) -0.004724   0.027070 -0.057780    0.048   0.861  </span></a>
+<a class="sourceLine" id="cb3-80" data-line-number="80"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb3-81" data-line-number="81"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a></code></pre></div>
+<p>Suppose we are only interested in the effect of time on treatment on Y considering regimes that include at least 3 periods on treatment.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">at.least<span class="fl">.3</span> &lt;-<span class="st"> </span>summary.measures[, <span class="st">&quot;time.on.treatment&quot;</span>, <span class="dv">1</span>] <span class="op">&gt;=</span><span class="st"> </span><span class="dv">3</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">regimes<span class="fl">.3</span> &lt;-<span class="st"> </span>regimes[, , at.least<span class="fl">.3</span>]</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">summary.measures<span class="fl">.3</span> &lt;-<span class="st"> </span>summary.measures[at.least<span class="fl">.3</span>, , , drop =<span class="st"> </span>F]</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="kw">dim</span>(regimes<span class="fl">.3</span>)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">#&gt; [1] 5000    5   16</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">summary.measures<span class="fl">.3</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="co">#&gt;       time.on.treatment</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="co">#&gt;  [1,]                 3</span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11"><span class="co">#&gt;  [2,]                 3</span></a>
+<a class="sourceLine" id="cb4-12" data-line-number="12"><span class="co">#&gt;  [3,]                 3</span></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13"><span class="co">#&gt;  [4,]                 3</span></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14"><span class="co">#&gt;  [5,]                 4</span></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15"><span class="co">#&gt;  [6,]                 3</span></a>
+<a class="sourceLine" id="cb4-16" data-line-number="16"><span class="co">#&gt;  [7,]                 3</span></a>
+<a class="sourceLine" id="cb4-17" data-line-number="17"><span class="co">#&gt;  [8,]                 3</span></a>
+<a class="sourceLine" id="cb4-18" data-line-number="18"><span class="co">#&gt;  [9,]                 4</span></a>
+<a class="sourceLine" id="cb4-19" data-line-number="19"><span class="co">#&gt; [10,]                 3</span></a>
+<a class="sourceLine" id="cb4-20" data-line-number="20"><span class="co">#&gt; [11,]                 3</span></a>
+<a class="sourceLine" id="cb4-21" data-line-number="21"><span class="co">#&gt; [12,]                 4</span></a>
+<a class="sourceLine" id="cb4-22" data-line-number="22"><span class="co">#&gt; [13,]                 3</span></a>
+<a class="sourceLine" id="cb4-23" data-line-number="23"><span class="co">#&gt; [14,]                 4</span></a>
+<a class="sourceLine" id="cb4-24" data-line-number="24"><span class="co">#&gt; [15,]                 4</span></a>
+<a class="sourceLine" id="cb4-25" data-line-number="25"><span class="co">#&gt; [16,]                 5</span></a>
+<a class="sourceLine" id="cb4-26" data-line-number="26"></a>
+<a class="sourceLine" id="cb4-27" data-line-number="27">result &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;A_&quot;</span>, <span class="dv">1</span><span class="op">:</span>time.points), </a>
+<a class="sourceLine" id="cb4-28" data-line-number="28">                   <span class="dt">Lnodes =</span> <span class="kw">paste0</span>(<span class="st">&quot;L_&quot;</span>, <span class="dv">0</span><span class="op">:</span>time.points), </a>
+<a class="sourceLine" id="cb4-29" data-line-number="29">                   <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, <span class="dt">regimes =</span> regimes<span class="fl">.3</span>, </a>
+<a class="sourceLine" id="cb4-30" data-line-number="30">                   <span class="dt">summary.measures =</span> summary.measures<span class="fl">.3</span>, </a>
+<a class="sourceLine" id="cb4-31" data-line-number="31">                   <span class="dt">working.msm =</span> <span class="st">&quot;Y ~ time.on.treatment + I(time.on.treatment^2)&quot;</span>)</a>
+<a class="sourceLine" id="cb4-32" data-line-number="32"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb4-33" data-line-number="33"><span class="co">#&gt; formula for L_2:</span></a>
+<a class="sourceLine" id="cb4-34" data-line-number="34"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1</span></a>
+<a class="sourceLine" id="cb4-35" data-line-number="35"><span class="co">#&gt; formula for L_3:</span></a>
+<a class="sourceLine" id="cb4-36" data-line-number="36"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2</span></a>
+<a class="sourceLine" id="cb4-37" data-line-number="37"><span class="co">#&gt; formula for L_4:</span></a>
+<a class="sourceLine" id="cb4-38" data-line-number="38"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3</span></a>
+<a class="sourceLine" id="cb4-39" data-line-number="39"><span class="co">#&gt; formula for L_5:</span></a>
+<a class="sourceLine" id="cb4-40" data-line-number="40"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4</span></a>
+<a class="sourceLine" id="cb4-41" data-line-number="41"><span class="co">#&gt; formula for Y:</span></a>
+<a class="sourceLine" id="cb4-42" data-line-number="42"><span class="co">#&gt; Q.kplus1 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 +     L_5 + A_5</span></a>
+<a class="sourceLine" id="cb4-43" data-line-number="43"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb4-44" data-line-number="44"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb4-45" data-line-number="45"><span class="co">#&gt; formula for A_1:</span></a>
+<a class="sourceLine" id="cb4-46" data-line-number="46"><span class="co">#&gt; A_1 ~ L_0 + L_1</span></a>
+<a class="sourceLine" id="cb4-47" data-line-number="47"><span class="co">#&gt; formula for A_2:</span></a>
+<a class="sourceLine" id="cb4-48" data-line-number="48"><span class="co">#&gt; A_2 ~ L_0 + L_1 + A_1 + L_2</span></a>
+<a class="sourceLine" id="cb4-49" data-line-number="49"><span class="co">#&gt; formula for A_3:</span></a>
+<a class="sourceLine" id="cb4-50" data-line-number="50"><span class="co">#&gt; A_3 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3</span></a>
+<a class="sourceLine" id="cb4-51" data-line-number="51"><span class="co">#&gt; formula for A_4:</span></a>
+<a class="sourceLine" id="cb4-52" data-line-number="52"><span class="co">#&gt; A_4 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4</span></a>
+<a class="sourceLine" id="cb4-53" data-line-number="53"><span class="co">#&gt; formula for A_5:</span></a>
+<a class="sourceLine" id="cb4-54" data-line-number="54"><span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span></a>
+<a class="sourceLine" id="cb4-55" data-line-number="55"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb4-56" data-line-number="56"><span class="co">#&gt; Estimate of time to completion: 3 to 9 minutes</span></a>
+<a class="sourceLine" id="cb4-57" data-line-number="57"><span class="kw">summary</span>(result)</a>
+<a class="sourceLine" id="cb4-58" data-line-number="58"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb4-59" data-line-number="59"><span class="co">#&gt;                        Estimate Std. Error CI 2.5% CI 97.5% p-value</span></a>
+<a class="sourceLine" id="cb4-60" data-line-number="60"><span class="co">#&gt; (Intercept)              1.9980     2.1035 -2.1249    6.121   0.342</span></a>
+<a class="sourceLine" id="cb4-61" data-line-number="61"><span class="co">#&gt; time.on.treatment       -0.7761     1.1466 -3.0235    1.471   0.498</span></a>
+<a class="sourceLine" id="cb4-62" data-line-number="62"><span class="co">#&gt; I(time.on.treatment^2)   0.1210     0.1518 -0.1766    0.419   0.426</span></a></code></pre></div>
+</div>
+<div id="marginal-structural-models-msms---switching-time-example---multiple-regimes-and-outcomes" class="section level2">
+<h2>Marginal Structural Models (MSMs) - Switching time example - Multiple regimes and outcomes</h2>
+<p>Given data over 3 time points where A switches to 1 once and then stays 1. We want to know how death varies as a function of gender, time and an indicator of whether a patient’s intended regime was to switch before time. Note that <code>working.msm</code> includes <code>time</code> and <code>switch.time</code>, which are columns of summary.measures; <code>working.msm</code> also includes <code>male</code>, which is ok because it is a baseline covariate (it comes before any A/C/L/Y nodes).</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">data</span>(sampleDataForLtmleMSM)</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="kw">head</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dv">20</span>)</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="co">#&gt;    male age CD4_0 A0 Y1 CD4_1 A1 Y2 CD4_2 A2 Y3</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt; 1     1  33   347  0  0   349  0  0   315  0  0</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt; 2     0  18   277  0  0   302  0  0   300  0  0</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt; 3     1  33   419  0  0   423  0  0   462  0  0</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt; 4     1  35   318  1  0   358  1  0   413  1  0</span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; 5     0  27   145  0  0   134  1  1    NA NA  1</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; 6     1  27   320  0  0   332  0  0   347  1  0</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt; 7     1  35   220  0  0   241  0  0   216  1  0</span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="co">#&gt; 8     0  31   184  0  0   202  1  0   230  1  0</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="co">#&gt; 9     0  35   289  0  0   302  0  0   290  0  0</span></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="co">#&gt; 10    0  30   295  1  0   312  1  0   340  1  0</span></a>
+<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="co">#&gt; 11    0  31   300  1  0   394  1  0   467  1  0</span></a>
+<a class="sourceLine" id="cb5-15" data-line-number="15"><span class="co">#&gt; 12    0  30   300  0  0   331  0  0   320  0  0</span></a>
+<a class="sourceLine" id="cb5-16" data-line-number="16"><span class="co">#&gt; 13    0  25   276  0  1    NA NA  1    NA NA  1</span></a>
+<a class="sourceLine" id="cb5-17" data-line-number="17"><span class="co">#&gt; 14    1  26   242  1  0   280  1  0   307  1  0</span></a>
+<a class="sourceLine" id="cb5-18" data-line-number="18"><span class="co">#&gt; 15    0  21   238  1  0   345  1  0   379  1  0</span></a>
+<a class="sourceLine" id="cb5-19" data-line-number="19"><span class="co">#&gt; 16    1  30   304  0  0   258  0  0   287  0  0</span></a>
+<a class="sourceLine" id="cb5-20" data-line-number="20"><span class="co">#&gt; 17    0  30   271  1  0   297  1  0   324  1  0</span></a>
+<a class="sourceLine" id="cb5-21" data-line-number="21"><span class="co">#&gt; 18    1  27   296  0  0   305  0  0   306  0  0</span></a>
+<a class="sourceLine" id="cb5-22" data-line-number="22"><span class="co">#&gt; 19    1  33   217  1  0   242  1  0   267  1  0</span></a>
+<a class="sourceLine" id="cb5-23" data-line-number="23"><span class="co">#&gt; 20    1  25   337  0  0   360  0  0   390  0  0</span></a>
+<a class="sourceLine" id="cb5-24" data-line-number="24"><span class="kw">dim</span>(sampleDataForLtmleMSM<span class="op">$</span>regimes)</a>
+<a class="sourceLine" id="cb5-25" data-line-number="25"><span class="co">#&gt; [1] 200   3   4</span></a>
+<a class="sourceLine" id="cb5-26" data-line-number="26">sampleDataForLtmleMSM<span class="op">$</span>regimes[<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, , ]</a>
+<a class="sourceLine" id="cb5-27" data-line-number="27"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb5-28" data-line-number="28"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-29" data-line-number="29"><span class="co">#&gt;      [,1] [,2] [,3]</span></a>
+<a class="sourceLine" id="cb5-30" data-line-number="30"><span class="co">#&gt; [1,]    1    1    1</span></a>
+<a class="sourceLine" id="cb5-31" data-line-number="31"><span class="co">#&gt; [2,]    1    1    1</span></a>
+<a class="sourceLine" id="cb5-32" data-line-number="32"><span class="co">#&gt; [3,]    1    1    1</span></a>
+<a class="sourceLine" id="cb5-33" data-line-number="33"><span class="co">#&gt; [4,]    1    1    1</span></a>
+<a class="sourceLine" id="cb5-34" data-line-number="34"><span class="co">#&gt; [5,]    1    1    1</span></a>
+<a class="sourceLine" id="cb5-35" data-line-number="35"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-36" data-line-number="36"><span class="co">#&gt; , , 2</span></a>
+<a class="sourceLine" id="cb5-37" data-line-number="37"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-38" data-line-number="38"><span class="co">#&gt;      [,1] [,2] [,3]</span></a>
+<a class="sourceLine" id="cb5-39" data-line-number="39"><span class="co">#&gt; [1,]    0    1    1</span></a>
+<a class="sourceLine" id="cb5-40" data-line-number="40"><span class="co">#&gt; [2,]    0    1    1</span></a>
+<a class="sourceLine" id="cb5-41" data-line-number="41"><span class="co">#&gt; [3,]    0    1    1</span></a>
+<a class="sourceLine" id="cb5-42" data-line-number="42"><span class="co">#&gt; [4,]    0    1    1</span></a>
+<a class="sourceLine" id="cb5-43" data-line-number="43"><span class="co">#&gt; [5,]    0    1    1</span></a>
+<a class="sourceLine" id="cb5-44" data-line-number="44"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-45" data-line-number="45"><span class="co">#&gt; , , 3</span></a>
+<a class="sourceLine" id="cb5-46" data-line-number="46"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-47" data-line-number="47"><span class="co">#&gt;      [,1] [,2] [,3]</span></a>
+<a class="sourceLine" id="cb5-48" data-line-number="48"><span class="co">#&gt; [1,]    0    0    1</span></a>
+<a class="sourceLine" id="cb5-49" data-line-number="49"><span class="co">#&gt; [2,]    0    0    1</span></a>
+<a class="sourceLine" id="cb5-50" data-line-number="50"><span class="co">#&gt; [3,]    0    0    1</span></a>
+<a class="sourceLine" id="cb5-51" data-line-number="51"><span class="co">#&gt; [4,]    0    0    1</span></a>
+<a class="sourceLine" id="cb5-52" data-line-number="52"><span class="co">#&gt; [5,]    0    0    1</span></a>
+<a class="sourceLine" id="cb5-53" data-line-number="53"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-54" data-line-number="54"><span class="co">#&gt; , , 4</span></a>
+<a class="sourceLine" id="cb5-55" data-line-number="55"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-56" data-line-number="56"><span class="co">#&gt;      [,1] [,2] [,3]</span></a>
+<a class="sourceLine" id="cb5-57" data-line-number="57"><span class="co">#&gt; [1,]    0    0    0</span></a>
+<a class="sourceLine" id="cb5-58" data-line-number="58"><span class="co">#&gt; [2,]    0    0    0</span></a>
+<a class="sourceLine" id="cb5-59" data-line-number="59"><span class="co">#&gt; [3,]    0    0    0</span></a>
+<a class="sourceLine" id="cb5-60" data-line-number="60"><span class="co">#&gt; [4,]    0    0    0</span></a>
+<a class="sourceLine" id="cb5-61" data-line-number="61"><span class="co">#&gt; [5,]    0    0    0</span></a>
+<a class="sourceLine" id="cb5-62" data-line-number="62">sampleDataForLtmleMSM<span class="op">$</span>summary.measures</a>
+<a class="sourceLine" id="cb5-63" data-line-number="63"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb5-64" data-line-number="64"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-65" data-line-number="65"><span class="co">#&gt;      switch.time time</span></a>
+<a class="sourceLine" id="cb5-66" data-line-number="66"><span class="co">#&gt; [1,]           0    1</span></a>
+<a class="sourceLine" id="cb5-67" data-line-number="67"><span class="co">#&gt; [2,]           1    1</span></a>
+<a class="sourceLine" id="cb5-68" data-line-number="68"><span class="co">#&gt; [3,]           2    1</span></a>
+<a class="sourceLine" id="cb5-69" data-line-number="69"><span class="co">#&gt; [4,]           3    1</span></a>
+<a class="sourceLine" id="cb5-70" data-line-number="70"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-71" data-line-number="71"><span class="co">#&gt; , , 2</span></a>
+<a class="sourceLine" id="cb5-72" data-line-number="72"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-73" data-line-number="73"><span class="co">#&gt;      switch.time time</span></a>
+<a class="sourceLine" id="cb5-74" data-line-number="74"><span class="co">#&gt; [1,]           0    2</span></a>
+<a class="sourceLine" id="cb5-75" data-line-number="75"><span class="co">#&gt; [2,]           1    2</span></a>
+<a class="sourceLine" id="cb5-76" data-line-number="76"><span class="co">#&gt; [3,]           2    2</span></a>
+<a class="sourceLine" id="cb5-77" data-line-number="77"><span class="co">#&gt; [4,]           3    2</span></a>
+<a class="sourceLine" id="cb5-78" data-line-number="78"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-79" data-line-number="79"><span class="co">#&gt; , , 3</span></a>
+<a class="sourceLine" id="cb5-80" data-line-number="80"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-81" data-line-number="81"><span class="co">#&gt;      switch.time time</span></a>
+<a class="sourceLine" id="cb5-82" data-line-number="82"><span class="co">#&gt; [1,]           0    3</span></a>
+<a class="sourceLine" id="cb5-83" data-line-number="83"><span class="co">#&gt; [2,]           1    3</span></a>
+<a class="sourceLine" id="cb5-84" data-line-number="84"><span class="co">#&gt; [3,]           2    3</span></a>
+<a class="sourceLine" id="cb5-85" data-line-number="85"><span class="co">#&gt; [4,]           3    3</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">Anodes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;A0&quot;</span>, <span class="st">&quot;A1&quot;</span>, <span class="st">&quot;A2&quot;</span>)</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">Lnodes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;CD4_1&quot;</span>, <span class="st">&quot;CD4_2&quot;</span>)</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">Ynodes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Y1&quot;</span>, <span class="st">&quot;Y2&quot;</span>, <span class="st">&quot;Y3&quot;</span>)</a></code></pre></div>
+<p>Here <code>msm.weights</code> is just an example. It could also be a 200x3x4 array or NULL (for no weights), or <code>&quot;empirical&quot;</code> (the default).</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">msm.weights &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>, <span class="dt">nrow=</span><span class="dv">4</span>, <span class="dt">ncol=</span><span class="dv">3</span>)  </a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">result.regimes &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, </a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">                   <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, </a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">                   <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>,</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">                   <span class="dt">regimes=</span>sampleDataForLtmleMSM<span class="op">$</span>regimes, </a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">                   <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures,</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">                   <span class="dt">final.Ynodes=</span>Ynodes, </a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">                   <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + time + pmax(time - switch.time, 0)&quot;</span>, </a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">                   <span class="dt">msm.weights=</span>msm.weights, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10"><span class="co">#&gt; formula for Y1:</span></a>
+<a class="sourceLine" id="cb8-11" data-line-number="11"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12"><span class="co">#&gt; formula for Y2:</span></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span></a>
+<a class="sourceLine" id="cb8-14" data-line-number="14"><span class="co">#&gt; formula for Y3:</span></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">#&gt; formula for A0:</span></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="co">#&gt; A0 ~ male + age + CD4_0</span></a>
+<a class="sourceLine" id="cb8-20" data-line-number="20"><span class="co">#&gt; formula for A1:</span></a>
+<a class="sourceLine" id="cb8-21" data-line-number="21"><span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span></a>
+<a class="sourceLine" id="cb8-22" data-line-number="22"><span class="co">#&gt; formula for A2:</span></a>
+<a class="sourceLine" id="cb8-23" data-line-number="23"><span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span></a>
+<a class="sourceLine" id="cb8-24" data-line-number="24"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb8-25" data-line-number="25"><span class="kw">print</span>(<span class="kw">summary</span>(result.regimes))</a>
+<a class="sourceLine" id="cb8-26" data-line-number="26"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb8-27" data-line-number="27"><span class="co">#&gt;                             Estimate Std. Error CI 2.5% CI 97.5%  p-value    </span></a>
+<a class="sourceLine" id="cb8-28" data-line-number="28"><span class="co">#&gt; (Intercept)                  -3.4059     0.6545 -4.6886   -2.123 1.95e-07 ***</span></a>
+<a class="sourceLine" id="cb8-29" data-line-number="29"><span class="co">#&gt; male                         -0.3802     0.5305 -1.4198    0.660  0.47359    </span></a>
+<a class="sourceLine" id="cb8-30" data-line-number="30"><span class="co">#&gt; time                          0.7241     0.2602  0.2141    1.234  0.00539 ** </span></a>
+<a class="sourceLine" id="cb8-31" data-line-number="31"><span class="co">#&gt; pmax(time - switch.time, 0)  -0.4717     0.2019 -0.8675   -0.076  0.01948 *  </span></a>
+<a class="sourceLine" id="cb8-32" data-line-number="32"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb8-33" data-line-number="33"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a></code></pre></div>
+<p><code>regimes</code> can also be specified as a list of rule functions where each rule is a function applied to each row of <code>data</code> which returns a numeric vector of the same length as <code>Anodes</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">regimesList &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">                     <span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">                     <span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">                     <span class="cf">function</span>(row) <span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>))</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">result.regList &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, </a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">                   <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, </a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">                   <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>, <span class="dt">regimes=</span>regimesList, </a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">                   <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures,</a>
+<a class="sourceLine" id="cb9-9" data-line-number="9">                   <span class="dt">final.Ynodes=</span>Ynodes, </a>
+<a class="sourceLine" id="cb9-10" data-line-number="10">                   <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + time + pmax(time - switch.time, 0)&quot;</span>, </a>
+<a class="sourceLine" id="cb9-11" data-line-number="11">                   <span class="dt">msm.weights=</span>msm.weights, <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb9-12" data-line-number="12"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb9-13" data-line-number="13"><span class="co">#&gt; formula for Y1:</span></a>
+<a class="sourceLine" id="cb9-14" data-line-number="14"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span></a>
+<a class="sourceLine" id="cb9-15" data-line-number="15"><span class="co">#&gt; formula for Y2:</span></a>
+<a class="sourceLine" id="cb9-16" data-line-number="16"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span></a>
+<a class="sourceLine" id="cb9-17" data-line-number="17"><span class="co">#&gt; formula for Y3:</span></a>
+<a class="sourceLine" id="cb9-18" data-line-number="18"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span></a>
+<a class="sourceLine" id="cb9-19" data-line-number="19"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb9-20" data-line-number="20"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb9-21" data-line-number="21"><span class="co">#&gt; formula for A0:</span></a>
+<a class="sourceLine" id="cb9-22" data-line-number="22"><span class="co">#&gt; A0 ~ male + age + CD4_0</span></a>
+<a class="sourceLine" id="cb9-23" data-line-number="23"><span class="co">#&gt; formula for A1:</span></a>
+<a class="sourceLine" id="cb9-24" data-line-number="24"><span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span></a>
+<a class="sourceLine" id="cb9-25" data-line-number="25"><span class="co">#&gt; formula for A2:</span></a>
+<a class="sourceLine" id="cb9-26" data-line-number="26"><span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span></a>
+<a class="sourceLine" id="cb9-27" data-line-number="27"><span class="co">#&gt; </span></a></code></pre></div>
+<p>This should be the same as <code>result.regimes</code>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">print</span>(<span class="kw">summary</span>(result.regList))         </a>
+<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="co">#&gt;                             Estimate Std. Error CI 2.5% CI 97.5%  p-value    </span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="co">#&gt; (Intercept)                  -3.4059     0.6545 -4.6886   -2.123 1.95e-07 ***</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5"><span class="co">#&gt; male                         -0.3802     0.5305 -1.4198    0.660  0.47359    </span></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="co">#&gt; time                          0.7241     0.2602  0.2141    1.234  0.00539 ** </span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="co">#&gt; pmax(time - switch.time, 0)  -0.4717     0.2019 -0.8675   -0.076  0.01948 *  </span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a></code></pre></div>
+<p>Suppose we are only interested in pooling over the result at Y1 and Y3.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">result &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, </a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">                   <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, </a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">                   <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>,</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">                   <span class="dt">regimes=</span>sampleDataForLtmleMSM<span class="op">$</span>regimes, </a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">                   <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures[, , <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">3</span>)],</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">                   <span class="dt">final.Ynodes=</span><span class="kw">c</span>(<span class="st">&quot;Y1&quot;</span>, <span class="st">&quot;Y3&quot;</span>), </a>
+<a class="sourceLine" id="cb11-7" data-line-number="7">                   <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + time + pmax(time - switch.time, 0)&quot;</span>, </a>
+<a class="sourceLine" id="cb11-8" data-line-number="8">                   <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb11-9" data-line-number="9"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb11-10" data-line-number="10"><span class="co">#&gt; formula for Y1:</span></a>
+<a class="sourceLine" id="cb11-11" data-line-number="11"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span></a>
+<a class="sourceLine" id="cb11-12" data-line-number="12"><span class="co">#&gt; formula for Y2:</span></a>
+<a class="sourceLine" id="cb11-13" data-line-number="13"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span></a>
+<a class="sourceLine" id="cb11-14" data-line-number="14"><span class="co">#&gt; formula for Y3:</span></a>
+<a class="sourceLine" id="cb11-15" data-line-number="15"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span></a>
+<a class="sourceLine" id="cb11-16" data-line-number="16"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-17" data-line-number="17"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb11-18" data-line-number="18"><span class="co">#&gt; formula for A0:</span></a>
+<a class="sourceLine" id="cb11-19" data-line-number="19"><span class="co">#&gt; A0 ~ male + age + CD4_0</span></a>
+<a class="sourceLine" id="cb11-20" data-line-number="20"><span class="co">#&gt; formula for A1:</span></a>
+<a class="sourceLine" id="cb11-21" data-line-number="21"><span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span></a>
+<a class="sourceLine" id="cb11-22" data-line-number="22"><span class="co">#&gt; formula for A2:</span></a>
+<a class="sourceLine" id="cb11-23" data-line-number="23"><span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span></a>
+<a class="sourceLine" id="cb11-24" data-line-number="24"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-25" data-line-number="25"><span class="co">#&gt; speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.</span></a>
+<a class="sourceLine" id="cb11-26" data-line-number="26"><span class="kw">summary</span>(result)</a>
+<a class="sourceLine" id="cb11-27" data-line-number="27"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb11-28" data-line-number="28"><span class="co">#&gt;                             Estimate Std. Error CI 2.5% CI 97.5%  p-value    </span></a>
+<a class="sourceLine" id="cb11-29" data-line-number="29"><span class="co">#&gt; (Intercept)                  -3.8891     0.5533 -4.9736   -2.805 2.08e-12 ***</span></a>
+<a class="sourceLine" id="cb11-30" data-line-number="30"><span class="co">#&gt; male                          0.2256     0.5152 -0.7842    1.235 0.661472    </span></a>
+<a class="sourceLine" id="cb11-31" data-line-number="31"><span class="co">#&gt; time                          0.7826     0.2318  0.3282    1.237 0.000737 ***</span></a>
+<a class="sourceLine" id="cb11-32" data-line-number="32"><span class="co">#&gt; pmax(time - switch.time, 0)  -0.4331     0.2023 -0.8296   -0.037 0.032262 *  </span></a>
+<a class="sourceLine" id="cb11-33" data-line-number="33"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb11-34" data-line-number="34"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a></code></pre></div>
+<p>We could be only interested in the result at Y3. <code>time</code> is now a constant in <code>working.msm</code>, so let’s remove it.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">result &lt;-<span class="st"> </span><span class="kw">ltmleMSM</span>(sampleDataForLtmleMSM<span class="op">$</span>data, <span class="dt">Anodes=</span>Anodes, </a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">                    <span class="dt">Lnodes=</span>Lnodes, <span class="dt">Ynodes=</span>Ynodes, </a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">                    <span class="dt">survivalOutcome=</span><span class="ot">TRUE</span>,</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">                    <span class="dt">regimes=</span>sampleDataForLtmleMSM<span class="op">$</span>regimes, </a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">                    <span class="dt">summary.measures=</span>sampleDataForLtmleMSM<span class="op">$</span>summary.measures[, , <span class="dv">3</span>],</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">                    <span class="dt">final.Ynodes=</span><span class="st">&quot;Y3&quot;</span>, </a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">                    <span class="dt">working.msm=</span><span class="st">&quot;Y ~ male + switch.time&quot;</span>, </a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">                    <span class="dt">estimate.time=</span><span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb12-10" data-line-number="10"><span class="co">#&gt; formula for Y1:</span></a>
+<a class="sourceLine" id="cb12-11" data-line-number="11"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0</span></a>
+<a class="sourceLine" id="cb12-12" data-line-number="12"><span class="co">#&gt; formula for Y2:</span></a>
+<a class="sourceLine" id="cb12-13" data-line-number="13"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1</span></a>
+<a class="sourceLine" id="cb12-14" data-line-number="14"><span class="co">#&gt; formula for Y3:</span></a>
+<a class="sourceLine" id="cb12-15" data-line-number="15"><span class="co">#&gt; Q.kplus1 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2 + A2</span></a>
+<a class="sourceLine" id="cb12-16" data-line-number="16"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb12-17" data-line-number="17"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb12-18" data-line-number="18"><span class="co">#&gt; formula for A0:</span></a>
+<a class="sourceLine" id="cb12-19" data-line-number="19"><span class="co">#&gt; A0 ~ male + age + CD4_0</span></a>
+<a class="sourceLine" id="cb12-20" data-line-number="20"><span class="co">#&gt; formula for A1:</span></a>
+<a class="sourceLine" id="cb12-21" data-line-number="21"><span class="co">#&gt; A1 ~ male + age + CD4_0 + A0 + CD4_1</span></a>
+<a class="sourceLine" id="cb12-22" data-line-number="22"><span class="co">#&gt; formula for A2:</span></a>
+<a class="sourceLine" id="cb12-23" data-line-number="23"><span class="co">#&gt; A2 ~ male + age + CD4_0 + A0 + CD4_1 + A1 + CD4_2</span></a>
+<a class="sourceLine" id="cb12-24" data-line-number="24"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb12-25" data-line-number="25"><span class="co">#&gt; speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.</span></a>
+<a class="sourceLine" id="cb12-26" data-line-number="26"><span class="kw">summary</span>(result)</a>
+<a class="sourceLine" id="cb12-27" data-line-number="27"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb12-28" data-line-number="28"><span class="co">#&gt;             Estimate Std. Error  CI 2.5% CI 97.5%  p-value    </span></a>
+<a class="sourceLine" id="cb12-29" data-line-number="29"><span class="co">#&gt; (Intercept) -2.81063    0.46551 -3.72301   -1.898 1.56e-09 ***</span></a>
+<a class="sourceLine" id="cb12-30" data-line-number="30"><span class="co">#&gt; male         0.07357    0.53775 -0.98039    1.128   0.8912    </span></a>
+<a class="sourceLine" id="cb12-31" data-line-number="31"><span class="co">#&gt; switch.time  0.45362    0.19436  0.07268    0.835   0.0196 *  </span></a>
+<a class="sourceLine" id="cb12-32" data-line-number="32"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb12-33" data-line-number="33"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a></code></pre></div>
+</div>
+<div id="marginal-structural-models-msms---dynamic-treatment" class="section level2">
+<h2>Marginal Structural Models (MSMs) - Dynamic Treatment</h2>
+<p>In this example there are two treatment nodes and one outcome: W A1 L A2 Y W is normally distributed and L is continuous in (0, 1). We are interested in treatments where A1 is set to either 0 or 1 and A2 is set dynamically. The treatment for A2 is indexed by theta between 0 and 1. If <span class="math inline">\(L &gt; theta\)</span>, set A2 to 1, otherwise set A2 to 0.<br />
+Here is a function that can be used to generate observed data (if <code>abar = NULL</code>) or generate counterfactual truth (if <code>abar</code> is a list with a1 and theta):</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">GenerateData &lt;-<span class="st"> </span><span class="cf">function</span>(n, <span class="dt">abar =</span> <span class="ot">NULL</span>) {</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">  W &lt;-<span class="st"> </span><span class="kw">rnorm</span>(n)</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">  <span class="cf">if</span> (<span class="kw">is.null</span>(abar)) {</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">    A1 &lt;-<span class="st"> </span><span class="kw">rexpit</span>(W)</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5">  } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb13-6" data-line-number="6">    A1 &lt;-<span class="st"> </span>abar<span class="op">$</span>a1</a>
+<a class="sourceLine" id="cb13-7" data-line-number="7">  }</a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">  L &lt;-<span class="st"> </span><span class="kw">plogis</span>(<span class="kw">rnorm</span>(n) <span class="op">+</span><span class="st"> </span><span class="fl">0.3</span> <span class="op">*</span><span class="st"> </span>W <span class="op">+</span><span class="st"> </span><span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>A1)</a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">  <span class="cf">if</span> (<span class="kw">is.null</span>(abar)) {</a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">    A2 &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="op">-</span><span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>W <span class="op">+</span><span class="st"> </span>A1 <span class="op">-</span><span class="st"> </span><span class="fl">0.6</span> <span class="op">*</span><span class="st"> </span>L)</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11">  } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb13-12" data-line-number="12">    A2 &lt;-<span class="st"> </span><span class="kw">as.integer</span>(L <span class="op">&gt;</span><span class="st"> </span>abar<span class="op">$</span>theta)</a>
+<a class="sourceLine" id="cb13-13" data-line-number="13">  }</a>
+<a class="sourceLine" id="cb13-14" data-line-number="14">  Y &lt;-<span class="st"> </span><span class="kw">rexpit</span>(<span class="op">-</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>W <span class="op">+</span><span class="st"> </span>A1 <span class="op">+</span><span class="st"> </span>L <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>A2)</a>
+<a class="sourceLine" id="cb13-15" data-line-number="15">  <span class="cf">if</span> (<span class="kw">is.null</span>(abar)) {</a>
+<a class="sourceLine" id="cb13-16" data-line-number="16">    <span class="kw">return</span>(<span class="kw">data.frame</span>(W, A1, L, A2, Y))</a>
+<a class="sourceLine" id="cb13-17" data-line-number="17">  } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb13-18" data-line-number="18">    <span class="kw">return</span>(<span class="kw">mean</span>(Y))</a>
+<a class="sourceLine" id="cb13-19" data-line-number="19">  }</a>
+<a class="sourceLine" id="cb13-20" data-line-number="20">}</a></code></pre></div>
+<p>Set up <code>regimes</code> and <code>summary.measures</code>:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw">set.seed</span>(<span class="dv">11</span>)</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">n &lt;-<span class="st"> </span><span class="dv">10000</span></a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">data &lt;-<span class="st"> </span><span class="kw">GenerateData</span>(n)</a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">regimes &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim =</span> <span class="kw">c</span>(n, <span class="dv">2</span>, <span class="dv">10</span>)) <span class="co">#n x num.Anodes x num.regimes</span></a>
+<a class="sourceLine" id="cb14-5" data-line-number="5">theta.set &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dt">length.out =</span> <span class="dv">5</span>)</a>
+<a class="sourceLine" id="cb14-6" data-line-number="6">summary.measures &lt;-<span class="st"> </span><span class="kw">array</span>(theta.set, <span class="dt">dim =</span> <span class="kw">c</span>(<span class="dv">10</span>, <span class="dv">2</span>, <span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb14-7" data-line-number="7"><span class="kw">colnames</span>(summary.measures) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;a1&quot;</span>, <span class="st">&quot;theta&quot;</span>)</a>
+<a class="sourceLine" id="cb14-8" data-line-number="8">cnt &lt;-<span class="st"> </span><span class="dv">0</span></a>
+<a class="sourceLine" id="cb14-9" data-line-number="9"><span class="cf">for</span> (a1 <span class="cf">in</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>) {</a>
+<a class="sourceLine" id="cb14-10" data-line-number="10">  <span class="cf">for</span> (theta.index <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">5</span>) {</a>
+<a class="sourceLine" id="cb14-11" data-line-number="11">    cnt &lt;-<span class="st"> </span>cnt <span class="op">+</span><span class="st"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb14-12" data-line-number="12">    regimes[, <span class="dv">1</span>, cnt] &lt;-<span class="st"> </span>a1</a>
+<a class="sourceLine" id="cb14-13" data-line-number="13">    regimes[, <span class="dv">2</span>, cnt] &lt;-<span class="st"> </span>data<span class="op">$</span>L <span class="op">&gt;</span><span class="st"> </span>theta.set[theta.index]</a>
+<a class="sourceLine" id="cb14-14" data-line-number="14">    summary.measures[cnt, , <span class="dv">1</span>] &lt;-<span class="st"> </span><span class="kw">c</span>(a1, theta.set[theta.index])</a>
+<a class="sourceLine" id="cb14-15" data-line-number="15">  }</a>
+<a class="sourceLine" id="cb14-16" data-line-number="16">}</a>
+<a class="sourceLine" id="cb14-17" data-line-number="17">summary.measures</a>
+<a class="sourceLine" id="cb14-18" data-line-number="18"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb14-19" data-line-number="19"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-20" data-line-number="20"><span class="co">#&gt;       a1 theta</span></a>
+<a class="sourceLine" id="cb14-21" data-line-number="21"><span class="co">#&gt;  [1,]  0  0.00</span></a>
+<a class="sourceLine" id="cb14-22" data-line-number="22"><span class="co">#&gt;  [2,]  0  0.25</span></a>
+<a class="sourceLine" id="cb14-23" data-line-number="23"><span class="co">#&gt;  [3,]  0  0.50</span></a>
+<a class="sourceLine" id="cb14-24" data-line-number="24"><span class="co">#&gt;  [4,]  0  0.75</span></a>
+<a class="sourceLine" id="cb14-25" data-line-number="25"><span class="co">#&gt;  [5,]  0  1.00</span></a>
+<a class="sourceLine" id="cb14-26" data-line-number="26"><span class="co">#&gt;  [6,]  1  0.00</span></a>
+<a class="sourceLine" id="cb14-27" data-line-number="27"><span class="co">#&gt;  [7,]  1  0.25</span></a>
+<a class="sourceLine" id="cb14-28" data-line-number="28"><span class="co">#&gt;  [8,]  1  0.50</span></a>
+<a class="sourceLine" id="cb14-29" data-line-number="29"><span class="co">#&gt;  [9,]  1  0.75</span></a>
+<a class="sourceLine" id="cb14-30" data-line-number="30"><span class="co">#&gt; [10,]  1  1.00</span></a>
+<a class="sourceLine" id="cb14-31" data-line-number="31"><span class="kw">head</span>(data, <span class="dv">3</span>)</a>
+<a class="sourceLine" id="cb14-32" data-line-number="32"><span class="co">#&gt;             W A1          L A2 Y</span></a>
+<a class="sourceLine" id="cb14-33" data-line-number="33"><span class="co">#&gt; 1 -0.59103110  1 0.77137613  1 1</span></a>
+<a class="sourceLine" id="cb14-34" data-line-number="34"><span class="co">#&gt; 2  0.02659437  0 0.47561600  1 0</span></a>
+<a class="sourceLine" id="cb14-35" data-line-number="35"><span class="co">#&gt; 3 -1.51655310  0 0.08392365  1 0</span></a>
+<a class="sourceLine" id="cb14-36" data-line-number="36">regimes[<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, , ]</a>
+<a class="sourceLine" id="cb14-37" data-line-number="37"><span class="co">#&gt; , , 1</span></a>
+<a class="sourceLine" id="cb14-38" data-line-number="38"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-39" data-line-number="39"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-40" data-line-number="40"><span class="co">#&gt; [1,]    0    1</span></a>
+<a class="sourceLine" id="cb14-41" data-line-number="41"><span class="co">#&gt; [2,]    0    1</span></a>
+<a class="sourceLine" id="cb14-42" data-line-number="42"><span class="co">#&gt; [3,]    0    1</span></a>
+<a class="sourceLine" id="cb14-43" data-line-number="43"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-44" data-line-number="44"><span class="co">#&gt; , , 2</span></a>
+<a class="sourceLine" id="cb14-45" data-line-number="45"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-46" data-line-number="46"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-47" data-line-number="47"><span class="co">#&gt; [1,]    0    1</span></a>
+<a class="sourceLine" id="cb14-48" data-line-number="48"><span class="co">#&gt; [2,]    0    1</span></a>
+<a class="sourceLine" id="cb14-49" data-line-number="49"><span class="co">#&gt; [3,]    0    0</span></a>
+<a class="sourceLine" id="cb14-50" data-line-number="50"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-51" data-line-number="51"><span class="co">#&gt; , , 3</span></a>
+<a class="sourceLine" id="cb14-52" data-line-number="52"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-53" data-line-number="53"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-54" data-line-number="54"><span class="co">#&gt; [1,]    0    1</span></a>
+<a class="sourceLine" id="cb14-55" data-line-number="55"><span class="co">#&gt; [2,]    0    0</span></a>
+<a class="sourceLine" id="cb14-56" data-line-number="56"><span class="co">#&gt; [3,]    0    0</span></a>
+<a class="sourceLine" id="cb14-57" data-line-number="57"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-58" data-line-number="58"><span class="co">#&gt; , , 4</span></a>
+<a class="sourceLine" id="cb14-59" data-line-number="59"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-60" data-line-number="60"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-61" data-line-number="61"><span class="co">#&gt; [1,]    0    1</span></a>
+<a class="sourceLine" id="cb14-62" data-line-number="62"><span class="co">#&gt; [2,]    0    0</span></a>
+<a class="sourceLine" id="cb14-63" data-line-number="63"><span class="co">#&gt; [3,]    0    0</span></a>
+<a class="sourceLine" id="cb14-64" data-line-number="64"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-65" data-line-number="65"><span class="co">#&gt; , , 5</span></a>
+<a class="sourceLine" id="cb14-66" data-line-number="66"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-67" data-line-number="67"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-68" data-line-number="68"><span class="co">#&gt; [1,]    0    0</span></a>
+<a class="sourceLine" id="cb14-69" data-line-number="69"><span class="co">#&gt; [2,]    0    0</span></a>
+<a class="sourceLine" id="cb14-70" data-line-number="70"><span class="co">#&gt; [3,]    0    0</span></a>
+<a class="sourceLine" id="cb14-71" data-line-number="71"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-72" data-line-number="72"><span class="co">#&gt; , , 6</span></a>
+<a class="sourceLine" id="cb14-73" data-line-number="73"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-74" data-line-number="74"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-75" data-line-number="75"><span class="co">#&gt; [1,]    1    1</span></a>
+<a class="sourceLine" id="cb14-76" data-line-number="76"><span class="co">#&gt; [2,]    1    1</span></a>
+<a class="sourceLine" id="cb14-77" data-line-number="77"><span class="co">#&gt; [3,]    1    1</span></a>
+<a class="sourceLine" id="cb14-78" data-line-number="78"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-79" data-line-number="79"><span class="co">#&gt; , , 7</span></a>
+<a class="sourceLine" id="cb14-80" data-line-number="80"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-81" data-line-number="81"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-82" data-line-number="82"><span class="co">#&gt; [1,]    1    1</span></a>
+<a class="sourceLine" id="cb14-83" data-line-number="83"><span class="co">#&gt; [2,]    1    1</span></a>
+<a class="sourceLine" id="cb14-84" data-line-number="84"><span class="co">#&gt; [3,]    1    0</span></a>
+<a class="sourceLine" id="cb14-85" data-line-number="85"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-86" data-line-number="86"><span class="co">#&gt; , , 8</span></a>
+<a class="sourceLine" id="cb14-87" data-line-number="87"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-88" data-line-number="88"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-89" data-line-number="89"><span class="co">#&gt; [1,]    1    1</span></a>
+<a class="sourceLine" id="cb14-90" data-line-number="90"><span class="co">#&gt; [2,]    1    0</span></a>
+<a class="sourceLine" id="cb14-91" data-line-number="91"><span class="co">#&gt; [3,]    1    0</span></a>
+<a class="sourceLine" id="cb14-92" data-line-number="92"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-93" data-line-number="93"><span class="co">#&gt; , , 9</span></a>
+<a class="sourceLine" id="cb14-94" data-line-number="94"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-95" data-line-number="95"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-96" data-line-number="96"><span class="co">#&gt; [1,]    1    1</span></a>
+<a class="sourceLine" id="cb14-97" data-line-number="97"><span class="co">#&gt; [2,]    1    0</span></a>
+<a class="sourceLine" id="cb14-98" data-line-number="98"><span class="co">#&gt; [3,]    1    0</span></a>
+<a class="sourceLine" id="cb14-99" data-line-number="99"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-100" data-line-number="100"><span class="co">#&gt; , , 10</span></a>
+<a class="sourceLine" id="cb14-101" data-line-number="101"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb14-102" data-line-number="102"><span class="co">#&gt;      [,1] [,2]</span></a>
+<a class="sourceLine" id="cb14-103" data-line-number="103"><span class="co">#&gt; [1,]    1    0</span></a>
+<a class="sourceLine" id="cb14-104" data-line-number="104"><span class="co">#&gt; [2,]    1    0</span></a>
+<a class="sourceLine" id="cb14-105" data-line-number="105"><span class="co">#&gt; [3,]    1    0</span></a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">working.msm &lt;-<span class="st"> &quot;Y ~ a1*theta&quot;</span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2"><span class="kw">summary</span>(<span class="kw">ltmleMSM</span>(data, <span class="dt">Anodes =</span> <span class="kw">c</span>(<span class="st">&quot;A1&quot;</span>, <span class="st">&quot;A2&quot;</span>), <span class="dt">Lnodes =</span> <span class="st">&quot;L&quot;</span>, <span class="dt">Ynodes =</span> <span class="st">&quot;Y&quot;</span>, </a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">              <span class="dt">regimes =</span> regimes, <span class="dt">summary.measures =</span> summary.measures, </a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">              <span class="dt">working.msm =</span> working.msm))</a>
+<a class="sourceLine" id="cb15-5" data-line-number="5"><span class="co">#&gt; Qform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb15-6" data-line-number="6"><span class="co">#&gt; formula for L:</span></a>
+<a class="sourceLine" id="cb15-7" data-line-number="7"><span class="co">#&gt; Q.kplus1 ~ W + A1</span></a>
+<a class="sourceLine" id="cb15-8" data-line-number="8"><span class="co">#&gt; formula for Y:</span></a>
+<a class="sourceLine" id="cb15-9" data-line-number="9"><span class="co">#&gt; Q.kplus1 ~ W + A1 + L + A2</span></a>
+<a class="sourceLine" id="cb15-10" data-line-number="10"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb15-11" data-line-number="11"><span class="co">#&gt; gform not specified, using defaults:</span></a>
+<a class="sourceLine" id="cb15-12" data-line-number="12"><span class="co">#&gt; formula for A1:</span></a>
+<a class="sourceLine" id="cb15-13" data-line-number="13"><span class="co">#&gt; A1 ~ W</span></a>
+<a class="sourceLine" id="cb15-14" data-line-number="14"><span class="co">#&gt; formula for A2:</span></a>
+<a class="sourceLine" id="cb15-15" data-line-number="15"><span class="co">#&gt; A2 ~ W + A1 + L</span></a>
+<a class="sourceLine" id="cb15-16" data-line-number="16"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb15-17" data-line-number="17"><span class="co">#&gt; Estimate of time to completion: 2 to 4 minutes</span></a>
+<a class="sourceLine" id="cb15-18" data-line-number="18"><span class="co">#&gt; Estimator:  tmle </span></a>
+<a class="sourceLine" id="cb15-19" data-line-number="19"><span class="co">#&gt;              Estimate Std. Error   CI 2.5% CI 97.5% p-value    </span></a>
+<a class="sourceLine" id="cb15-20" data-line-number="20"><span class="co">#&gt; (Intercept)  0.531670   0.050294  0.433095    0.630  &lt;2e-16 ***</span></a>
+<a class="sourceLine" id="cb15-21" data-line-number="21"><span class="co">#&gt; a1           1.039499   0.074409  0.893660    1.185  &lt;2e-16 ***</span></a>
+<a class="sourceLine" id="cb15-22" data-line-number="22"><span class="co">#&gt; theta       -1.817514   0.071766 -1.958172   -1.677  &lt;2e-16 ***</span></a>
+<a class="sourceLine" id="cb15-23" data-line-number="23"><span class="co">#&gt; a1:theta    -0.006772   0.110068 -0.222502    0.209   0.951    </span></a>
+<a class="sourceLine" id="cb15-24" data-line-number="24"><span class="co">#&gt; ---</span></a>
+<a class="sourceLine" id="cb15-25" data-line-number="25"><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></a></code></pre></div>
+<p>Let’s compare to the true coefficents of the MSM. First we find the true value of <span class="math inline">\(E[Y_{a1, theta}]\)</span> for 5 values of theta.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">truth &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA_real_</span>, <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb16-2" data-line-number="2">cnt &lt;-<span class="st"> </span><span class="dv">0</span></a>
+<a class="sourceLine" id="cb16-3" data-line-number="3"><span class="cf">for</span> (a1 <span class="cf">in</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>) {</a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">  <span class="cf">for</span> (theta.index <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">5</span>) {</a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">    cnt &lt;-<span class="st"> </span>cnt <span class="op">+</span><span class="st"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">    truth[cnt] &lt;-<span class="st"> </span><span class="kw">GenerateData</span>(<span class="dt">n =</span> <span class="fl">1e6</span>, </a>
+<a class="sourceLine" id="cb16-7" data-line-number="7">                    <span class="dt">abar =</span> <span class="kw">list</span>(<span class="dt">a1 =</span> a1, <span class="dt">theta =</span> theta.set[theta.index]))</a>
+<a class="sourceLine" id="cb16-8" data-line-number="8">  }</a>
+<a class="sourceLine" id="cb16-9" data-line-number="9">}</a></code></pre></div>
+<p>Fit a working MSM to the true values of <span class="math inline">\(E[Y_{a1, theta}]\)</span>.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1">m.true &lt;-<span class="st"> </span><span class="kw">glm</span>(working.msm, </a>
+<a class="sourceLine" id="cb17-2" data-line-number="2">              <span class="dt">data =</span> <span class="kw">data.frame</span>(<span class="dt">Y =</span> truth, summary.measures[, , <span class="dv">1</span>]), </a>
+<a class="sourceLine" id="cb17-3" data-line-number="3">              <span class="dt">family =</span> <span class="st">&quot;quasibinomial&quot;</span>)</a>
+<a class="sourceLine" id="cb17-4" data-line-number="4">m.true</a>
+<a class="sourceLine" id="cb17-5" data-line-number="5"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb17-6" data-line-number="6"><span class="co">#&gt; Call:  glm(formula = working.msm, family = &quot;quasibinomial&quot;, data = data.frame(Y = truth, </span></a>
+<a class="sourceLine" id="cb17-7" data-line-number="7"><span class="co">#&gt;     summary.measures[, , 1]))</span></a>
+<a class="sourceLine" id="cb17-8" data-line-number="8"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb17-9" data-line-number="9"><span class="co">#&gt; Coefficients:</span></a>
+<a class="sourceLine" id="cb17-10" data-line-number="10"><span class="co">#&gt; (Intercept)           a1        theta     a1:theta  </span></a>
+<a class="sourceLine" id="cb17-11" data-line-number="11"><span class="co">#&gt;     0.51497      0.95904     -1.76125     -0.02284  </span></a>
+<a class="sourceLine" id="cb17-12" data-line-number="12"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb17-13" data-line-number="13"><span class="co">#&gt; Degrees of Freedom: 9 Total (i.e. Null);  6 Residual</span></a>
+<a class="sourceLine" id="cb17-14" data-line-number="14"><span class="co">#&gt; Null Deviance:       1.341 </span></a>
+<a class="sourceLine" id="cb17-15" data-line-number="15"><span class="co">#&gt; Residual Deviance: 0.02342   AIC: NA</span></a></code></pre></div>
+<p>The estimated MSM coefficients are close to the true MSM coefficients.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

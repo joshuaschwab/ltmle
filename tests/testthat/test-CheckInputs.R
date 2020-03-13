@@ -91,8 +91,8 @@ test_that("binaryOutcome flag set correctly", {
                      A = rbinom(n, 1, .5), 
                      Y = rbinom(n, 2, .5)/2)
 
-  expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1, survivalOutcome=FALSE, variance.method="ic",  estimate.time = FALSE)$binaryOutcome, is_false())
-  expect_that(ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=1, survivalOutcome=FALSE)$binaryOutcome, is_true())  
+  expect_false(ltmle(data, Anodes="A", Ynodes="Y", abar=1, survivalOutcome=FALSE, variance.method="ic",  estimate.time = FALSE)$binaryOutcome)
+  expect_true(ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=1, survivalOutcome=FALSE)$binaryOutcome) 
 })
 
 
@@ -104,10 +104,10 @@ test_that("Y outside of [0, 1] is scaled", {
 
   expect_that(l <- ltmle(data, Anodes="A", Ynodes="Y", abar=1, variance.method="ic",  estimate.time = FALSE), 
     shows_message("Some Ynodes are not in \\[0, 1\\], and Yrange was NULL, so all Y nodes are being\\ntransformed to \\(Y-min.of.all.Ys\\)/range.of.all.Ys"))  
-  expect_that(l$transformOutcome, is_true())
+  expect_true(l$transformOutcome)
   expect_that(ltmle(data, Anodes="A", Ynodes="Y", abar=1, Yrange=c(0, 3), variance.method="ic", estimate.time = FALSE), 
     shows_message("Some Ynodes are not in \\[Yrange\\[1\\], Yrange\\[2\\]\\], Y values are truncated"))
-  expect_that(ltmle(transform(data, Y=Y/30), Anodes="A", Ynodes="Y", abar=1, variance.method="ic", estimate.time = FALSE)$transformOutcome, is_false())
+  expect_false(ltmle(transform(data, Y=Y/30), Anodes="A", Ynodes="Y", abar=1, variance.method="ic", estimate.time = FALSE)$transformOutcome)
 })
 
 test_that("survivalOutcome required if outcome is binary", {

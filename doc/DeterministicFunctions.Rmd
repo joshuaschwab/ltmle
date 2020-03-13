@@ -1,10 +1,10 @@
 ---
-title: "Advanced Topics"
+title: "Deterministic Functions"
 author: "Joshua Schwab"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Deterministic Functions}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,12 +18,11 @@ knitr::opts_chunk$set(
 ```
 
 ## deterministic.g.function 
-Time ordering of data is W, C1, L1, A1, Y1, C2, L2, A2, Y2
-True value of E[Y_(1,1,1,1)] (expected value of Y setting C1, A1, C2, A2 all to 1)
-  is approximately 0.413.
-A1 is known to always be 1 if L1 < -2, and is 1 with probability 0.1 if L1 > 2 
-A2 is known to always be 1 if A1 is 1 
-We can incorporate this knowledge using deterministic.g.function
+Time ordering of data is W, C1, L1, A1, Y1, C2, L2, A2, Y2  
+True value of E[Y_(1,1,1,1)] (expected value of Y setting C1, A1, C2, A2 all to 1) is approximately 0.413.  
+A1 is known to always be 1 if L1 < -2, and is 1 with probability 0.1 if L1 > 2   
+A2 is known to always be 1 if A1 is 1   
+We can incorporate this knowledge using deterministic.g.function.  
 
 Generate data:
 ``` {r}
@@ -100,7 +99,7 @@ L2[alive] <- (0.5 * W - 0.9 * A1 + rnorm(n))[alive]
 completed.study <- alive & L2 > 0
 ```
 
-Scenario 1: patients don't change treatment after leaving study; leave their A2 as NA
+* Scenario 1: patients don't change treatment after leaving study; leave their A2 as NA
 ```{r}
 A2[alive & !completed.study] <- rexpit((0.5 * W + 0.8 * L2)[alive & !completed.study])
 
@@ -110,13 +109,12 @@ Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 ```
 
-Specify that Q is deterministically 0 when L2 is in the history of the current Q regression and L2 > 0
-Notes:
-* It is not necessary to specify that Q is deterministically 1 if Y1 is 1; this is automatic
-* det.Q.fun doesn't condition on called.from.estimate.g so g will also be set       deterministically after L2 > 0 
+Specify that Q is deterministically 0 when L2 is in the history of the current Q regression and L2 > 0  
+It is not necessary to specify that Q is deterministically 1 if Y1 is 1; this is automatic.
+Also note that det.Q.fun doesn't condition on `called.from.estimate.g` so g will also be set       deterministically after L2 > 0.   
 
 ```{r}
-det.Q.fun.4a <- function(data, current.node, nodes, called.from.estimate.g) {
+det.Q.fun.1 <- function(data, current.node, nodes, called.from.estimate.g) {
   L2.index <- which(names(data) == "L2")
   stopifnot(length(L2.index) == 1)
   L2.in.history <- L2.index < current.node
@@ -127,12 +125,11 @@ det.Q.fun.4a <- function(data, current.node, nodes, called.from.estimate.g) {
 }
 
 result.scenario1 <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
-  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4a, survivalOutcome=TRUE)
-#note: You will get the same result if you pass Lnodes=NULL (see next example)
+  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.1, survivalOutcome=TRUE)
 summary(result.scenario1)
 ```
 
-Scenario 2: treatment can still change after a patient leaves the study
+* Scenario 2: treatment can still change after a patient leaves the study
 ```{r}
 A2[alive] <- rexpit((0.5 * W + 0.8 * L2)[alive])  #patients can change treatment after leaving study
 Y2[alive & !completed.study] <- rexpit((L2 - 0.8 * A1 - A2)[alive & !completed.study])
@@ -140,7 +137,7 @@ Y2[alive & completed.study] <- 0
 Y2[!alive] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, A1, Y1, L2, A2, Y2)
 
-det.Q.fun.4b <- function(data, current.node, nodes, called.from.estimate.g) {
+det.Q.fun.2 <- function(data, current.node, nodes, called.from.estimate.g) {
   #there is no deterministic information when calculating g - treatment may still change
   if (called.from.estimate.g) return(NULL)  
   
@@ -154,7 +151,7 @@ det.Q.fun.4b <- function(data, current.node, nodes, called.from.estimate.g) {
 }
 
 result.scenario2 <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
- SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.4b, survivalOutcome=TRUE)
+ SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.2, survivalOutcome=TRUE)
 summary(result.scenario2)
 ```
 

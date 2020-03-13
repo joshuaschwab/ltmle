@@ -193,8 +193,8 @@ deterministic.Q.function_template <- function(data, current.node, nodes, called.
 MaintainTreatment <- function(data, current.node, nodes) {
   #if the previous Anode is 1, all subsequent Anodes are 1 
   Anodes <- nodes$A
-  if (!(current.node %in% Anodes)) return(NULL)
-  if (!(any(Anodes < current.node))) return(NULL)
+  if (!(current.node %in% Anodes)) return(NULL) 
+  if (!(any(Anodes < current.node))) return(NULL) 
   
   prev.a.node <- max(Anodes[Anodes < current.node])
   is.deterministic <- data[, prev.a.node] == 1

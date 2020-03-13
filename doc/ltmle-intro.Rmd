@@ -87,7 +87,7 @@ summary(result, estimator="iptw")
 ```
 
 SuperLearner semiparametric estimation using correctly specified regressors. This passes W1^2, W2, W3, A and W3:A as columns of matrix X to SuperLearner for the Q regression and W1 and W3 as columns of matrix X to SuperLearner for the g regression.
-```{r, warning = FALSE}
+```{r}
 result <- ltmle(data, Anodes="A", Lnodes=NULL, Ynodes="Y", 
                 Qform=c(Y="Q.kplus1 ~ I(W1^2) + W2 + W3*A"), 
                 gform="A ~ W1 + W3", abar=1, SL.library="default")
