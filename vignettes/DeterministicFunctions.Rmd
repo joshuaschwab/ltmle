@@ -52,7 +52,7 @@ Y2[Y1 == 1] <- 1  # if a patient dies at time 1, record death at time 2 as well
 data <- data.frame(W, C1, L1, A1, Y1, C2, L2, A2, Y2)
 ```
 
-Without considering deterministic knowledege of A1 and A2:
+Without considering deterministic knowledge of A1 and A2:
 ```{r}
 result <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"), 
                 Lnodes=c("L1", "L2"), Ynodes=c("Y1", "Y2"), abar=c(1, 1), 
@@ -60,7 +60,7 @@ result <- ltmle(data, Anodes=c("A1","A2"), Cnodes=c("C1", "C2"),
 summary(result) 
 ```
 
-Now we use deterministic.g.function to include our deterministic knowledege of A1 and A2:
+Now we use deterministic.g.function to include our deterministic knowledge of A1 and A2:
 ``` {r}
 deterministic.g.function <- function(data, current.node, nodes) {
   if (names(data)[current.node] == "A1") {

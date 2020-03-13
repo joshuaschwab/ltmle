@@ -241,7 +241,7 @@ summary(ltmleMSM(data, Anodes = c("A1", "A2"), Lnodes = "L", Ynodes = "Y",
               working.msm = working.msm))
 ```
 
-Let's compare to the true coefficents of the MSM. First we find the true value of $E[Y_{a1, theta}]$ for 5 values of theta.
+Let's compare to the true coefficients of the MSM. First we find the true value of $E[Y_{a1, theta}]$ for 5 values of theta.
 ```{r}
 truth <- rep(NA_real_, 10)
 cnt <- 0

@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 ```
 
 ## Minimal Example
-Consider the observed data with time ordering W -> A -> Y. W is a continous baseline covariate that affects A and Y. A is a binary treatment variable that affects Y. Y is a binary outcome variable. 
+Consider the observed data with time ordering W -> A -> Y. W is a continuous baseline covariate that affects A and Y. A is a binary treatment variable that affects Y. Y is a binary outcome variable. 
 
 W ~ N(0, 1)
 
@@ -248,8 +248,8 @@ summary(r1$cum.g.unbounded)
 head(data.frame(df, g = r1$cum.g, g.unbounded = r1$cum.g.unbounded), 20)
 ```
 
-## Hierachical data and the id variable
-The `id` argument can be used to specify hierachical data, such as people in a household.
+## Hierarchical data and the id variable
+The `id` argument can be used to specify hierarchical data, such as people in a household.
 ```{r}
 num.households <- 500
 people.in.household <- round(runif(num.households, min = 1, max = 10))
