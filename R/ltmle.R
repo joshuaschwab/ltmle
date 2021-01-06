@@ -1749,7 +1749,7 @@ NodeToIndex <- function(data, node) {
   return(index)
 }
 
- # check if glm should be run instead of SuperLearner
+# check if glm should be run instead of SuperLearner
 is.glm <- function(SL.library) {
   is.equal(SL.library, "glm", check.attributes = FALSE)
 }
@@ -1780,13 +1780,8 @@ Estimate <- function(inputs, form, subs, type, nodes, Qstar.kplus1, cur.node, ca
         #estimate using SuperLearner
         newX.list <- GetNewX(newdata)
         SetSeedIfRegressionTesting()
-        if (binary.outcome) {
-          Y.for.SL <- Y.subset
-        } else {
-          Y.for.SL <- qlogis(Bound(Y.subset, bounds=c(0.0001, 0.9999)))
-        }
         try.result <- try({
-          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.for.SL, X=X.subset, SL.library=SL.library, cvControl=inputs$SL.cvControl, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading"))
+          SuppressGivenWarnings(m <- SuperLearner::SuperLearner(Y=Y.subset, X=X.subset, SL.library=SL.library, cvControl=inputs$SL.cvControl, verbose=FALSE, family=family, newX=newX.list$newX, obsWeights=observation.weights.subset, id=id.subset, env = environment(SuperLearner::SuperLearner)), c("non-integer #successes in a binomial glm!", "prediction from a rank-deficient fit may be misleading"))
         })
         predicted.values <- ProcessSLPrediction(m$SL.predict, newX.list$new.subs, try.result)
       }
@@ -1803,14 +1798,10 @@ Estimate <- function(inputs, form, subs, type, nodes, Qstar.kplus1, cur.node, ca
     }
     predicted.values <- rep(NA, nrow(newdata))
     predicted.values[new.subs] <- pred
-    if (binary.outcome) {
-      if (max(predicted.values, na.rm=T) > 1 || min(predicted.values, na.rm=T) < 0) {
-        msg <- paste("SuperLearner returned predicted.values > 1 or < 0: [min, max] = [", min(predicted.values, na.rm=T), ",", max(predicted.values, na.rm=T), "]. Bounding to [0,1]")
-        warning(msg)
-        predicted.values <- Bound(predicted.values, bounds=c(0, 1))
-      }
-    } else {
-      predicted.values <- plogis(binary.outcome)
+    if (max(predicted.values, na.rm=T) > 1 || min(predicted.values, na.rm=T) < 0) {
+      msg <- paste("SuperLearner returned predicted.values > 1 or < 0: [min, max] = [", min(predicted.values, na.rm=T), ",", max(predicted.values, na.rm=T), "]. Bounding to [0,1]")
+      warning(msg)
+      predicted.values <- Bound(predicted.values, bounds=c(0, 1))
     }
     return(ValuesByType(predicted.values))
   }
@@ -1925,8 +1916,7 @@ Estimate <- function(inputs, form, subs, type, nodes, Qstar.kplus1, cur.node, ca
     if (!is.null(offst)) stop("offset in formula not supported with SuperLearner")
     colnames(X) <- make.names(colnames(X), T) #change to temp colnames to avoid problems in some SL libraries; SL.gam has problems with names like (Intercept)
     X <- as.data.frame(X)
-    binary.outcome <- IsBinary(Y)
-    if (binary.outcome) {
+    if (IsBinary(Y)) {
       family <- binomial()
     } else {
       family <- gaussian()
