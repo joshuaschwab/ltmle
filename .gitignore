@@ -1,13 +1,9 @@
 .DS_Store
 */.DS_Store
 inst/ignore
-<<<<<<< HEAD
 .Rproj.user
-
 .Rbuildignore
 .Rhistory
 data/PreviousReleaseTests copy.RData
-ltmle-dev.Rproj
-=======
->>>>>>> 4010af7c7bf7ea3f1a3a40dedadd282fab4ad2ed
+*.Rproj
 inst/doc
