@@ -2637,7 +2637,14 @@ SetSeedIfRegressionTesting <- function() {
 }
 
 ltmle.glm <- function(formula, family, data, weights) {
-  try.result <- try(m <- speedglm::speedglm(formula=formula, family=family, data=data, weights=weights, maxit=100), silent = TRUE)
+  try.result <- try({
+    if (is.null(weights)) {
+      m <- speedglm::speedglm(formula=formula, family=family, data=data, maxit=100)
+    } else {
+      m <- speedglm::speedglm(formula=formula, family=family, data=cbind(data, weights), weights=weights, maxit=100)
+    }
+
+    }, silent = TRUE)
   if (inherits(try.result, "try-error")) {
     ShowGlmMessage()
     if (is.null(weights)) {
