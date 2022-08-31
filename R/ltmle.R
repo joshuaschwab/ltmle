@@ -760,18 +760,19 @@ FixedTimeTMLE <- function(inputs, nodes, msm.weights, combined.summary.measures,
       }
       Q.est <- Estimate(inputs, form = inputs$Qform[LYnode.index], Qstar.kplus1=if (LYnode.index == length(nodes$LY)) Qstar.kplus1[, 1] else Qstar.kplus1, subs=subs, type="link", nodes=nodes, called.from.estimate.g=FALSE, calc.meanL=FALSE, cur.node=cur.node, regimes.meanL=NULL, regimes.with.positive.weight=regimes.with.positive.weight) #if this is the last node, only pass the first column as a vector
       logitQ <- Q.est$predicted.values
+      logitQ[Q.est$is.deterministic] <- qlogis(Q.est$deterministic.Q[Q.est$is.deterministic]) #matrix indexing
       fit.Q[[LYnode.index]] <- Q.est$fit
       ACnode.index  <- which.max(nodes$AC[nodes$AC < cur.node])
       SuppressGivenWarnings(update.list <- UpdateQ(Qstar.kplus1, logitQ, combined.summary.measures, g.list$cum.g[, ACnode.index, ], inputs$working.msm, uncensored, intervention.match, deterministic.list.origdata$is.deterministic, msm.weights, inputs$gcomp, inputs$observation.weights), GetWarningsToSuppress(update.step = TRUE))
       if (length(ACnode.index) > 0) cum.g.used[, ACnode.index, ] <- cum.g.used[, ACnode.index, ] | update.list$cum.g.used
       Qstar <- update.list$Qstar
-      Qstar[Q.est$is.deterministic] <- Q.est$deterministic.Q[Q.est$is.deterministic] #matrix indexing
+
       curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
       curIC.relative.error <- abs(colSums(curIC))
       curIC.relative.error[mean.summary.measures > 0] <- curIC.relative.error[mean.summary.measures > 0] / mean.summary.measures[mean.summary.measures > 0]
       if (any(curIC.relative.error > 0.001) && !inputs$gcomp) {
         SetSeedIfRegressionTesting()
-        fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, Q.est$is.deterministic, Q.est$deterministic.Q, update.list$off, update.list$X, regimes.with.positive.weight)
+        fix.score.list <- FixScoreEquation(Qstar.kplus1, update.list$h.g.ratio, uncensored, intervention.match, update.list$off, update.list$X, regimes.with.positive.weight)
         Qstar <- fix.score.list$Qstar
         curIC <- CalcIC(Qstar.kplus1, Qstar, update.list$h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
         update.list$fit <- fix.score.list$fit
@@ -1170,7 +1171,7 @@ UpdateQ <- function(Qstar.kplus1, logitQ, combined.summary.measures, cum.g, work
 }
 
 # Sometimes GLM doesn't converge and the updating step of TMLE doesn't solve the score equation (sum of TMLE influence curve not equal to zero). This function attempts to solve the score equation directly
-FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.match, is.deterministic, deterministic.Q, off, X, regimes.with.positive.weight) {
+FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.match, off, X, regimes.with.positive.weight) {
   CalcScore <- function(e) {
     Qstar <- QstarFromE(e)
     ICtemp <- CalcIC(Qstar.kplus1, Qstar, h.g.ratio, uncensored, intervention.match, regimes.with.positive.weight)
@@ -1180,7 +1181,6 @@ FixScoreEquation <- function(Qstar.kplus1, h.g.ratio, uncensored, intervention.m
   QstarFromE <- function(e) {
     Qstar <- plogis(off + X %*% e) #X: n x (num.summary.measures + num.baseline.covariates) (which should be num.beta);  e: num.beta x 1
     dim(Qstar) <- dim(Qstar.kplus1)
-    Qstar[is.deterministic] <- deterministic.Q[is.deterministic] #matrix indexing
     return(Qstar)
   }
 
