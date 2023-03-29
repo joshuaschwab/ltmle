@@ -135,7 +135,7 @@
 #' include libraries that consider non-linear terms.
 #'
 #' If \code{attr(SL.library, "return.fit") == TRUE}, then \code{fit$g} and
-#' \code{fit$Q} will return full \code{SuperLearner} or \code{speedglm} objects.
+#' \code{fit$Q} will return full \code{SuperLearner} or \code{glm} objects.
 #' If not, only a summary matrix will be returned to save memory.
 #'
 #' The print method for \code{ltmle} objects only prints the tmle estimates.
@@ -1749,7 +1749,7 @@ NodeToIndex <- function(data, node) {
   return(index)
 }
 
- # check if glm should be run instead of SuperLearner
+# check if glm should be run instead of SuperLearner
 is.glm <- function(SL.library) {
   is.equal(SL.library, "glm", check.attributes = FALSE)
 }
@@ -2312,7 +2312,7 @@ CheckInputs <- function(data, nodes, survivalOutcome, Qform, gform, gbounds, Yra
 
   num.final.Ynodes <- length(final.Ynodes)
   if ((length(dim(summary.measures)) != 3) || ! is.equal(dim(summary.measures)[c(1, 3)], c(num.regimes, num.final.Ynodes))) stop("summary.measures should be an array with dimensions num.regimes x num.summary.measures x num.final.Ynodes")
-  if (class(working.msm) != "character") stop("class(working.msm) must be 'character'")
+  if (!inherits(working.msm, "character")) stop("class(working.msm) must be 'character'")
   if (LhsVars(working.msm) != "Y") stop("the left hand side variable of working.msm should always be 'Y' [this may change in future releases]")
   if (!is.vector(observation.weights) || length(observation.weights) != nrow(data) || anyNA(observation.weights) || any(observation.weights < 0) || max(observation.weights) == 0) stop("observation.weights must be NULL or a vector of length nrow(data) with no NAs, no negative values, and at least one positive value")
 
@@ -2633,40 +2633,22 @@ SetSeedIfRegressionTesting <- function() {
 }
 
 ltmle.glm <- function(formula, family, data, weights) {
-  try.result <- try({
-    if (is.null(weights)) {
-      m <- speedglm::speedglm(formula=formula, family=family, data=data, maxit=100)
-    } else {
-      m <- speedglm::speedglm(formula=formula, family=family, data=cbind(data, weights), weights=weights, maxit=100)
-    }
-
-    }, silent = TRUE)
-  if (inherits(try.result, "try-error")) {
-    ShowGlmMessage()
-    if (is.null(weights)) {
-      m <- glm(formula=formula, family=family, data=data, control=glm.control(maxit=100))
-    } else {
-      m <- glm(formula=formula, family=family, data=data.frame(data, weights), weights=weights, control=glm.control(maxit=100))
-    }
+  #this used to call speedglm but speedglm was removed from CFRAN
+  #could try fastglm
+  if (is.null(weights)) {
+    m <- glm(formula=formula, family=family, data=data, control=glm.control(maxit=100))
+  } else {
+    m <- glm(formula=formula, family=family, data=data.frame(data, weights), weights=weights, control=glm.control(maxit=100))
   }
   return(m)
 }
 
 ltmle.glm.fit <- function(x, y, weights, family, offset, intercept) {
-  try.result <- try({
-    m <- speedglm::speedglm.wfit(y=y, X=x, family=family, weights=weights, offset=offset, intercept=intercept, maxit=100)
-    class(m) <- c("speedglm", "speedlm")
-  }, silent = TRUE)
-  if (inherits(try.result, "try-error")) {
-    ShowGlmMessage()
-    m <- glm.fit(x=x, y=y, family=family, weights=weights, offset=offset, intercept=intercept, control=glm.control(maxit=100))
-    class(m) <- c("glm", "lm")
-  }
+  #this used to call speedglm but speedglm was removed from CFRAN
+  #could try fastglm
+  m <- glm.fit(x=x, y=y, family=family, weights=weights, offset=offset, intercept=intercept, control=glm.control(maxit=100))
+  class(m) <- c("glm", "lm")
   return(m)
-}
-
-ShowGlmMessage <- function() {
-  message("speedglm failed, using glm instead. If you see a lot of this message and you have large absolute values in data[, Lnodes], you may get a speed performance improvement by rescaling these values.")
 }
 
 Default.SL.Library <- list("SL.glm",
