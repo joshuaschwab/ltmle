@@ -4,7 +4,9 @@
 \name{sampleDataForLtmleMSM}
 \alias{sampleDataForLtmleMSM}
 \title{Sample data, regimes, and summary measures}
-\format{List with three components: data, regimes, summary.measures}
+\format{
+List with three components: data, regimes, summary.measures
+}
 \source{
 simulated data
 }

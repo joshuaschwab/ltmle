@@ -9,8 +9,12 @@
 \usage{
 deterministic.g.function_template(data, current.node, nodes)
 
-deterministic.Q.function_template(data, current.node, nodes,
-  called.from.estimate.g)
+deterministic.Q.function_template(
+  data,
+  current.node,
+  nodes,
+  called.from.estimate.g
+)
 }
 \arguments{
 \item{data}{the 'data' data.frame passed to \code{ltmle} or \code{ltmleMSM}}
@@ -69,10 +73,10 @@ not change. It is not necessary to specify this in deterministic functions.
 }
 \section{Functions}{
 \itemize{
-\item \code{deterministic.Q.function_template}: Template for the \code{deterministic.Q.function} 
+\item \code{deterministic.Q.function_template()}: Template for the \code{deterministic.Q.function} 
 argument to \code{\link{ltmle}} or \code{\link{ltmleMSM}}.
-}}
 
+}}
 \examples{
 
 # Show template for a deterministic.g.function (comments will not be

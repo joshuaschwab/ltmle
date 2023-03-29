@@ -1,3 +1,8 @@
+ltmle 1.3-0
+===========
+* Apply deterministic.Q.function before UpdateQ instead of after
+* use glm instead of speedglm because speedglm was removed from CRAN
+
 ltmle 1.2-0
 ===========
 * Added initial draft of vignette
@@ -48,7 +53,7 @@ MAJOR CHANGES
 
 * IC.variance.only has been removed and replaced with variance.method. IC.variance.only=TRUE is equivalent to variance.method = "ic", IC.variance.only=FALSE is equivalent to variance.method="tmle". variance.method="iptw" is also available. See ?ltmle.
 
-* id (household or subject ID) has been added 
+* id (household or subject ID) has been added
 
 * if SL.library is not NULL then gform and Qform will be used to create a design matrix before calling SuperLearner (in previous versions the functional form of Qform/gform was not used)
 
@@ -93,15 +98,15 @@ MAJOR CHANGES
 
 * Observations weights (sampling weights) are now available.
 
-* Baseline covariates can now be part of working.msm. 
+* Baseline covariates can now be part of working.msm.
 
 * A change to the implementation of the TMLE updating step reduces the variance of the estimator.
 
-* The weight.msm (TRUE or FALSE) parameter has been removed and replaced by msm.weights, which provides more flexibility in specifying MSM weights. 
+* The weight.msm (TRUE or FALSE) parameter has been removed and replaced by msm.weights, which provides more flexibility in specifying MSM weights.
 
 * The stratified IPTW for MSMs has been replaced by the standard IPTW for MSMs.
 
-* The usage for obtaining additive treatment effects, relative risk, and odds ratio has changed. 
+* The usage for obtaining additive treatment effects, relative risk, and odds ratio has changed.
 
 MINOR CHANGES
 
@@ -117,7 +122,7 @@ MINOR CHANGES
 
 * Confidence intervals truncated at [0, 1] for treatment specific mean, [-1, 1] for additive treatment effect.
 
-* A bug has been fixed in the output for relative risk and odds ratio: the output that was incorrectly labelled "Estimated Std Err" now reads "Est Std Err log(OR)" or "Est Std Err log(RR)". 
+* A bug has been fixed in the output for relative risk and odds ratio: the output that was incorrectly labelled "Estimated Std Err" now reads "Est Std Err log(OR)" or "Est Std Err log(RR)".
 
 ltmle 0.9.3-1
 ===========
@@ -132,8 +137,8 @@ ltmle 0.9.3
 * A bug has been fixed where if you were using glm and had a censoring node at which all observations were "uncensored" (as a factor), results could be off by a lot.
 
 * A bug has been fixed where if you were using SuperLearner and had censoring nodes you may have seen an error (even though your data was specified correctly):
-Error in ConvertCensoringNodesToBinary(data, nodes$C) : 
-  in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored' 
+Error in ConvertCensoringNodesToBinary(data, nodes$C) :
+  in data, all Cnodes should be factors with two levels, 'censored' and 'uncensored'
 
 * The 'regimens' input parameter in ltmleMSM has been changed to 'regimes' to better match existing literature.
 

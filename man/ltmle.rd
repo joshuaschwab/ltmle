@@ -5,23 +5,60 @@
 \alias{ltmleMSM}
 \title{Longitudinal Targeted Maximum Likelihood Estimation}
 \usage{
-ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
-  survivalOutcome = NULL, Qform = NULL, gform = NULL, abar,
-  rule = NULL, gbounds = c(0.01, 1), Yrange = NULL,
-  deterministic.g.function = NULL, stratify = FALSE,
-  SL.library = "glm", SL.cvControl = list(), estimate.time = TRUE,
-  gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
-  variance.method = "tmle", observation.weights = NULL, id = NULL)
+ltmle(
+  data,
+  Anodes,
+  Cnodes = NULL,
+  Lnodes = NULL,
+  Ynodes,
+  survivalOutcome = NULL,
+  Qform = NULL,
+  gform = NULL,
+  abar,
+  rule = NULL,
+  gbounds = c(0.01, 1),
+  Yrange = NULL,
+  deterministic.g.function = NULL,
+  stratify = FALSE,
+  SL.library = "glm",
+  SL.cvControl = list(),
+  estimate.time = TRUE,
+  gcomp = FALSE,
+  iptw.only = FALSE,
+  deterministic.Q.function = NULL,
+  variance.method = "tmle",
+  observation.weights = NULL,
+  id = NULL
+)
 
-ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
-  survivalOutcome = NULL, Qform = NULL, gform = NULL,
-  gbounds = c(0.01, 1), Yrange = NULL,
-  deterministic.g.function = NULL, SL.library = "glm",
-  SL.cvControl = list(), regimes, working.msm, summary.measures,
-  final.Ynodes = NULL, stratify = FALSE, msm.weights = "empirical",
-  estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,
-  deterministic.Q.function = NULL, variance.method = "tmle",
-  observation.weights = NULL, id = NULL)
+ltmleMSM(
+  data,
+  Anodes,
+  Cnodes = NULL,
+  Lnodes = NULL,
+  Ynodes,
+  survivalOutcome = NULL,
+  Qform = NULL,
+  gform = NULL,
+  gbounds = c(0.01, 1),
+  Yrange = NULL,
+  deterministic.g.function = NULL,
+  SL.library = "glm",
+  SL.cvControl = list(),
+  regimes,
+  working.msm,
+  summary.measures,
+  final.Ynodes = NULL,
+  stratify = FALSE,
+  msm.weights = "empirical",
+  estimate.time = TRUE,
+  gcomp = FALSE,
+  iptw.only = FALSE,
+  deterministic.Q.function = NULL,
+  variance.method = "tmle",
+  observation.weights = NULL,
+  id = NULL
+)
 }
 \arguments{
 \item{data}{data frame following the time-ordering of the nodes. See
@@ -90,7 +127,7 @@ only IPTW is run, which is faster.}
 deterministically. See 'Details'. Default \code{NULL} indicates no
 deterministic links.}
 
-\item{variance.method}{Method for estimating variance of TMLE. 
+\item{variance.method}{Method for estimating variance of TMLE.
 One of "ic", "tmle", "iptw". If "tmle", compute both the robust variance
 estimate using TMLE and the influence curve based variance estimate (use the
 larger of the two). If "iptw", compute both the robust variance
@@ -98,16 +135,16 @@ estimate using IPTW and the influence curve based variance estimate (use the
 larger of the two). If "ic", only compute the influence curve based
 variance estimate. "ic" is fastest, but may be substantially
 anti-conservative if there are positivity violations or rare outcomes. "tmle" is
-slowest but most robust if there are positivity violations or rare outcomes. 
+slowest but most robust if there are positivity violations or rare outcomes.
 "iptw" is a compromise between speed and robustness.
-variance.method="tmle" or "iptw" are not yet available with non-binary outcomes, 
+variance.method="tmle" or "iptw" are not yet available with non-binary outcomes,
 gcomp=TRUE, stratify=TRUE, or deterministic.Q.function.}
 
 \item{observation.weights}{observation (sampling) weights. Vector of length
 n. If \code{NULL}, assumed to be all 1.}
 
-\item{id}{Household or subject identifiers. Vector of length n or \code{NULL}. 
-Integer, factor, or character recommended, but any type that can be coerced 
+\item{id}{Household or subject identifiers. Vector of length n or \code{NULL}.
+Integer, factor, or character recommended, but any type that can be coerced
 to factor will work. \code{NULL} means all distinct ids.}
 
 \item{regimes}{binary array: n x numAnodes x numRegimes of counterfactual
@@ -153,17 +190,17 @@ influence curve values for Targeted Maximum Likelihood Estimate without
 updating [NULL if \code{gcomp} is \code{FALSE}] } \item{cum.g}{cumulative g,
 after bounding: for ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x
 num.regimes} \item{cum.g.unbounded}{cumulative g, before bounding: for
-ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes} 
+ltmle, n x numACnodes, for ltmleMSM, n x numACnodes x num.regimes}
 \item{cum.g.used}{binary - TRUE if an entry of cum.g was used in the updating
 step (note: even if cum.g.used is FALSE, a small value of cum.g.unbounded may
-still indicate a positivity problem): for ltmle, n x numACnodes, 
-for ltmleMSM, n x numACnodes x num.regimes} 
+still indicate a positivity problem): for ltmle, n x numACnodes,
+for ltmleMSM, n x numACnodes x num.regimes}
 \item{call}{the matched call} \item{gcomp}{the \code{gcomp} input}
 \item{formulas}{a \code{list} with elements \code{Qform} and \code{gform}}
 \item{fit}{a list with the following components} \itemize{ \item \code{g} -
-list of length numACnodes - \code{glm} or \code{SuperLearner} (see Details) 
-return objects from fitting g regressions 
-\item \code{Q} - list of length numLYnodes - \code{glm} or \code{SuperLearner} 
+list of length numACnodes - \code{glm} or \code{SuperLearner} (see Details)
+return objects from fitting g regressions
+\item \code{Q} - list of length numLYnodes - \code{glm} or \code{SuperLearner}
 (see Details) return objects from fitting Q regressions
 \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 optimization if \code{glm} fails to solve the score equation) return objects
@@ -183,12 +220,12 @@ values for TMLE (without updating if \code{gcomp} input is \code{TRUE})}
 bounding} \item{cum.g.unbounded}{array, n x numACnodes x numRegimes -
 cumulative g, before bounding} \item{call}{the matched call}
 \item{gcomp}{the \code{gcomp} input} \item{formulas}{a \code{list} with
-elements \code{Qform} and \code{gform}} 
-\item{fit}{a list with the following components} 
-\itemize{ \item \code{g} - list of length numRegimes of list of length 
+elements \code{Qform} and \code{gform}}
+\item{fit}{a list with the following components}
+\itemize{ \item \code{g} - list of length numRegimes of list of length
 numACnodes - \code{glm} or \code{SuperLearner} (see Details) return objects from
 fitting g regressions \item \code{Q} - list of length numLYnodes -
-\code{glm} or \code{SuperLearner} (see Details) return objects from fitting Q 
+\code{glm} or \code{SuperLearner} (see Details) return objects from fitting Q
 regressions
 \item \code{Qstar} - list of length numLYnodes - \code{glm} (or numerical
 optimization if \code{glm} fails to solve the score equation) return objects
@@ -272,7 +309,7 @@ be the same as the order the A and C nodes appear in \code{data}. The left
 hand side of each formula should be the name of the Anode or Cnode. If
 \code{SL.library} is \code{NULL}, \code{glm} will be called using the
 elements of \code{gform}. If \code{SL.library} is specified,
-\code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called after a 
+\code{\link[SuperLearner:SuperLearner]{SuperLearner}} will be called after a
 design matrix is created using \code{gform}.
 
 In \code{ltmle}, \code{gform} can also be a n x numACnodes matrix where
@@ -327,26 +364,26 @@ to \code{list("SL.glm", "SL.stepAIC", "SL.bayesglm", c("SL.glm",
 "screen.corP"), c("SL.stepAIC", "screen.corP"), c("SL.step.interaction",
 "screen.corP"), c("SL.bayesglm", "screen.corP")}.  Note that the default set
 of libraries consists of main terms models. It may be advisable to include
-squared terms, interaction terms, etc in \code{gform} and \code{Qform} or 
+squared terms, interaction terms, etc in \code{gform} and \code{Qform} or
 include libraries that consider non-linear terms.
 
-If \code{attr(SL.library, "return.fit") == TRUE}, then \code{fit$g} and 
-\code{fit$Q} will return full \code{SuperLearner} or \code{speedglm} objects. 
+If \code{attr(SL.library, "return.fit") == TRUE}, then \code{fit$g} and
+\code{fit$Q} will return full \code{SuperLearner} or \code{glm} objects.
 If not, only a summary matrix will be returned to save memory.
 
 The print method for \code{ltmle} objects only prints the tmle estimates.
 }
 \section{Functions}{
 \itemize{
-\item \code{ltmleMSM}: Longitudinal Targeted Maximum Likelihood Estimation for a Marginal Structural Model
-}}
+\item \code{ltmleMSM()}: Longitudinal Targeted Maximum Likelihood Estimation for a Marginal Structural Model
 
+}}
 \examples{
 
 # See vignette for more examples.
 
 rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
-                 
+
 # Single time point Example
 n <- 1000
 W <- rnorm(n)
@@ -359,23 +396,23 @@ summary(result1)
 summary(result1, estimator="iptw")
 # MSM Example
 # Given data over 3 time points where A switches to 1 once and then stays 1. We want to know
-# how death varies as a function of gender, time and an indicator of whether a patient's 
+# how death varies as a function of gender, time and an indicator of whether a patient's
 # intended regime was to switch before time.
-# Note that working.msm includes time and switch.time, which are columns of 
+# Note that working.msm includes time and switch.time, which are columns of
 # summary.measures; working.msm also includes male, which is ok because it is a baseline
 # covariate (it comes before any A/C/L/Y nodes).
 data(sampleDataForLtmleMSM)
 Anodes <- grep("^A", names(sampleDataForLtmleMSM$data))
 Lnodes <- c("CD4_1", "CD4_2")
 Ynodes <- grep("^Y", names(sampleDataForLtmleMSM$data))
-msm.weights <- matrix(1:12, nrow=4, ncol=3) #just an example (can also use a 200x3x4 array), 
+msm.weights <- matrix(1:12, nrow=4, ncol=3) #just an example (can also use a 200x3x4 array),
                                             #or NULL (for no weights), or "empirical" (the default)
 
-result2 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes, 
+result2 <- ltmleMSM(sampleDataForLtmleMSM$data, Anodes=Anodes, Lnodes=Lnodes, Ynodes=Ynodes,
                    survivalOutcome=TRUE,
-                   regimes=sampleDataForLtmleMSM$regimes, 
-                   summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes, 
-                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))", 
+                   regimes=sampleDataForLtmleMSM$regimes,
+                   summary.measures=sampleDataForLtmleMSM$summary.measures, final.Ynodes=Ynodes,
+                   working.msm="Y ~ male + time + I(pmax(time - switch.time, 0))",
                    msm.weights=msm.weights, estimate.time=FALSE)
 print(summary(result2))
 

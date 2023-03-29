@@ -2,7 +2,7 @@ Package: ltmle
 Type: Package
 Title: Longitudinal Targeted Maximum Likelihood Estimation
 Version: 1.3-0
-Date: 2020-3-13
+Date: 2023-3-29
 Maintainer: Joshua Schwab <jschwab77@berkeley.edu>
 Authors@R: c(person("Joshua", "Schwab", role=c("aut", "cre"),
     email="jschwab77@berkeley.edu"), person("Samuel", "Lendle", role="aut"),
@@ -12,8 +12,7 @@ Depends:
     R(>= 3.1.0)
 Imports:
     Matrix,
-    matrixStats,
-    speedglm
+    matrixStats
 Suggests:
     SuperLearner,
     testthat,
@@ -36,5 +35,6 @@ Collate:
     'zzz.R'
 URL: https://github.com/joshuaschwab/ltmle
 BugReports: https://github.com/joshuaschwab/ltmle/issues
-RoxygenNote: 6.1.1
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
+Encoding: UTF-8

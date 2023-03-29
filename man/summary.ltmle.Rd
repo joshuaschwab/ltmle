@@ -10,21 +10,22 @@
 \alias{summary.ltmleEffectMeasures}
 \alias{print.ltmleEffectMeasures}
 \alias{print.summary.ltmleEffectMeasures}
-\title{Get standard error, p-value, and confidence interval for one ltmle object 
+\title{Get standard error, p-value, and confidence interval for one ltmle object
 Summarizing results from Longitudinal Targeted Maximum Likelihood Estimation
 (ltmle)}
 \usage{
-\method{summary}{ltmle}(object, estimator = ifelse(object$gcomp, "gcomp",
-  "tmle"), ...)
+\method{summary}{ltmle}(object, estimator = ifelse(object$gcomp, "gcomp", "tmle"), ...)
 
-\method{summary}{ltmleEffectMeasures}(object,
-  estimator = ifelse(object$gcomp, "gcomp", "tmle"), ...)
+\method{summary}{ltmleEffectMeasures}(object, estimator = ifelse(object$gcomp, "gcomp", "tmle"), ...)
 
-\method{summary}{ltmleMSM}(object, estimator = ifelse(object$gcomp,
-  "gcomp", "tmle"), ...)
+\method{summary}{ltmleMSM}(object, estimator = ifelse(object$gcomp, "gcomp", "tmle"), ...)
 
-\method{print}{summary.ltmleMSM}(x, digits = max(3, getOption("digits") -
-  3), signif.stars = getOption("show.signif.stars"), ...)
+\method{print}{summary.ltmleMSM}(
+  x,
+  digits = max(3, getOption("digits") - 3),
+  signif.stars = getOption("show.signif.stars"),
+  ...
+)
 
 \method{print}{summary.ltmle}(x, ...)
 
@@ -116,7 +117,7 @@ Y <- rexpit(W - A1 + 0.5 * A2 + 2 * A3)
 data <- data.frame(W, A1, A2, A3, Y)
 treatment <- cbind(W > 0, W > 1.5, 1)
 control <- matrix(0, nrow = 1000, ncol = 3)
-result <- ltmle(data, Anodes = c("A1", "A2", "A3"), Ynodes = "Y", abar = list(treatment, 
+result <- ltmle(data, Anodes = c("A1", "A2", "A3"), Ynodes = "Y", abar = list(treatment,
     control))
 print(summary(result))
 
