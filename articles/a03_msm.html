@@ -118,20 +118,20 @@ on Y. We include time.on.treatment and time.on.treatment^2.</p>
 <span><span class="op">}</span></span>
 <span><span class="va">data</span><span class="op">$</span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">sum.A</span> <span class="op">/</span> <span class="va">time.points</span> <span class="op">+</span> <span class="va">L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           L_0        L_1 A_1        L_2 A_2        L_3 A_3        L_4 A_4</span></span>
-<span><span class="co">#&gt; 1  0.05686388  0.1172905   1  1.9182641   1  0.4039473   1  0.8240230   1</span></span>
-<span><span class="co">#&gt; 2 -0.30145219 -1.0287156   1  0.4918582   1  0.7659823   1  2.7837907   1</span></span>
-<span><span class="co">#&gt; 3  1.10796517 -1.3911727   1  0.1449658   0 -0.9448654   0  0.4468347   1</span></span>
-<span><span class="co">#&gt; 4 -1.14035546 -0.6994302   0  1.3927942   0  0.6165580   1  0.1980350   0</span></span>
-<span><span class="co">#&gt; 5  0.14392755 -0.8273534   0 -1.3939720   0  1.7668314   1  1.1116152   1</span></span>
-<span><span class="co">#&gt; 6  1.91005184 -2.3892485   0 -1.3607306   0 -0.1875145   1 -1.6632388   0</span></span>
+<span><span class="co">#&gt;          L_0        L_1 A_1        L_2 A_2        L_3 A_3         L_4 A_4</span></span>
+<span><span class="co">#&gt; 1 -0.1109733 -0.4732041   1 -0.5918659   0  0.9759358   1  0.07745348   1</span></span>
+<span><span class="co">#&gt; 2 -0.7823882 -0.1499512   1  0.1749458   0  1.1454179   1  0.46476771   0</span></span>
+<span><span class="co">#&gt; 3  0.2868675  0.3775513   0 -0.8363367   0 -0.9073691   1  0.87036422   1</span></span>
+<span><span class="co">#&gt; 4 -0.4429988  0.6005967   0  0.1665486   1  2.5704316   1  0.40069625   1</span></span>
+<span><span class="co">#&gt; 5 -0.3576847  1.4868539   1  0.4095142   0  0.9274325   0 -0.75607527   1</span></span>
+<span><span class="co">#&gt; 6  0.8914699  0.8806700   1  1.2822985   1  0.2503797   0  0.61927662   1</span></span>
 <span><span class="co">#&gt;          L_5 A_5 Y</span></span>
-<span><span class="co">#&gt; 1  0.3518006   1 1</span></span>
-<span><span class="co">#&gt; 2 -0.1547791   1 0</span></span>
-<span><span class="co">#&gt; 3  1.3513428   1 1</span></span>
-<span><span class="co">#&gt; 4  0.6946158   1 1</span></span>
-<span><span class="co">#&gt; 5 -0.8107617   0 0</span></span>
-<span><span class="co">#&gt; 6  0.0995013   0 1</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 -2.0041680   0 1</span></span>
+<span><span class="co">#&gt; 2 -1.2714831   0 0</span></span>
+<span><span class="co">#&gt; 3 -0.7714984   1 1</span></span>
+<span><span class="co">#&gt; 4  0.3483324   0 1</span></span>
+<span><span class="co">#&gt; 5  1.0502339   1 1</span></span>
+<span><span class="co">#&gt; 6  0.4153236   1 0</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">regime.matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">1</span><span class="op">)</span>, <span class="va">time.points</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">regime.matrix</span><span class="op">)</span></span>
@@ -230,7 +230,7 @@ MSM coefficients look reasonable and then use
 <code>variance.method = "tmle"</code> (the default) for your final
 estimates.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"A_"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
+<code class="sourceCode R"><span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"A_"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
 <span>                    Lnodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"L_"</span>, <span class="fl">0</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, </span>
 <span>                    regimes <span class="op">=</span> <span class="va">regimes</span>, summary.measures <span class="op">=</span> <span class="va">summary.measures</span>, </span>
 <span>                    working.msm <span class="op">=</span> <span class="st">"Y ~ time.on.treatment + I(time.on.treatment^2)"</span>,</span>
@@ -266,7 +266,7 @@ estimates.</p>
 <span><span class="co">#&gt; variance.method='tmle' or variance.method='iptw' to obtain a more robust</span></span>
 <span><span class="co">#&gt; variance estimate (but run time may be significantly longer). See</span></span>
 <span><span class="co">#&gt; variance.method details in ?ltmle</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"A_"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
+<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"A_"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
 <span>                    Lnodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"L_"</span>, <span class="fl">0</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, </span>
 <span>                    regimes <span class="op">=</span> <span class="va">regimes</span>, summary.measures <span class="op">=</span> <span class="va">summary.measures</span>, </span>
 <span>                    working.msm <span class="op">=</span> <span class="st">"Y ~ time.on.treatment + I(time.on.treatment^2)"</span><span class="op">)</span></span>
@@ -294,23 +294,21 @@ estimates.</p>
 <span><span class="co">#&gt; formula for A_5:</span></span>
 <span><span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Estimate of time to completion: 5 to 28 minutes</span></span>
+<span><span class="co">#&gt; Estimate of time to completion: 5 to 27 minutes</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
-<span><span class="co">#&gt;                          Estimate Std. Error    CI 2.5% CI 97.5% p-value  </span></span>
-<span><span class="co">#&gt; (Intercept)            -0.0818330  0.1360251 -0.3484373    0.185  0.5474  </span></span>
-<span><span class="co">#&gt; time.on.treatment       0.2672921  0.1130738  0.0456716    0.489  0.0181 *</span></span>
-<span><span class="co">#&gt; I(time.on.treatment^2) -0.0005091  0.0221145 -0.0438528    0.043  0.9816  </span></span>
+<span><span class="co">#&gt;                         Estimate Std. Error   CI 2.5% CI 97.5% p-value  </span></span>
+<span><span class="co">#&gt; (Intercept)             0.067797   0.136390 -0.199522    0.335  0.6191  </span></span>
+<span><span class="co">#&gt; time.on.treatment       0.188909   0.112493 -0.031572    0.409  0.0931 .</span></span>
+<span><span class="co">#&gt; I(time.on.treatment^2)  0.003259   0.021665 -0.039205    0.046  0.8804  </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
-<span><span class="co">#&gt;                          Estimate Std. Error    CI 2.5% CI 97.5% p-value  </span></span>
-<span><span class="co">#&gt; (Intercept)            -0.0818330  0.1870282 -0.4484017    0.285   0.662  </span></span>
-<span><span class="co">#&gt; time.on.treatment       0.2672921  0.1490732 -0.0248860    0.559   0.073 .</span></span>
-<span><span class="co">#&gt; I(time.on.treatment^2) -0.0005091  0.0281177 -0.0556187    0.055   0.986  </span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span></code></pre></div>
+<span><span class="co">#&gt;                         Estimate Std. Error   CI 2.5% CI 97.5% p-value</span></span>
+<span><span class="co">#&gt; (Intercept)             0.067797   0.182351 -0.289604    0.425   0.710</span></span>
+<span><span class="co">#&gt; time.on.treatment       0.188909   0.145862 -0.096976    0.475   0.195</span></span>
+<span><span class="co">#&gt; I(time.on.treatment^2)  0.003259   0.027598 -0.050833    0.057   0.906</span></span></code></pre></div>
 <p>Suppose we are only interested in the effect of time on treatment on
 Y considering regimes that include at least 3 periods on treatment.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -340,7 +338,7 @@ Y considering regimes that include at least 3 periods on treatment.</p>
 <span><span class="co">#&gt; [15,]                 4</span></span>
 <span><span class="co">#&gt; [16,]                 5</span></span>
 <span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"A_"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"A_"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
 <span>                   Lnodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"L_"</span>, <span class="fl">0</span><span class="op">:</span><span class="va">time.points</span><span class="op">)</span>, </span>
 <span>                   Ynodes <span class="op">=</span> <span class="st">"Y"</span>, regimes <span class="op">=</span> <span class="va">regimes.3</span>, </span>
 <span>                   summary.measures <span class="op">=</span> <span class="va">summary.measures.3</span>, </span>
@@ -372,10 +370,10 @@ Y considering regimes that include at least 3 periods on treatment.</p>
 <span><span class="co">#&gt; Estimate of time to completion: 4 to 13 minutes</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
-<span><span class="co">#&gt;                        Estimate Std. Error  CI 2.5% CI 97.5% p-value</span></span>
-<span><span class="co">#&gt; (Intercept)            -0.31167    2.13504 -4.49627    3.873   0.884</span></span>
-<span><span class="co">#&gt; time.on.treatment       0.41903    1.16339 -1.86118    2.699   0.719</span></span>
-<span><span class="co">#&gt; I(time.on.treatment^2) -0.02344    0.15395 -0.32518    0.278   0.879</span></span></code></pre></div>
+<span><span class="co">#&gt;                        Estimate Std. Error CI 2.5% CI 97.5% p-value</span></span>
+<span><span class="co">#&gt; (Intercept)              1.9545     2.1989 -2.3553    6.264   0.374</span></span>
+<span><span class="co">#&gt; time.on.treatment       -0.9681     1.2073 -3.3344    1.398   0.423</span></span>
+<span><span class="co">#&gt; I(time.on.treatment^2)   0.1695     0.1613 -0.1467    0.486   0.293</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="marginal-structural-models-msms---switching-time-example---multiple-regimes-and-outcomes">Marginal Structural Models (MSMs) - Switching time example -
@@ -485,7 +483,7 @@ default).</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">msm.weights</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, nrow<span class="op">=</span><span class="fl">4</span>, ncol<span class="op">=</span><span class="fl">3</span><span class="op">)</span>  </span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.regimes</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
+<code class="sourceCode R"><span><span class="va">result.regimes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
 <span>                   Lnodes<span class="op">=</span><span class="va">Lnodes</span>, Ynodes<span class="op">=</span><span class="va">Ynodes</span>, </span>
 <span>                   survivalOutcome<span class="op">=</span><span class="cn">TRUE</span>,</span>
 <span>                   regimes<span class="op">=</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">regimes</span>, </span>
@@ -527,7 +525,7 @@ functions where each rule is a function applied to each row of
 <span>                     <span class="kw">function</span><span class="op">(</span><span class="va">row</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span>,</span>
 <span>                     <span class="kw">function</span><span class="op">(</span><span class="va">row</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,</span>
 <span>                     <span class="kw">function</span><span class="op">(</span><span class="va">row</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">result.regList</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
+<span><span class="va">result.regList</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
 <span>                   Lnodes<span class="op">=</span><span class="va">Lnodes</span>, Ynodes<span class="op">=</span><span class="va">Ynodes</span>, </span>
 <span>                   survivalOutcome<span class="op">=</span><span class="cn">TRUE</span>, regimes<span class="op">=</span><span class="va">regimesList</span>, </span>
 <span>                   summary.measures<span class="op">=</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">summary.measures</span>,</span>
@@ -564,7 +562,7 @@ functions where each rule is a function applied to each row of
 <p>Suppose we are only interested in pooling over the result at Y1 and
 Y3.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
 <span>                   Lnodes<span class="op">=</span><span class="va">Lnodes</span>, Ynodes<span class="op">=</span><span class="va">Ynodes</span>, </span>
 <span>                   survivalOutcome<span class="op">=</span><span class="cn">TRUE</span>,</span>
 <span>                   regimes<span class="op">=</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">regimes</span>, </span>
@@ -600,7 +598,7 @@ Y3.</p>
 <p>We could be only interested in the result at Y3. <code>time</code> is
 now a constant in <code>working.msm</code>, so let’s remove it.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="va">Anodes</span>, </span>
 <span>                    Lnodes<span class="op">=</span><span class="va">Lnodes</span>, Ynodes<span class="op">=</span><span class="va">Ynodes</span>, </span>
 <span>                    survivalOutcome<span class="op">=</span><span class="cn">TRUE</span>,</span>
 <span>                    regimes<span class="op">=</span><span class="va">sampleDataForLtmleMSM</span><span class="op">$</span><span class="va">regimes</span>, </span>
@@ -775,7 +773,7 @@ Here is a function that can be used to generate observed data (if
 <span><span class="co">#&gt; [3,]    1    0</span></span></code></pre></div>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">working.msm</span> <span class="op">&lt;-</span> <span class="st">"Y ~ a1*theta"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">ltmleMSM</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span><span class="op">)</span>, Lnodes <span class="op">=</span> <span class="st">"L"</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, </span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="../reference/ltmle.html">ltmleMSM</a></span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span><span class="op">)</span>, Lnodes <span class="op">=</span> <span class="st">"L"</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, </span>
 <span>              regimes <span class="op">=</span> <span class="va">regimes</span>, summary.measures <span class="op">=</span> <span class="va">summary.measures</span>, </span>
 <span>              working.msm <span class="op">=</span> <span class="va">working.msm</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Qform not specified, using defaults:</span></span>
@@ -790,7 +788,7 @@ Here is a function that can be used to generate observed data (if
 <span><span class="co">#&gt; formula for A2:</span></span>
 <span><span class="co">#&gt; A2 ~ W + A1 + L</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Estimate of time to completion: 2 to 5 minutes</span></span>
+<span><span class="co">#&gt; Estimate of time to completion: 2 to 4 minutes</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
 <span><span class="co">#&gt;              Estimate Std. Error   CI 2.5% CI 97.5% p-value    </span></span>
 <span><span class="co">#&gt; (Intercept)  0.531670   0.050294  0.433095    0.630  &lt;2e-16 ***</span></span>

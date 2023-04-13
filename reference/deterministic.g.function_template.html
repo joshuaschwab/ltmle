@@ -55,7 +55,7 @@ argument to ltmle or ltmleMSM."><!-- mathjax --><script src="https://cdnjs.cloud
 
     <div class="ref-description section level2">
     <p>Template for the <code>deterministic.g.function</code> 
-argument to <code>ltmle</code> or <code>ltmleMSM</code>.</p>
+argument to <code><a href="ltmle.html">ltmle</a></code> or <code><a href="ltmle.html">ltmleMSM</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -91,7 +91,7 @@ Anodes (treatment)</p></li>
 <li><p><code>AC</code>
 Anodes and Cnodes combined and sorted</p></li>
 <li><p><code>LY</code> Lnodes and Ynodes
-combined, sorted, "blocks" removed - see <code>ltmle</code></p></li>
+combined, sorted, "blocks" removed - see <code><a href="ltmle.html">ltmle</a></code></p></li>
 </ul></dd>
 
 
@@ -136,8 +136,8 @@ function arguments and body and then fill in the required sections. They
 will not run as-is. Note that there are no comments in the functions as
 saved. Versions with comments may be found in Examples section below.</p>
 <p>MaintainTreatment and MaintainControl may be passed as-is for the
-<code>deterministic.g.function</code> argument to <code>ltmle</code> or
-<code>ltmleMSM</code></p>
+<code>deterministic.g.function</code> argument to <code><a href="ltmle.html">ltmle</a></code> or
+<code><a href="ltmle.html">ltmleMSM</a></code></p>
 <p>Note that censoring nodes in <code>data</code> may be passed as binaries but they
 are converted to the preferred format of factors with levels "censored" and
 "uncensored" before deterministic functions are called.  Also note that
@@ -152,11 +152,11 @@ not change. It is not necessary to specify this in deterministic functions.</p>
     <h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a></h2>
     
 <ul><li><p><code>deterministic.Q.function_template()</code>: Template for the <code>deterministic.Q.function</code> 
-argument to <code>ltmle</code> or <code>ltmleMSM</code>.</p></li>
+argument to <code><a href="ltmle.html">ltmle</a></code> or <code><a href="ltmle.html">ltmleMSM</a></code>.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code>ltmle</code>, <code>ltmleMSM</code></p></div>
+    <div class="dont-index"><p><code><a href="ltmle.html">ltmle</a></code>, <code><a href="ltmle.html">ltmleMSM</a></code></p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>
@@ -175,7 +175,7 @@ argument to <code>ltmle</code> or <code>ltmleMSM</code>.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     prob1 &lt;- stop("replace me!")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     return(list(is.deterministic = is.deterministic, prob1 = prob1))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x563647369f40&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55c04aae9e80&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:ltmle&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Show template for a deterministic.Q.function (comments will not be</span></span></span>
@@ -187,7 +187,7 @@ argument to <code>ltmle</code> or <code>ltmleMSM</code>.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     Q.value &lt;- stop("replace me!")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     return(list(is.deterministic = is.deterministic, Q.value = Q.value))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x5636474a3038&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x55c0493796e8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:ltmle&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Use MaintainTreatment</span></span></span>
@@ -200,7 +200,7 @@ argument to <code>ltmle</code> or <code>ltmleMSM</code>.</p></li>
 <span class="r-in"><span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">W</span> <span class="op">+</span> <span class="va">A1</span> <span class="op">+</span> <span class="va">A2</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">A1</span>, <span class="va">A2</span>, <span class="va">Y</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span><span class="op">)</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, </span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="ltmle.html">ltmle</a></span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span><span class="op">)</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, </span></span>
 <span class="r-in"><span>    deterministic.g.function <span class="op">=</span> <span class="va">MaintainTreatment</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Qform not specified, using defaults:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> formula for Y:</span>

@@ -104,7 +104,7 @@ objects.</p>
     <dl><dt>object</dt>
 <dd><p>an object of class "<code>ltmle</code>" or "<code>ltmleMSM</code>" or
 "<code>ltmleEffectMeasures</code>", usually a result of a call to
-<code>ltmle</code> or <code>ltmleMSM</code>.</p></dd>
+<code><a href="ltmle.html">ltmle</a></code> or <code><a href="ltmle.html">ltmleMSM</a></code>.</p></dd>
 
 
 <dt>estimator</dt>
@@ -194,7 +194,7 @@ confidence interval, and p-value for each.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code>ltmle</code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></code></p></div>
+    <div class="dont-index"><p><code><a href="ltmle.html">ltmle</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -213,7 +213,7 @@ confidence interval, and p-value for each.</p>
 <span class="r-in"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">A1</span>, <span class="va">A2</span>, <span class="va">A3</span>, <span class="va">Y</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">treatment</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">W</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="va">W</span> <span class="op">&gt;</span> <span class="fl">1.5</span>, <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">control</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, nrow <span class="op">=</span> <span class="fl">1000</span>, ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span>, <span class="st">"A3"</span><span class="op">)</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">treatment</span>,</span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="ltmle.html">ltmle</a></span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span>, <span class="st">"A3"</span><span class="op">)</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">treatment</span>,</span></span>
 <span class="r-in"><span>    <span class="va">control</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Qform not specified, using defaults:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> formula for Y:</span>
@@ -235,34 +235,34 @@ confidence interval, and p-value for each.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     abar = list(treatment, control))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Treatment Estimate:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  0.83681 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimated Std Err:  0.038758 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  0.76323 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimated Std Err:  0.054433 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  &lt;2e-16 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (0.76084, 0.91277) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (0.65654, 0.86991) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Control Estimate:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  0.49693 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimated Std Err:  0.061101 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  4.1906e-16 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (0.37717, 0.61669) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  0.46619 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimated Std Err:  0.064218 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  3.8871e-13 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (0.34032, 0.59205) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Additive Treatment Effect:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  0.33988 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimated Std Err:  0.072357 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  2.6374e-06 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (0.19806, 0.48169) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  0.29704 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimated Std Err:  0.082759 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  0.00033163 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (0.13484, 0.45925) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Relative Risk:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  1.684 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Est Std Err log(RR):  0.13139 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  7.2983e-05 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (1.3016, 2.1786) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  1.6372 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Est Std Err log(RR):  0.15373 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  0.0013429 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (1.2113, 2.2129) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Odds Ratio:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  5.1911 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Est Std Err log(OR):  0.37455 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  1.0972e-05 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (2.4914, 10.816) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Parameter Estimate:  3.6911 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Est Std Err log(OR):  0.38754 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               p-value:  0.00075227 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     95% Conf Interval: (1.727, 7.8891) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## For examples of summary.ltmle and summary.ltmleMSM, see example(ltmle)</span></span></span>
