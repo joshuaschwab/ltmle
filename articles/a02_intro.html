@@ -104,19 +104,19 @@ expected value of Y, intervening to set A to 1.</p>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">A</span>, <span class="va">Y</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
 <span><span class="co">#&gt;            W A Y</span></span>
-<span><span class="co">#&gt; 1  0.6028708 1 0</span></span>
-<span><span class="co">#&gt; 2 -0.6473315 0 1</span></span>
-<span><span class="co">#&gt; 3  0.2943555 1 0</span></span>
-<span><span class="co">#&gt; 4  1.8716418 1 1</span></span>
-<span><span class="co">#&gt; 5 -0.5829710 0 0</span></span>
-<span><span class="co">#&gt; 6  0.1755452 0 1</span></span></code></pre></div>
+<span><span class="co">#&gt; 1  0.8134167 0 0</span></span>
+<span><span class="co">#&gt; 2  0.3625437 0 1</span></span>
+<span><span class="co">#&gt; 3  0.6247327 0 0</span></span>
+<span><span class="co">#&gt; 4  0.7721537 0 0</span></span>
+<span><span class="co">#&gt; 5  1.0331531 1 1</span></span>
+<span><span class="co">#&gt; 6 -0.2282334 0 0</span></span></code></pre></div>
 <p>We could try to use the simple mean of Y or the mean of Y when A = 1,
 but these will be biased.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.5942</span></span>
+<span><span class="co">#&gt; [1] 0.6025</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span><span class="va">A</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.7744664</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.7817085</span></span></code></pre></div>
 <p>Now we use <code>ltmle()</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="st">"A"</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -133,7 +133,7 @@ but these will be biased.</p>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = "A", Ynodes = "Y", abar = 1)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; TMLE Estimate:  0.693022</span></span></code></pre></div>
+<span><span class="co">#&gt; TMLE Estimate:  0.7053678</span></span></code></pre></div>
 <p>Because we’re using simulated data, we can calculate the true value
 of <span class="math inline">\(E[Y_1]\)</span></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -142,7 +142,7 @@ of <span class="math inline">\(E[Y_1]\)</span></p>
 <span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
 <span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">W</span> <span class="op">+</span> <span class="va">A</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.696134</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.697166</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="single-time-point">Single time point<a class="anchor" aria-label="anchor" href="#single-time-point"></a>
@@ -182,10 +182,10 @@ regressors</p>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = "A", Lnodes = NULL, Ynodes = "Y", </span></span>
 <span><span class="co">#&gt;     abar = 1, SL.library = "default")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.54389 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.069927 </span></span>
-<span><span class="co">#&gt;               p-value:  7.367e-15 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.40684, 0.68094)</span></span></code></pre></div>
+<span><span class="co">#&gt;    Parameter Estimate:  0.61313 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.046501 </span></span>
+<span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.52199, 0.70427)</span></span></code></pre></div>
 <p>IPTW estimate:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result</span>, estimator<span class="op">=</span><span class="st">"iptw"</span><span class="op">)</span></span>
@@ -194,10 +194,10 @@ regressors</p>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = "A", Lnodes = NULL, Ynodes = "Y", </span></span>
 <span><span class="co">#&gt;     abar = 1, SL.library = "default")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.57389 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.05628 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.59122 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.030896 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.46358, 0.6842)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.53067, 0.65177)</span></span></code></pre></div>
 <p>SuperLearner semiparametric estimation using correctly specified
 regressors. This passes W1^2, W2, W3, A and W3:A as columns of matrix X
 to SuperLearner for the Q regression and W1 and W3 as columns of matrix
@@ -214,10 +214,10 @@ X to SuperLearner for the g regression.</p>
 <span><span class="co">#&gt;     Qform = c(Y = "Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform = "A ~ W1 + W3", </span></span>
 <span><span class="co">#&gt;     abar = 1, SL.library = "default")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.59069 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.032889 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.6325 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.034014 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.52623, 0.65515)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.56584, 0.69917)</span></span></code></pre></div>
 <p>glm using correctly specified Qform and gform</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="st">"A"</span>, Lnodes<span class="op">=</span><span class="cn">NULL</span>, Ynodes<span class="op">=</span><span class="st">"Y"</span>, </span>
@@ -231,10 +231,10 @@ X to SuperLearner for the g regression.</p>
 <span><span class="co">#&gt;     Qform = c(Y = "Q.kplus1 ~ I(W1^2) + W2 + W3*A"), gform = "A ~ W1 + W3", </span></span>
 <span><span class="co">#&gt;     abar = 1, SL.library = NULL)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.59106 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.032718 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.63239 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.034267 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.52693, 0.65518)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.56523, 0.69955)</span></span></code></pre></div>
 <p>Get summary measures (additive treatment effect, odds ratio, relative
 risk) for abar=1 vs abar=0</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
@@ -256,34 +256,34 @@ risk) for abar=1 vs abar=0</p>
 <span><span class="co">#&gt;     abar = list(1, 0), SL.library = "default")</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Treatment Estimate:</span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.5425 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.070891 </span></span>
-<span><span class="co">#&gt;               p-value:  1.9699e-14 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.40356, 0.68144) </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.61454 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.045844 </span></span>
+<span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.52468, 0.70439) </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Control Estimate:</span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.83164 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.11287 </span></span>
-<span><span class="co">#&gt;               p-value:  1.7269e-13 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.61043, 1) </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.68544 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.027963 </span></span>
+<span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.63063, 0.74024) </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Additive Treatment Effect:</span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  -0.28914 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.1326 </span></span>
-<span><span class="co">#&gt;               p-value:  0.029222 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (-0.54904, -0.029242) </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  -0.0709 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.053699 </span></span>
+<span><span class="co">#&gt;               p-value:  0.18673 </span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (-0.17615, 0.034349) </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Relative Risk:</span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.65232 </span></span>
-<span><span class="co">#&gt;   Est Std Err log(RR):  0.18734 </span></span>
-<span><span class="co">#&gt;               p-value:  0.02258 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.45186, 0.94172) </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.89656 </span></span>
+<span><span class="co">#&gt;   Est Std Err log(RR):  0.085026 </span></span>
+<span><span class="co">#&gt;               p-value:  0.19908 </span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.75894, 1.0591) </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Odds Ratio:</span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.24005 </span></span>
-<span><span class="co">#&gt;   Est Std Err log(OR):  0.85217 </span></span>
-<span><span class="co">#&gt;               p-value:  0.094049 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.045179, 1.2755)</span></span></code></pre></div>
+<span><span class="co">#&gt;    Parameter Estimate:  0.73165 </span></span>
+<span><span class="co">#&gt;   Est Std Err log(OR):  0.23297 </span></span>
+<span><span class="co">#&gt;               p-value:  0.17987 </span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.46345, 1.1551)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="censoring">Censoring<a class="anchor" aria-label="anchor" href="#censoring"></a>
@@ -306,32 +306,32 @@ levels - “censored” and “uncensored”. The utility function
 <span><span class="va">C</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/BinaryToCensoring.html">BinaryToCensoring</a></span><span class="op">(</span>is.censored <span class="op">=</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">W</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   censored uncensored </span></span>
-<span><span class="co">#&gt;      50042      49958</span></span>
+<span><span class="co">#&gt;      49962      50038</span></span>
 <span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="va">n</span><span class="op">)</span></span>
 <span><span class="va">Y</span><span class="op">[</span><span class="va">C</span> <span class="op">==</span> <span class="st">"uncensored"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">W</span><span class="op">[</span><span class="va">C</span> <span class="op">==</span> <span class="st">"uncensored"</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">C</span>, <span class="va">Y</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span>, <span class="fl">20</span><span class="op">)</span></span>
-<span><span class="co">#&gt;             W          C  Y</span></span>
-<span><span class="co">#&gt; 1  -0.1671896 uncensored  1</span></span>
-<span><span class="co">#&gt; 2   0.2287896   censored NA</span></span>
-<span><span class="co">#&gt; 3  -1.3777806   censored NA</span></span>
-<span><span class="co">#&gt; 4  -0.2309702   censored NA</span></span>
-<span><span class="co">#&gt; 5   0.9813988   censored NA</span></span>
-<span><span class="co">#&gt; 6   1.7072411   censored NA</span></span>
-<span><span class="co">#&gt; 7   0.5659043   censored NA</span></span>
-<span><span class="co">#&gt; 8   0.5137046   censored NA</span></span>
-<span><span class="co">#&gt; 9  -0.8989506 uncensored  0</span></span>
-<span><span class="co">#&gt; 10 -0.6910458   censored NA</span></span>
-<span><span class="co">#&gt; 11  0.3024098 uncensored  1</span></span>
-<span><span class="co">#&gt; 12  0.6063239   censored NA</span></span>
-<span><span class="co">#&gt; 13 -0.5015737 uncensored  1</span></span>
-<span><span class="co">#&gt; 14 -1.0869601 uncensored  0</span></span>
-<span><span class="co">#&gt; 15 -0.1595813 uncensored  1</span></span>
-<span><span class="co">#&gt; 16 -0.9934404 uncensored  1</span></span>
-<span><span class="co">#&gt; 17 -0.2792986 uncensored  0</span></span>
-<span><span class="co">#&gt; 18  1.3856420   censored NA</span></span>
-<span><span class="co">#&gt; 19  0.9218679 uncensored  1</span></span>
-<span><span class="co">#&gt; 20 -1.6529634 uncensored  0</span></span>
+<span><span class="co">#&gt;               W          C  Y</span></span>
+<span><span class="co">#&gt; 1  -0.401247694   censored NA</span></span>
+<span><span class="co">#&gt; 2   0.344375907   censored NA</span></span>
+<span><span class="co">#&gt; 3  -0.978055713 uncensored  0</span></span>
+<span><span class="co">#&gt; 4  -0.576122056   censored NA</span></span>
+<span><span class="co">#&gt; 5   1.168682578   censored NA</span></span>
+<span><span class="co">#&gt; 6   1.763147572   censored NA</span></span>
+<span><span class="co">#&gt; 7   1.450346820 uncensored  0</span></span>
+<span><span class="co">#&gt; 8  -1.316843540 uncensored  0</span></span>
+<span><span class="co">#&gt; 9  -0.003540234 uncensored  1</span></span>
+<span><span class="co">#&gt; 10  0.179439924 uncensored  1</span></span>
+<span><span class="co">#&gt; 11  0.986671190   censored NA</span></span>
+<span><span class="co">#&gt; 12 -0.008727362 uncensored  1</span></span>
+<span><span class="co">#&gt; 13  0.752074021   censored NA</span></span>
+<span><span class="co">#&gt; 14  1.092588147   censored NA</span></span>
+<span><span class="co">#&gt; 15  0.617482345 uncensored  1</span></span>
+<span><span class="co">#&gt; 16 -0.682897811   censored NA</span></span>
+<span><span class="co">#&gt; 17 -0.521943520   censored NA</span></span>
+<span><span class="co">#&gt; 18  0.684433187 uncensored  1</span></span>
+<span><span class="co">#&gt; 19  1.147623622   censored NA</span></span>
+<span><span class="co">#&gt; 20  2.480473765   censored NA</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="cn">NULL</span>, Cnodes <span class="op">=</span> <span class="st">"C"</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Qform not specified, using defaults:</span></span>
 <span><span class="co">#&gt; formula for Y:</span></span>
@@ -348,16 +348,16 @@ levels - “censored” and “uncensored”. The utility function
 <span><span class="co">#&gt; ltmle(data = data, Anodes = NULL, Cnodes = "C", Ynodes = "Y", </span></span>
 <span><span class="co">#&gt;     abar = NULL)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.49766 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.0023666 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.49902 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.0023399 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.49302, 0.5023)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.49443, 0.5036)</span></span></code></pre></div>
 <p>The naive estimate is biased (the true value is 0.5):</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">Y</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] NA</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">Y</span>, na.rm <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.4105849</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.413206</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="longitudinal-data">Longitudinal data<a class="anchor" aria-label="anchor" href="#longitudinal-data"></a>
@@ -375,13 +375,13 @@ argument.</p>
 <span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">W</span> <span class="op">-</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">A1</span> <span class="op">+</span> <span class="va">L</span> <span class="op">-</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">A2</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">A1</span>, <span class="va">L</span>, <span class="va">A2</span>, <span class="va">Y</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span><span class="co">#&gt;            W A1           L A2 Y</span></span>
-<span><span class="co">#&gt; 1  2.5031466  1  0.27525466  1 0</span></span>
-<span><span class="co">#&gt; 2  1.1935257  1  0.05780543  0 1</span></span>
-<span><span class="co">#&gt; 3 -0.8023236  1  0.05902642  1 0</span></span>
-<span><span class="co">#&gt; 4 -0.5186986  0  1.02665005  1 0</span></span>
-<span><span class="co">#&gt; 5  1.1587182  0 -0.44682373  0 0</span></span>
-<span><span class="co">#&gt; 6  0.8816953  1  0.49498741  1 0</span></span></code></pre></div>
+<span><span class="co">#&gt;             W A1          L A2 Y</span></span>
+<span><span class="co">#&gt; 1 -0.45873170  0  2.3830277  1 1</span></span>
+<span><span class="co">#&gt; 2  1.39178381  0  1.2826659  1 1</span></span>
+<span><span class="co">#&gt; 3 -1.56179608  0  0.1775910  1 0</span></span>
+<span><span class="co">#&gt; 4  0.01141841  0 -1.3279717  0 0</span></span>
+<span><span class="co">#&gt; 5  1.60053701  1 -1.3782538  1 0</span></span>
+<span><span class="co">#&gt; 6  0.86174793  1 -0.2082456  0 0</span></span></code></pre></div>
 <p>Treatment regime of interest: set A1 to 0, set A2 to 0</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span><span class="op">)</span>, Lnodes<span class="op">=</span><span class="st">"L"</span>, Ynodes<span class="op">=</span><span class="st">"Y"</span>, abar<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
@@ -402,7 +402,7 @@ argument.</p>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = c("A1", "A2"), Lnodes = "L", Ynodes = "Y", </span></span>
 <span><span class="co">#&gt;     abar = c(0, 0))</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; TMLE Estimate:  0.4905217</span></span></code></pre></div>
+<span><span class="co">#&gt; TMLE Estimate:  0.4822286</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="longitudinal-data-with-censoring">Longitudinal data with censoring<a class="anchor" aria-label="anchor" href="#longitudinal-data-with-censoring"></a>
@@ -421,12 +421,12 @@ argument.</p>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W</span>, <span class="va">A1</span>, <span class="va">C</span>, <span class="va">L</span>, <span class="va">A2</span>, <span class="va">Y</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
 <span><span class="co">#&gt;            W A1          C          L A2  Y</span></span>
-<span><span class="co">#&gt; 1  1.0297346  1 uncensored  1.2246065  1  1</span></span>
-<span><span class="co">#&gt; 2 -1.0983660  0   censored         NA NA NA</span></span>
-<span><span class="co">#&gt; 3 -1.2602146  0   censored         NA NA NA</span></span>
-<span><span class="co">#&gt; 4  0.8125164  1 uncensored -0.4720686  1  0</span></span>
-<span><span class="co">#&gt; 5  0.2842447  1 uncensored  1.1816284  1  0</span></span>
-<span><span class="co">#&gt; 6  1.7278683  1 uncensored  1.5920937  1  1</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 -0.4360245  0 uncensored -0.8278242  0  0</span></span>
+<span><span class="co">#&gt; 2  1.5851055  1 uncensored  2.0021827  1  1</span></span>
+<span><span class="co">#&gt; 3 -0.5251617  0   censored         NA NA NA</span></span>
+<span><span class="co">#&gt; 4 -0.1236538  0   censored         NA NA NA</span></span>
+<span><span class="co">#&gt; 5  2.3310144  1   censored         NA NA NA</span></span>
+<span><span class="co">#&gt; 6  0.2353337  0   censored         NA NA NA</span></span></code></pre></div>
 <p>Treatment regime of interest: set A1 to 1, set A2 to 0, set C to
 uncensored:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
@@ -450,7 +450,7 @@ uncensored:</p>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = c("A1", "A2"), Cnodes = "C", Lnodes = "L", </span></span>
 <span><span class="co">#&gt;     Ynodes = "Y", abar = c(1, 0))</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; TMLE Estimate:  0.3840543</span></span></code></pre></div>
+<span><span class="co">#&gt; TMLE Estimate:  0.5321709</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="dynamic-treatment">Dynamic treatment<a class="anchor" aria-label="anchor" href="#dynamic-treatment"></a>
@@ -483,7 +483,7 @@ treat at at time 2 (A2 = 1) if L &gt; 0</p>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = c("A1", "A2"), Cnodes = "C", Lnodes = "L", </span></span>
 <span><span class="co">#&gt;     Ynodes = "Y", abar = abar)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; TMLE Estimate:  0.3292887</span></span></code></pre></div>
+<span><span class="co">#&gt; TMLE Estimate:  0.3047568</span></span></code></pre></div>
 <p>The regime can also be specified as a <code>rule</code> function.
 <code>rule</code> is a function applied to each row of <code>data</code>
 which returns a numeric vector of the same length as
@@ -512,7 +512,7 @@ which returns a numeric vector of the same length as
 <span><span class="co">#&gt; ltmle(data = data, Anodes = c("A1", "A2"), Cnodes = "C", Lnodes = "L", </span></span>
 <span><span class="co">#&gt;     Ynodes = "Y", rule = rule)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; TMLE Estimate:  0.3292887</span></span></code></pre></div>
+<span><span class="co">#&gt; TMLE Estimate:  0.3047568</span></span></code></pre></div>
 <p>Specfifying the regime using <code>abar</code> and using
 <code>rule</code> give the same result:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
@@ -522,20 +522,20 @@ which returns a numeric vector of the same length as
 <span><span class="co">#&gt; ltmle(data = data, Anodes = c("A1", "A2"), Cnodes = "C", Lnodes = "L", </span></span>
 <span><span class="co">#&gt;     Ynodes = "Y", abar = abar)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.32929 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.033479 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.30476 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.032637 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.26367, 0.39491)</span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.24079, 0.36872)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.rule</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = c("A1", "A2"), Cnodes = "C", Lnodes = "L", </span></span>
 <span><span class="co">#&gt;     Ynodes = "Y", rule = rule)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.32929 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.033479 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.30476 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.032637 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.26367, 0.39491)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.24079, 0.36872)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="variance-estimation">Variance estimation<a class="anchor" aria-label="anchor" href="#variance-estimation"></a>
@@ -576,10 +576,10 @@ deviation.</p>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = df, Anodes = "A", Ynodes = "Y", abar = 1, estimate.time = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.6639 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.056133 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.66969 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.060703 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.55388, 0.77392)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.55071, 0.78866)</span></span></code></pre></div>
 <p>If <code>variance.method</code> is <code>"ic"</code>, variance is
 estimated using the estimated Influence Curve. This is fast to compute,
 but may be significantly anticonservative in data with positivity
@@ -607,10 +607,10 @@ violations.</p>
 <span><span class="co">#&gt; ltmle(data = df, Anodes = "A", Ynodes = "Y", abar = 1, estimate.time = FALSE, </span></span>
 <span><span class="co">#&gt;     variance.method = "ic")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.6639 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.041306 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.66969 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.04401 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.58294, 0.74486)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.58343, 0.75595)</span></span></code></pre></div>
 <p>If <code>variance.method</code> is <code>"iptw"</code>, then use
 <em>IPTW</em> in order to approximate the variance of the <em>TMLE</em>
 estimator. This is faster to compute than
@@ -633,10 +633,10 @@ compute than <code>variance.method = "ic"</code> but more accurate).</p>
 <span><span class="co">#&gt; ltmle(data = df, Anodes = "A", Ynodes = "Y", abar = 1, estimate.time = FALSE, </span></span>
 <span><span class="co">#&gt;     variance.method = "iptw")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.6639 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.050991 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.66969 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.053186 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.56396, 0.76384)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.56545, 0.77393)</span></span></code></pre></div>
 <p>If we use the IPTW estimator, <code>variance.method</code> does not
 change the estimated standard deviation (it only affects the estimated
 standard deviation of the TMLE estimator).</p>
@@ -646,70 +646,70 @@ standard deviation of the TMLE estimator).</p>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = df, Anodes = "A", Ynodes = "Y", abar = 1, estimate.time = FALSE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.7113 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.054006 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.72006 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.052111 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.60545, 0.81715)</span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.61793, 0.8222)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">r2</span>, estimator<span class="op">=</span><span class="st">"iptw"</span><span class="op">)</span><span class="op">)</span> <span class="co">#the same - variance.method only affects TMLE</span></span>
 <span><span class="co">#&gt; Estimator:  iptw </span></span>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = df, Anodes = "A", Ynodes = "Y", abar = 1, estimate.time = FALSE, </span></span>
 <span><span class="co">#&gt;     variance.method = "ic")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.7113 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.054006 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.72006 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.052111 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.60545, 0.81715)</span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.61793, 0.8222)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">r3</span>, estimator<span class="op">=</span><span class="st">"iptw"</span><span class="op">)</span><span class="op">)</span> <span class="co">#the same - variance.method only affects TMLE</span></span>
 <span><span class="co">#&gt; Estimator:  iptw </span></span>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = df, Anodes = "A", Ynodes = "Y", abar = 1, estimate.time = FALSE, </span></span>
 <span><span class="co">#&gt;     variance.method = "iptw")</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.7113 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.054006 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.72006 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.052111 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.60545, 0.81715)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.61793, 0.8222)</span></span></code></pre></div>
 <p>We can see that the values of g are very small.</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">r1</span><span class="op">$</span><span class="va">cum.g</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        V1         </span></span>
 <span><span class="co">#&gt;  Min.   :0.01000  </span></span>
-<span><span class="co">#&gt;  1st Qu.:0.07015  </span></span>
-<span><span class="co">#&gt;  Median :0.43280  </span></span>
-<span><span class="co">#&gt;  Mean   :0.48785  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:0.93122  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.04636  </span></span>
+<span><span class="co">#&gt;  Median :0.43801  </span></span>
+<span><span class="co">#&gt;  Mean   :0.48204  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:0.92743  </span></span>
 <span><span class="co">#&gt;  Max.   :1.00000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">r1</span><span class="op">$</span><span class="va">cum.g.unbounded</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        V1           </span></span>
-<span><span class="co">#&gt;  Min.   :0.0000018  </span></span>
-<span><span class="co">#&gt;  1st Qu.:0.0701494  </span></span>
-<span><span class="co">#&gt;  Median :0.4328003  </span></span>
-<span><span class="co">#&gt;  Mean   :0.4870000  </span></span>
-<span><span class="co">#&gt;  3rd Qu.:0.9312234  </span></span>
-<span><span class="co">#&gt;  Max.   :0.9999988</span></span>
+<span><span class="co">#&gt;  Min.   :0.0000034  </span></span>
+<span><span class="co">#&gt;  1st Qu.:0.0463619  </span></span>
+<span><span class="co">#&gt;  Median :0.4380090  </span></span>
+<span><span class="co">#&gt;  Mean   :0.4810000  </span></span>
+<span><span class="co">#&gt;  3rd Qu.:0.9274284  </span></span>
+<span><span class="co">#&gt;  Max.   :0.9999998</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">df</span>, g <span class="op">=</span> <span class="va">r1</span><span class="op">$</span><span class="va">cum.g</span>, g.unbounded <span class="op">=</span> <span class="va">r1</span><span class="op">$</span><span class="va">cum.g.unbounded</span><span class="op">)</span>, <span class="fl">20</span><span class="op">)</span></span>
-<span><span class="co">#&gt;             W A Y          g g.unbounded</span></span>
-<span><span class="co">#&gt; 1   1.0747700 1 1 0.98109934 0.981099337</span></span>
-<span><span class="co">#&gt; 2  -0.3057164 0 1 0.22375627 0.223756270</span></span>
-<span><span class="co">#&gt; 3   0.3381843 1 1 0.76466783 0.764667827</span></span>
-<span><span class="co">#&gt; 4  -1.0071818 0 0 0.02017717 0.020177168</span></span>
-<span><span class="co">#&gt; 5   0.9972940 1 0 0.97486437 0.974864372</span></span>
-<span><span class="co">#&gt; 6  -0.8293596 0 0 0.03864772 0.038647717</span></span>
-<span><span class="co">#&gt; 7   0.9393085 1 0 0.96892763 0.968927633</span></span>
-<span><span class="co">#&gt; 8   0.3407531 0 0 0.76640241 0.766402410</span></span>
-<span><span class="co">#&gt; 9  -0.3547380 0 1 0.19335930 0.193359304</span></span>
-<span><span class="co">#&gt; 10 -0.9313566 0 0 0.02666008 0.026660084</span></span>
-<span><span class="co">#&gt; 11 -0.9289695 0 0 0.02689412 0.026894116</span></span>
-<span><span class="co">#&gt; 12 -0.6255061 0 0 0.07966136 0.079661360</span></span>
-<span><span class="co">#&gt; 13  2.3695952 1 1 0.99985236 0.999852363</span></span>
-<span><span class="co">#&gt; 14  1.0515184 1 1 0.97940716 0.979407165</span></span>
-<span><span class="co">#&gt; 15 -0.3480062 0 0 0.19733999 0.197339992</span></span>
-<span><span class="co">#&gt; 16  0.9814711 1 1 0.97336379 0.973363793</span></span>
-<span><span class="co">#&gt; 17  1.5254146 1 1 0.99647660 0.996476605</span></span>
-<span><span class="co">#&gt; 18  0.1404122 1 1 0.60692988 0.606929882</span></span>
-<span><span class="co">#&gt; 19 -1.4954301 0 1 0.01000000 0.003270264</span></span>
-<span><span class="co">#&gt; 20  0.5444274 1 1 0.87591793 0.875917934</span></span></code></pre></div>
+<span><span class="co">#&gt;               W A Y          g  g.unbounded</span></span>
+<span><span class="co">#&gt; 1  -2.547528148 0 0 0.01000000 0.0000206524</span></span>
+<span><span class="co">#&gt; 2   0.395693963 0 1 0.83572583 0.8357258294</span></span>
+<span><span class="co">#&gt; 3   0.298522443 1 1 0.77151706 0.7715170640</span></span>
+<span><span class="co">#&gt; 4   1.454576165 1 1 0.99774669 0.9977466850</span></span>
+<span><span class="co">#&gt; 5  -0.238234778 0 0 0.25977689 0.2597768895</span></span>
+<span><span class="co">#&gt; 6   1.079518202 1 1 0.98913317 0.9891331684</span></span>
+<span><span class="co">#&gt; 7  -0.394463416 0 1 0.15367075 0.1536707455</span></span>
+<span><span class="co">#&gt; 8  -0.243298336 1 1 0.25569103 0.2556910295</span></span>
+<span><span class="co">#&gt; 9  -1.017860034 0 0 0.01292523 0.0129252336</span></span>
+<span><span class="co">#&gt; 10 -0.910709808 0 0 0.02016160 0.0201615996</span></span>
+<span><span class="co">#&gt; 11 -1.596117871 0 1 0.01000000 0.0011410800</span></span>
+<span><span class="co">#&gt; 12 -1.764476874 0 0 0.01000000 0.0005612562</span></span>
+<span><span class="co">#&gt; 13 -0.101793931 0 0 0.38423167 0.3842316710</span></span>
+<span><span class="co">#&gt; 14  0.444689487 1 1 0.86216929 0.8621692886</span></span>
+<span><span class="co">#&gt; 15  0.009522572 1 0 0.49947613 0.4994761318</span></span>
+<span><span class="co">#&gt; 16 -0.394283503 0 0 0.15376947 0.1537694669</span></span>
+<span><span class="co">#&gt; 17  0.295258520 1 1 0.76908115 0.7690811481</span></span>
+<span><span class="co">#&gt; 18 -0.539534761 0 1 0.08964292 0.0896429169</span></span>
+<span><span class="co">#&gt; 19 -1.453828629 0 0 0.01000000 0.0020775906</span></span>
+<span><span class="co">#&gt; 20  0.796213361 1 1 0.96497846 0.9649784618</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="hierarchical-data-and-the-id-variable">Hierarchical data and the id variable<a class="anchor" aria-label="anchor" href="#hierarchical-data-and-the-id-variable"></a>
@@ -723,14 +723,14 @@ data, such as people in a household.</p>
 <span><span class="co">#&gt; [1] 500</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">people.in.household</span><span class="op">)</span> </span>
 <span><span class="va">n</span></span>
-<span><span class="co">#&gt; [1] 2669</span></span>
+<span><span class="co">#&gt; [1] 2779</span></span>
 <span><span class="va">W.household</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">num.households</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">W.household</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 500</span></span>
 <span><span class="va">W.household.expanded</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">W.household</span>, times <span class="op">=</span> <span class="va">people.in.household</span><span class="op">)</span></span>
 <span><span class="va">W.indiv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">W.indiv</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 2669</span></span>
+<span><span class="co">#&gt; [1] 2779</span></span>
 <span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="fl">1.5</span> <span class="op">*</span> <span class="va">W.household.expanded</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">W.indiv</span><span class="op">)</span></span>
 <span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="op">-</span><span class="fl">1</span> <span class="op">+</span> <span class="fl">2.3</span> <span class="op">*</span> <span class="va">W.household.expanded</span> <span class="op">-</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">W.indiv</span> <span class="op">+</span> <span class="fl">1.2</span> <span class="op">*</span> <span class="va">A</span><span class="op">)</span></span></code></pre></div>
 <p>id can be an integer, factor, or character (or any type that can be
@@ -741,26 +741,26 @@ coerced to factor),</p>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">W.household.expanded</span>, <span class="va">W.indiv</span>, <span class="va">A</span>, <span class="va">Y</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">id.expanded</span>, <span class="va">data</span><span class="op">)</span>, <span class="fl">20</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    id.expanded W.household.expanded     W.indiv A Y</span></span>
-<span><span class="co">#&gt; 1            1          -0.03103405  1.25538952 0 0</span></span>
-<span><span class="co">#&gt; 2            1          -0.03103405  1.08141464 0 0</span></span>
-<span><span class="co">#&gt; 3            1          -0.03103405  2.04751178 1 0</span></span>
-<span><span class="co">#&gt; 4            1          -0.03103405  1.14306300 1 1</span></span>
-<span><span class="co">#&gt; 5            1          -0.03103405  0.36720291 0 1</span></span>
-<span><span class="co">#&gt; 6            2           1.01036611  0.53232652 1 1</span></span>
-<span><span class="co">#&gt; 7            3          -1.75677760 -0.84831492 0 0</span></span>
-<span><span class="co">#&gt; 8            3          -1.75677760  1.07390739 0 0</span></span>
-<span><span class="co">#&gt; 9            3          -1.75677760 -0.73273948 0 0</span></span>
-<span><span class="co">#&gt; 10           4           1.13901167 -0.53257104 1 1</span></span>
-<span><span class="co">#&gt; 11           4           1.13901167 -0.37630582 1 1</span></span>
-<span><span class="co">#&gt; 12           4           1.13901167 -0.73892091 1 1</span></span>
-<span><span class="co">#&gt; 13           4           1.13901167  0.64262558 1 1</span></span>
-<span><span class="co">#&gt; 14           4           1.13901167  0.36165673 1 1</span></span>
-<span><span class="co">#&gt; 15           4           1.13901167 -1.05535365 0 1</span></span>
-<span><span class="co">#&gt; 16           4           1.13901167 -0.44599227 1 1</span></span>
-<span><span class="co">#&gt; 17           4           1.13901167  0.03423539 1 0</span></span>
-<span><span class="co">#&gt; 18           4           1.13901167 -1.54003197 1 1</span></span>
-<span><span class="co">#&gt; 19           5          -1.20005702  1.38896033 0 0</span></span>
-<span><span class="co">#&gt; 20           5          -1.20005702  0.04680333 0 0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1            1            0.7338290  0.19167419 1 1</span></span>
+<span><span class="co">#&gt; 2            1            0.7338290 -0.27671546 1 1</span></span>
+<span><span class="co">#&gt; 3            2            0.2383485  0.42544393 0 0</span></span>
+<span><span class="co">#&gt; 4            2            0.2383485  0.20770280 0 0</span></span>
+<span><span class="co">#&gt; 5            2            0.2383485 -0.70788107 1 1</span></span>
+<span><span class="co">#&gt; 6            2            0.2383485  0.16072397 1 1</span></span>
+<span><span class="co">#&gt; 7            2            0.2383485  0.76005943 1 0</span></span>
+<span><span class="co">#&gt; 8            2            0.2383485  0.06808388 1 1</span></span>
+<span><span class="co">#&gt; 9            2            0.2383485  0.96140078 0 0</span></span>
+<span><span class="co">#&gt; 10           2            0.2383485  0.20371661 0 0</span></span>
+<span><span class="co">#&gt; 11           2            0.2383485 -0.66029422 1 1</span></span>
+<span><span class="co">#&gt; 12           2            0.2383485  0.86632469 0 0</span></span>
+<span><span class="co">#&gt; 13           3           -1.3096128 -0.27916221 0 0</span></span>
+<span><span class="co">#&gt; 14           3           -1.3096128 -0.61063012 1 0</span></span>
+<span><span class="co">#&gt; 15           3           -1.3096128  1.22858659 0 0</span></span>
+<span><span class="co">#&gt; 16           4           -0.4621275  1.29635135 0 0</span></span>
+<span><span class="co">#&gt; 17           4           -0.4621275 -0.23697455 0 0</span></span>
+<span><span class="co">#&gt; 18           5            1.0955654 -0.68682486 1 1</span></span>
+<span><span class="co">#&gt; 19           5            1.0955654 -0.56653722 0 1</span></span>
+<span><span class="co">#&gt; 20           5            1.0955654  0.38059233 0 1</span></span></code></pre></div>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result.without.id</span> <span class="op">&lt;-</span> <span class="fu">ltmle</span><span class="op">(</span><span class="va">data</span>, Anodes <span class="op">=</span> <span class="st">"A"</span>, Ynodes <span class="op">=</span> <span class="st">"Y"</span>, abar <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Qform not specified, using defaults:</span></span>
@@ -790,24 +790,24 @@ than they are, which gives artificially low variance estimates.</p>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = "A", Ynodes = "Y", abar = 0)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.41001 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.014572 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.35783 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.013589 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.38145, 0.43857)</span></span>
+<span><span class="co">#&gt;     95% Conf Interval: (0.33119, 0.38446)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.with.id</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; ltmle(data = data, Anodes = "A", Ynodes = "Y", abar = 0, id = id.expanded)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.41001 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.021993 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.35783 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.021422 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.3669, 0.45311)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.31584, 0.39981)</span></span></code></pre></div>
 <p>The influence curve is a vector with length equal to the number of
 independent units.</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">result.without.id</span><span class="op">$</span><span class="va">IC</span><span class="op">$</span><span class="va">tmle</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 2669</span></span>
+<span><span class="co">#&gt; [1] 2779</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">result.with.id</span><span class="op">$</span><span class="va">IC</span><span class="op">$</span><span class="va">tmle</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 500</span></span></code></pre></div>
 </div>
@@ -860,10 +860,10 @@ or indexes works):</p>
 <span><span class="co">#&gt;     "L2a", "L2b"), Ynodes = grep("^Y", names(data)), abar = c(1, </span></span>
 <span><span class="co">#&gt;     0))</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.84034 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.015605 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.80031 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.018014 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.80975, 0.87092)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.765, 0.83561)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="specifying-qform">Specifying Qform<a class="anchor" aria-label="anchor" href="#specifying-qform"></a>
@@ -897,10 +897,10 @@ ignored.</p>
 <span><span class="co">#&gt;     "L2a", "L2b"), Ynodes = grep("^Y", names(data)), Qform = c(L1a = "Q.kplus1 ~ 1", </span></span>
 <span><span class="co">#&gt;     L2a = "Q.kplus1 ~ 1"), abar = c(1, 0))</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.85889 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.025326 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.82764 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.03305 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.80925, 0.90853)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.76286, 0.89242)</span></span></code></pre></div>
 <p>Gives the same result but prints a message saying some regression
 formulas will be dropped:</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
@@ -937,10 +937,10 @@ formulas will be dropped:</p>
 <span><span class="co">#&gt;     L2b = "Q.klus1~A1", Y2 = "Q.kplus1~A2 + gender"), abar = c(1, </span></span>
 <span><span class="co">#&gt;     0))</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    Parameter Estimate:  0.85889 </span></span>
-<span><span class="co">#&gt;     Estimated Std Err:  0.025326 </span></span>
+<span><span class="co">#&gt;    Parameter Estimate:  0.82764 </span></span>
+<span><span class="co">#&gt;     Estimated Std Err:  0.03305 </span></span>
 <span><span class="co">#&gt;               p-value:  &lt;2e-16 </span></span>
-<span><span class="co">#&gt;     95% Conf Interval: (0.80925, 0.90853)</span></span></code></pre></div>
+<span><span class="co">#&gt;     95% Conf Interval: (0.76286, 0.89242)</span></span></code></pre></div>
 <p>If there were a Anode or Cnode between L1b and Y1, Y1 would also need
 a Q regression formula.</p>
 </div>

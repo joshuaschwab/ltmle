@@ -118,20 +118,20 @@ on Y. We include time.on.treatment and time.on.treatment^2.</p>
 <span><span class="op">}</span></span>
 <span><span class="va">data</span><span class="op">$</span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu">rexpit</span><span class="op">(</span><span class="va">sum.A</span> <span class="op">/</span> <span class="va">time.points</span> <span class="op">+</span> <span class="va">L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           L_0        L_1 A_1         L_2 A_2         L_3 A_3        L_4 A_4</span></span>
-<span><span class="co">#&gt; 1  0.49560924  0.4529335   0 -0.13579282   0 -1.05045111   0  0.4756263   1</span></span>
-<span><span class="co">#&gt; 2  0.65316553  0.4918131   1  1.49066510   1 -0.24821591   0 -1.9196669   0</span></span>
-<span><span class="co">#&gt; 3  1.05352321  1.2203324   1  0.13018675   0  0.02134498   1  1.3464515   1</span></span>
-<span><span class="co">#&gt; 4  0.04699602  0.5484615   0  1.23352208   1 -2.08975639   0 -1.0192742   1</span></span>
-<span><span class="co">#&gt; 5  0.29706047 -1.2561214   0 -1.52185563   0  1.02694780   0 -1.5848950   0</span></span>
-<span><span class="co">#&gt; 6 -1.01852147  0.4420514   1 -0.03230583   0  0.73813683   1  0.3580698   1</span></span>
+<span><span class="co">#&gt;          L_0        L_1 A_1        L_2 A_2        L_3 A_3         L_4 A_4</span></span>
+<span><span class="co">#&gt; 1  0.7684782  0.9018507   1 -0.3134310   0  0.1254824   0  0.67711492   1</span></span>
+<span><span class="co">#&gt; 2  0.2873745  1.2424103   1 -0.2840722   0  0.8816280   0  0.31577302   1</span></span>
+<span><span class="co">#&gt; 3 -0.4204289 -0.3859440   0 -0.9147901   1 -0.8346919   0 -0.21866690   0</span></span>
+<span><span class="co">#&gt; 4  0.1862478  0.3362542   1 -0.1418278   0 -0.3323630   0 -2.12948867   0</span></span>
+<span><span class="co">#&gt; 5  1.8053980 -1.6832237   0 -1.4325142   1  0.5542218   1  0.92426054   1</span></span>
+<span><span class="co">#&gt; 6 -1.6147542  0.3036425   1  0.7852432   0 -0.5584219   0  0.09008135   1</span></span>
 <span><span class="co">#&gt;          L_5 A_5 Y</span></span>
-<span><span class="co">#&gt; 1  1.4360272   1 1</span></span>
-<span><span class="co">#&gt; 2 -1.4374573   0 1</span></span>
-<span><span class="co">#&gt; 3 -1.6630096   1 1</span></span>
-<span><span class="co">#&gt; 4 -0.2268091   1 1</span></span>
-<span><span class="co">#&gt; 5 -0.7769959   0 0</span></span>
-<span><span class="co">#&gt; 6 -0.3066930   0 0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 -0.6059644   0 0</span></span>
+<span><span class="co">#&gt; 2  0.2887320   1 0</span></span>
+<span><span class="co">#&gt; 3 -0.1352839   1 1</span></span>
+<span><span class="co">#&gt; 4  0.8750801   0 0</span></span>
+<span><span class="co">#&gt; 5  1.1145555   1 0</span></span>
+<span><span class="co">#&gt; 6 -0.2656053   0 0</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">regime.matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">1</span><span class="op">)</span>, <span class="va">time.points</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">regime.matrix</span><span class="op">)</span></span>
@@ -294,21 +294,21 @@ estimates.</p>
 <span><span class="co">#&gt; formula for A_5:</span></span>
 <span><span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Estimate of time to completion: 8 to 61 minutes</span></span>
+<span><span class="co">#&gt; Estimate of time to completion: 7 to 43 minutes</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
-<span><span class="co">#&gt;                        Estimate Std. Error  CI 2.5% CI 97.5% p-value   </span></span>
-<span><span class="co">#&gt; (Intercept)             0.15023    0.12193 -0.08874    0.389 0.21790   </span></span>
-<span><span class="co">#&gt; time.on.treatment      -0.03698    0.10445 -0.24171    0.168 0.72330   </span></span>
-<span><span class="co">#&gt; I(time.on.treatment^2)  0.06056    0.02089  0.01962    0.101 0.00374 **</span></span>
+<span><span class="co">#&gt;                        Estimate Std. Error  CI 2.5% CI 97.5%  p-value    </span></span>
+<span><span class="co">#&gt; (Intercept)            -0.14060    0.13310 -0.40146    0.120 0.290810    </span></span>
+<span><span class="co">#&gt; time.on.treatment       0.38277    0.11148  0.16428    0.601 0.000596 ***</span></span>
+<span><span class="co">#&gt; I(time.on.treatment^2) -0.03578    0.02194 -0.07879    0.007 0.102924    </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
-<span><span class="co">#&gt;                         Estimate Std. Error   CI 2.5% CI 97.5% p-value  </span></span>
-<span><span class="co">#&gt; (Intercept)             0.150231   0.180759 -0.204050    0.505  0.4059  </span></span>
-<span><span class="co">#&gt; time.on.treatment      -0.036982   0.147147 -0.325384    0.251  0.8016  </span></span>
-<span><span class="co">#&gt; I(time.on.treatment^2)  0.060558   0.028328  0.005035    0.116  0.0325 *</span></span>
+<span><span class="co">#&gt;                        Estimate Std. Error  CI 2.5% CI 97.5% p-value   </span></span>
+<span><span class="co">#&gt; (Intercept)            -0.14060    0.18040 -0.49418    0.213 0.43578   </span></span>
+<span><span class="co">#&gt; time.on.treatment       0.38277    0.14435  0.09984    0.666 0.00801 **</span></span>
+<span><span class="co">#&gt; I(time.on.treatment^2) -0.03578    0.02727 -0.08924    0.018 0.18951   </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span></code></pre></div>
 <p>Suppose we are only interested in the effect of time on treatment on
@@ -369,13 +369,15 @@ Y considering regimes that include at least 3 periods on treatment.</p>
 <span><span class="co">#&gt; formula for A_5:</span></span>
 <span><span class="co">#&gt; A_5 ~ L_0 + L_1 + A_1 + L_2 + A_2 + L_3 + A_3 + L_4 + A_4 + L_5</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Estimate of time to completion: 4 to 18 minutes</span></span>
+<span><span class="co">#&gt; Estimate of time to completion: 4 to 20 minutes</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Estimator:  tmle </span></span>
-<span><span class="co">#&gt;                        Estimate Std. Error CI 2.5% CI 97.5% p-value</span></span>
-<span><span class="co">#&gt; (Intercept)              0.3476     2.2703 -4.1021    4.797   0.878</span></span>
-<span><span class="co">#&gt; time.on.treatment       -0.1488     1.2448 -2.5885    2.291   0.905</span></span>
-<span><span class="co">#&gt; I(time.on.treatment^2)   0.0759     0.1659 -0.2492    0.401   0.647</span></span></code></pre></div>
+<span><span class="co">#&gt;                        Estimate Std. Error CI 2.5% CI 97.5% p-value   </span></span>
+<span><span class="co">#&gt; (Intercept)             -4.8265     2.0784 -8.9001   -0.753 0.02022 * </span></span>
+<span><span class="co">#&gt; time.on.treatment        2.9730     1.1300  0.7582    5.188 0.00852 **</span></span>
+<span><span class="co">#&gt; I(time.on.treatment^2)  -0.3810     0.1489 -0.6729   -0.089 0.01051 * </span></span>
+<span><span class="co">#&gt; ---</span></span>
+<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="marginal-structural-models-msms---switching-time-example---multiple-regimes-and-outcomes">Marginal Structural Models (MSMs) - Switching time example -
