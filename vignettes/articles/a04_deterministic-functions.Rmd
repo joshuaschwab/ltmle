@@ -1,20 +1,16 @@
 ---
 title: "Deterministic Functions"
-author: "Joshua Schwab"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Deterministic Functions}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include = FALSE}
-library(ltmle)
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+```
+
+```{r setup}
+library(ltmle)
 ```
 
 ## deterministic.g.function 
@@ -154,4 +150,3 @@ result.scenario2 <- ltmle(data, Anodes=c("A1","A2"), Lnodes="L2", Ynodes=c("Y1",
  SL.library=NULL, estimate.time=FALSE, deterministic.Q.function=det.Q.fun.2, survivalOutcome=TRUE)
 summary(result.scenario2)
 ```
-

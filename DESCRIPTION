@@ -33,7 +33,8 @@ Collate:
     'BinaryToCensoring.R'
     'DeterministicFunctions.R'
     'zzz.R'
-URL: https://github.com/joshuaschwab/ltmle
+URL: https://github.com/joshuaschwab/ltmle,
+    http://joshuaschwab.github.io/ltmle/
 BugReports: https://github.com/joshuaschwab/ltmle/issues
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr

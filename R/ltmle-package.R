@@ -45,7 +45,7 @@
 #' @keywords package
 #' @examples
 #'
-#' ## For examples see examples(ltmle)
+#' ## For examples see examples(ltmle) and \url{http://joshuaschwab.github.io/ltmle/}
 #'
 NULL
 

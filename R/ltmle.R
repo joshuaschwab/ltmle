@@ -290,7 +290,7 @@
 #' \code{\link{deterministic.Q.function_template}}
 #' @examples
 #'
-#' # See vignette for more examples.
+#' # See \url{http://joshuaschwab.github.io/ltmle/} for more examples.
 #'
 #' rexpit <- function(x) rbinom(n=length(x), size=1, prob=plogis(x))
 #'

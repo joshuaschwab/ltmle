@@ -1,15 +1,8 @@
 ---
-title: "ltmle package overview"
-author: "Joshua Schwab"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{ltmle package overview}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+title: "ltmle Package Overview"
 ---
 
-```{r setup, include = FALSE}
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -17,6 +10,7 @@ knitr::opts_chunk$set(
 ```
 
 ## ltmle()
+```{r eval=F}
 ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   survivalOutcome = NULL, Qform = NULL, gform = NULL, abar,
   rule = NULL, gbounds = c(0.01, 1), Yrange = NULL,
@@ -24,7 +18,7 @@ ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   SL.library = "glm", SL.cvControl = list(), estimate.time = TRUE,
   gcomp = FALSE, iptw.only = FALSE, deterministic.Q.function = NULL,
   variance.method = "tmle", observation.weights = NULL, id = NULL)
-
+```
   
 * Required:
     * data
@@ -58,6 +52,7 @@ ltmle(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
     * deterministic.Q.function
 
 ## ltmleMSM()
+```{r eval=F}
 ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   survivalOutcome = NULL, Qform = NULL, gform = NULL,
   gbounds = c(0.01, 1), Yrange = NULL,
@@ -67,7 +62,8 @@ ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
   estimate.time = TRUE, gcomp = FALSE, iptw.only = FALSE,
   deterministic.Q.function = NULL, variance.method = "tmle",
   observation.weights = NULL, id = NULL)
-  
+```
+
 * Required:
     * data
     * Anodes
@@ -102,5 +98,3 @@ ltmleMSM(data, Anodes, Cnodes = NULL, Lnodes = NULL, Ynodes,
     * rule
     * deterministic.g.function
     * deterministic.Q.function
-
-

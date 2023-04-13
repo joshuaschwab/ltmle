@@ -1,20 +1,16 @@
 ---
-title: "Marginal Structural Models - ltmleMSM()"
-author: "Joshua Schwab"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Marginal Structural Models - ltmleMSM()}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+title: "Marginal Structural Models - ltmleMSM"
 ---
 
-```{r setup, include = FALSE}
-library(ltmle)
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+```
+
+```{r setup}
+library(ltmle)
 ```
 
 ## Marginal Structural Models (MSMs) - Multiple regimes with a single outcome
@@ -262,4 +258,3 @@ m.true <- glm(working.msm,
 m.true
 ```
 The estimated MSM coefficients are close to the true MSM coefficients.
-

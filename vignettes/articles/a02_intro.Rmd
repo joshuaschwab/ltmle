@@ -1,20 +1,16 @@
 ---
-title: "Introduction to ltmle()"
-author: "Joshua Schwab"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Introduction to ltmle()}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+title: "Introduction to ltmle"
 ---
 
-```{r setup, include = FALSE}
-library(ltmle)
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+```
+
+```{r setup}
+library(ltmle)
 ```
 
 ## Minimal Example
@@ -330,5 +326,3 @@ summary(result)
 ```
 
 If there were a Anode or Cnode between L1b and Y1, Y1 would also need a Q regression formula.
-
-
