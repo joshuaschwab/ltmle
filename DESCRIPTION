@@ -23,7 +23,8 @@ Suggests:
     arm
 Description: Targeted Maximum Likelihood Estimation ('TMLE') of
     treatment/censoring specific mean outcome or marginal structural model for
-    point-treatment and longitudinal data.
+    point-treatment and longitudinal data. 
+    Petersen et al. (2014) <doi:10.1515/jci-2013-0007>
 License: GPL-2
 Collate:
     'ltmle-package.R'

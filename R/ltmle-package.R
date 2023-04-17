@@ -29,7 +29,7 @@
 #' Petersen, Maya, Schwab, Joshua and van der Laan, Mark J, "Targeted Maximum
 #' Likelihood Estimation of Marginal Structural Working Models for Dynamic
 #' Treatments Time-Dependent Outcomes", Journal of Causal Inference, 2014
-#' \url{https://pubmed.ncbi.nlm.nih.gov/25909047/}
+#' \doi{10.1515/jci-2013-0007}
 #'
 #' Robins JM, Sued M, Lei-Gomez Q, Rotnitsky A. (2007). Comment: Performance of
 #' double-robust estimators when Inverse Probability weights are highly
