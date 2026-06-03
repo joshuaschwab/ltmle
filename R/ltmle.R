@@ -1375,9 +1375,6 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
     ATE=list(long.name="Additive Treatment Effect", est=y1 - y0, gradient=c(y1*(1-y1) - y0*(1-y0), y1*(1-y1)), log.std.err=FALSE, CIBounds=c(-1, 1)),
     RR=list(long.name="Relative Risk", est=y1 / y0, gradient=c(y0-y1, 1-y1), log.std.err=TRUE, CIBounds=c(0, Inf)),
     OR=list(long.name="Odds Ratio", est=exp(beta[2]), gradient=c(0, 1), log.std.err=TRUE, CIBounds=c(0, Inf)))
-  if (!object$binaryOutcome) {
-    eff.list$RR <- eff.list$OR <- NULL #not valid if non-binary outcome
-  }
   n <- nrow(IC)
 
   measures.IC <- lapply(eff.list, GetSummary, var(IC), n)
@@ -1403,8 +1400,6 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
       if (x$long.name %in% c("Treatment Estimate", "Control Estimate")) {
         x$estimate <- x$estimate + min(Yrange)
         x$CI <- x$CI + min(Yrange)
-      } else {
-        stopifnot(x$long.name == "Additive Treatment Effect")
       }
       return(x)
     })
