@@ -2,9 +2,10 @@
 */.DS_Store
 inst/ignore
 .Rproj.user
-.Rbuildignore
 .Rhistory
 data/PreviousReleaseTests copy.RData
 *.Rproj
 inst/doc
 docs
+ltmle.Rcheck/
+ltmle_*.tar.gz

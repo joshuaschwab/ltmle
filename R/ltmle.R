@@ -1366,15 +1366,39 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
   info <- GetSummaryLtmleMSMInfo(object, estimator)
   beta <- info$estimate
   IC <- info$IC
-  y0 <- plogis(beta[1])
+  y0 <- plogis(beta[1]) #internal [0, 1] scale
   y1 <- plogis(beta[1] + beta[2])
   names(y0) <- names(y1) <- NULL
+  # Map to the original outcome scale: m = min(Yrange) + diff(Yrange) * y
+  # (min = 0, range = 1 if the outcome was not transformed)
+  if (object$transformOutcome) {
+    Yrange <- attr(object$transformOutcome, "Yrange")
+  } else {
+    Yrange <- c(0, 1)
+  }
+  Ymin <- min(Yrange)
+  Ydiff <- diff(range(Yrange))
+  m0 <- Ymin + Ydiff * y0
+  m1 <- Ymin + Ydiff * y1
+  # gradients of m1 and m0 with respect to beta
+  dm1 <- Ydiff * y1 * (1 - y1) * c(1, 1)
+  dm0 <- Ydiff * y0 * (1 - y0) * c(1, 0)
+  # RR is a ratio of original-scale means, OR is a ratio of odds of original-scale means
+  # std errors and CIs for RR and OR are computed on the log scale (delta method)
+  # with Ymin = 0, Ydiff = 1 these reduce to the binary-outcome formulas:
+  #   RR gradient = c(y0 - y1, 1 - y1), OR = exp(beta[2]) with gradient c(0, 1)
   eff.list <- list(
-    treatment=list(long.name="Treatment Estimate", est=y1, gradient=c(y1*(1-y1), y1*(1-y1)), log.std.err=FALSE, CIBounds=0:1),
-    control=list(long.name="Control Estimate", est=y0, gradient=c(y0*(1-y0), 0), log.std.err=FALSE, CIBounds=0:1),
-    ATE=list(long.name="Additive Treatment Effect", est=y1 - y0, gradient=c(y1*(1-y1) - y0*(1-y0), y1*(1-y1)), log.std.err=FALSE, CIBounds=c(-1, 1)),
-    RR=list(long.name="Relative Risk", est=y1 / y0, gradient=c(y0-y1, 1-y1), log.std.err=TRUE, CIBounds=c(0, Inf)),
-    OR=list(long.name="Odds Ratio", est=exp(beta[2]), gradient=c(0, 1), log.std.err=TRUE, CIBounds=c(0, Inf)))
+    treatment=list(long.name="Treatment Estimate", est=m1, gradient=dm1, log.std.err=FALSE, CIBounds=c(Ymin, Ymin + Ydiff)),
+    control=list(long.name="Control Estimate", est=m0, gradient=dm0, log.std.err=FALSE, CIBounds=c(Ymin, Ymin + Ydiff)),
+    ATE=list(long.name="Additive Treatment Effect", est=m1 - m0, gradient=dm1 - dm0, log.std.err=FALSE, CIBounds=c(-Ydiff, Ydiff)),
+    RR=list(long.name="Relative Risk", est=m1 / m0, gradient=dm1 / m1 - dm0 / m0, log.std.err=TRUE, CIBounds=c(0, Inf)),
+    OR=list(long.name="Odds Ratio", est=(m1 / (1 - m1)) / (m0 / (1 - m0)), gradient=dm1 / (m1 * (1 - m1)) - dm0 / (m0 * (1 - m0)), log.std.err=TRUE, CIBounds=c(0, Inf)))
+  if (Ymin < 0) {
+    eff.list$RR <- NULL #ratio of means not valid if the outcome can be negative
+  }
+  if (Ymin < 0 || Ymin + Ydiff > 1) {
+    eff.list$OR <- NULL #odds not defined if the outcome is outside [0, 1]
+  }
   n <- nrow(IC)
 
   measures.IC <- lapply(eff.list, GetSummary, var(IC), n)
@@ -1389,20 +1413,6 @@ summary.ltmleEffectMeasures <- function(object, estimator=ifelse(object$gcomp, "
     if (!is.na(std.dev.diff) && (std.dev.diff > 0)) { #can be NA if all Y_d are near 0 or 1
       measures.max[[i]] <- measures.variance.estimate[[i]]
     }
-  }
-  if (object$transformOutcome) {
-    #transform back to original scale
-    Yrange <- attr(object$transformOutcome, "Yrange")
-    measures.max <- lapply(measures.max, function (x) {
-      x$estimate <- x$estimate * diff(Yrange)
-      x$std.dev <- x$std.dev * diff(Yrange)
-      x$CI <- x$CI * diff(Yrange)
-      if (x$long.name %in% c("Treatment Estimate", "Control Estimate")) {
-        x$estimate <- x$estimate + min(Yrange)
-        x$CI <- x$CI + min(Yrange)
-      }
-      return(x)
-    })
   }
   ans <- list(call=object$call, effect.measures=measures.max, variance.estimate.ratio=info$variance.estimate.ratio, estimator=estimator)
   class(ans) <- "summary.ltmleEffectMeasures"

@@ -1,0 +1,13 @@
+^\.github$
+^vignettes/articles$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.DS_Store$
+^ltmle\.Rcheck$
+^ltmle_.*\.tar\.gz$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^cran-comments\.md$
+^CRAN-SUBMISSION$
+^index\.md$

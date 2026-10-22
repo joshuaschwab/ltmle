@@ -1,22 +1,30 @@
 context("Test summary.ltmle") 
 
-test_that("OR and RR are not calculated when Y is not binary", {
-	n <- 100
+test_that("which effect measures are returned depends on the range of Y", {
+  n <- 100
   data <- data.frame(W = rnorm(n),
                      A = rbinom(n, 1, .5), 
                      Y = rbinom(n, 2, .5)/2)
 
+  # non-binary Y in [0, 1]: RR and OR are both returned
   r1 <- ltmle(data, Anodes="A", Ynodes="Y", abar=list(1, 0), variance.method="ic")
-
   s <- summary(r1)
+  expect_equal(names(s$effect.measures), c("treatment", "control", "ATE", "RR", "OR"))
 
-  expect_that(names(s$effect.measures), equals(c("treatment", "control", "ATE")))
-
+  # binary Y: RR and OR are both returned
   t1 <- ltmle(transform(data, Y=round(Y)), Anodes="A", Ynodes="Y", abar=list(1, 0), survivalOutcome=FALSE, estimate.time = FALSE, variance.method = "ic")
   u <- summary(t1)
+  expect_equal(names(u$effect.measures), c("treatment", "control", "ATE", "RR", "OR"))
 
-  expect_that(names(u$effect.measures), equals(c("treatment", "control", "ATE", "RR", "OR")))
+  # nonnegative Y outside [0, 1]: RR only
+  v1 <- ltmle(transform(data, Y=Y*10), Anodes="A", Ynodes="Y", abar=list(1, 0), estimate.time = FALSE, variance.method = "ic")
+  v <- summary(v1)
+  expect_equal(names(v$effect.measures), c("treatment", "control", "ATE", "RR"))
 
+  # Y can be negative: neither RR nor OR
+  w1 <- ltmle(transform(data, Y=Y-0.5), Anodes="A", Ynodes="Y", abar=list(1, 0), estimate.time = FALSE, variance.method = "ic")
+  w <- summary(w1)
+  expect_equal(names(w$effect.measures), c("treatment", "control", "ATE"))
 })
 
 test_that("CI is truncated if outcome is binary", {

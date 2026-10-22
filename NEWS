@@ -1,3 +1,7 @@
+ltmle 1.3-0-9001
+===========
+* summary() for ltmle objects with two regimes now returns the relative risk for non-binary outcomes that can't be negative, computed as the ratio of original-scale treatment and control means with delta-method standard errors. The odds ratio is also returned when the outcome is within [0, 1]. Binary-outcome results are unchanged. This also fixes an error when a binary outcome was run with Yrange = c(0, 1).
+
 ltmle 1.3-0
 ===========
 * Apply deterministic.Q.function before UpdateQ instead of after
